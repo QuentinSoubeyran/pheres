@@ -1,0 +1,5 @@
+__author__ = "Quentin Soubeyran"
+__copyright__ = "Copyright 2020, Quentin Soubeyran"
+__license__ = "MIT"
+__version__ = "1.0a1"
+__name__ = "jsonplus"
