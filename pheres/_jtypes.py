@@ -2,7 +2,7 @@
 """
 Module for introspecting types in JSON
 
-Part of the JsonPlus package
+Part of the Pheres package
 """
 # stdlib import
 from itertools import repeat

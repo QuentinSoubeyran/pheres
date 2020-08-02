@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Small utility module that expands the builtin module 'json'
+Utility module that expands the builtin module 'json'
 """
 from json import *
 
-from ._module_data import *
+from .metadata import *
 from ._jtypes import *
 from ._utils import *
 from ._jsonize import *

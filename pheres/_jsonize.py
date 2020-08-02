@@ -2,7 +2,7 @@
 """
 module for simple (de)serialization (from)to JSON in python
 
-Part of the JsonPlus package
+Part of the Pheres package
 """
 # stdlib import
 from abc import ABC, abstractmethod

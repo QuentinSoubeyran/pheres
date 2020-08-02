@@ -2,7 +2,7 @@
 """
 module with utilities for using and transforming JSON
 
-Part of the JsonPlus package
+Part of the Pheres package
 """
 # stdlib import
 from typing import Dict, List, Tuple, Union

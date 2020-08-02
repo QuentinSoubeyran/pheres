@@ -2,11 +2,12 @@
 """
 Module with various internal miscs
 
-Part of the JsonPlus package
+Part of the Pheres package
 """
 
 import functools
 import inspect
+from metadata import __name__
 
 
 class AutoFormatMixin(Exception):
@@ -38,6 +39,4 @@ class AutoFormatMixin(Exception):
 
 
 class JsonError(Exception):
-    """
-    Base exception for the jsonplus module
-    """
+    f"""Base exception for the {__name__} module"""
