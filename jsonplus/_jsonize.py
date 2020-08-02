@@ -23,8 +23,6 @@ __all__ = [
     # Errors
     "JsonableError",
     "JAttrError",
-    "JAttrConflictError",
-    "JsonableConfictError",
     # Jsonable API
     ## Jsonable Mixin
     "jsonize",
@@ -58,14 +56,6 @@ class JAttrError(JsonableError):
     """
 
 
-class JAttrConflictError(JsonableError):
-    """Exception for jsonized attribute name conflict"""
-
-
-class JsonableConfictError(JsonableError):
-    """Exception for conflicts between Jsonable subclasses"""
-
-
 # @dataclass(frozen=True)
 # class JsonAttr:
 #     f"""
@@ -95,7 +85,7 @@ def jsonize(
     type_hint: TypeHint,
     name: str = None,
     default: JsonType = MISSING,
-    values: Union[JsonLiteral, Iterable[JsonLiteral]] = None,
+    #values: Union[JsonLiteral, Iterable[JsonLiteral]] = None,
 ) -> TypeHint:
     f"""
     Return the type hint that marks an attribute as jsonized in a {__name__}.Jsonable subclass.
@@ -103,7 +93,7 @@ def jsonize(
     Arguments
         type_hint - the type hint of the attributes. Must be valid for JSON (this includes sublass of Jsonable)
         name      - name of the attribute in JSON. Otherwise, the name is the same as in python
-        value     - require this attributes to always have one of the fixed value in JSON. Useful to resolve conflicts
+        default   - default value of the jsonized attribute
     
     Returns
         A special type hint that marks the attributes as jsonized
@@ -115,23 +105,7 @@ def jsonize(
         raise JAttrError(
             "Default value for jsonized attribute must be a valid JSON value"
         )
-    if values is not None:
-        if default is not MISSING:
-            raise JAttrError(
-                "Jsonized attributes cannot have a default value and exact value(s)"
-            )
-        if isinstance(values, (bool, int, str)):
-            values = [values]
-        if not isinstance(values, Iterable):
-            raise JAttrError(
-                f"Jsonized attributes exact value must be bool, int or str (or a list thereof), got {values}"
-            )
-        for value in values:
-            if not isinstance(values, (bool, int, str)):
-                raise JAttrError(
-                    f"Jsonized attributes exact value must be bool, int or str, got {value}"
-                )
-    kwargs = {"name": name, "default": default, "values": values}
+    kwargs = {"name": name, "default": default}
     return Union[
         JsonAttr, Literal[repr(kwargs)], type_hint
     ]  # Ugly hack for python 3.8; waiting on python 3.9's typing.Annotated
@@ -154,7 +128,7 @@ class _JsonisedAttribute:
     py_name: str
     type_hint: TypeHint
     default: object = MISSING
-    literal_values: Union[List[Union[bool, int, str]], object] = field(
+    literal_values: List[Union[bool, int, str]] = field(
         default=None, init=False, hash=True
     )
 
@@ -231,8 +205,8 @@ def _get_jsonised_attr(cls: type):
     for i, jattr in enumerate(jsonized_attrs):
         for other in jsonized_attrs[i + 1 :]:
             if jattr.name == other.name:
-                raise JAttrConflictError(
-                    f"Jsonized attributes {jattr.py_name} and {other.py_name} have the same name in json"
+                raise JAttrError(
+                    f"Jsonized attributes {jattr.py_name} and {other.py_name} have the same json name"
                 )
     return jsonized_attrs
 
@@ -293,8 +267,8 @@ class Jsonable:
                 and _is_jattr_subset(req_jattrs, other_cls._ALL_JATTRS)
                 and _is_jattr_subset(other_cls._REQ_JATTRS, all_jattrs)
             ):
-                raise JsonableConfictError(
-                    f"Jsonable subclasses '{cls.__name__}' and '{other_cls.__name__}' have overlapping JSON representation without being subclasses"
+                raise JsonableError(
+                    f"Jsonable '{cls.__name__}' overlaps with '{other_cls.__name__}' without inheriting from it"
                 )
         cls._REQ_JATTRS = req_jattrs
         cls._ALL_JATTRS = all_jattrs

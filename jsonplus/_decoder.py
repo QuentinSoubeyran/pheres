@@ -19,9 +19,20 @@ Partial recoding of the stdlib json module to support Jsonable decoding
 # Standard library import
 from dataclasses import dataclass
 from functools import partial
+from itertools import chain
 from json import JSONDecodeError
-import typing
-from typing import Dict, Iterable, List, Literal, Optional, Tuple, Type, Union
+from typing import (
+    Dict,
+    Iterable,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    get_origin,
+    get_args,
+)
 
 # import of stdlib 'json' module internals
 # Those are not part of the public API
@@ -45,19 +56,21 @@ def sync_filter(func, *iterables):
     Filter multiple iterable at once, selecting values at index i
     such that func(iterables[0][i], iterables[1][i], ...) is True
     """
-    return tuple(zip(*tuple(i for i in zip(*iterables) if func(*i)))) or ((),) * len(iterables)
+    return tuple(zip(*tuple(i for i in zip(*iterables) if func(*i)))) or ((),) * len(
+        iterables
+    )
 
 
 def typecheck(tp, value) -> bool:
     """internal helper - Type check a value against a JSON type hint"""
     if tp in _JsonValueTypes:
         return isinstance(value, tp)
-    elif (orig := typing.get_origin(tp)) is None and issubclass(tp, Jsonable):
+    elif (orig := get_origin(tp)) is None and issubclass(tp, Jsonable):
         return isinstance(value, tp)
     elif orig is Literal:
-        return value in typing.get_args(tp)
+        return value in get_args(tp)
     elif orig is Union:
-        return any(typecheck(arg, value) for arg in typing.get_args(tp))
+        return any(typecheck(arg, value) for arg in get_args(tp))
     raise JsonError("[BUG] Unhandled typecheck")
 
 
@@ -67,9 +80,7 @@ class DecodeContext:
     start: int
     type_hints: List[Type[Type]]  # type of the value to decode
     jsonable: Optional[type] = None  # Last Jsonable subclass seen
-    key: Tuple[
-        str, ...
-    ] = ()  # Key of the last Jsonable subclass currently decoding
+    key: Tuple[str, ...] = ()  # Key of the last Jsonable subclass currently decoding
     upper_context: "DecodeContext" = None
 
     cur_key = None
@@ -78,23 +89,25 @@ class DecodeContext:
         if not isinstance(self.type_hints, tuple):
             if isinstance(self.type_hints, Iterable):
                 self.type_hints = tuple(self.type_hints)
-            elif typing.get_origin(self.type_hints) is Union:
-                self.type_hints = typing.get_args(self.type_hints)
             else:
                 self.type_hints = (self.type_hints,)  # 1-tuple
+        self.type_hints = tuple(
+            chain.from_iterable(
+                get_args(tp) if get_origin(tp) is Union else (tp,)
+                for tp in self.type_hints
+            )
+        )
         self.tps = self.type_hints
-        self.origs = tuple(typing.get_origin(tp) for tp in self.type_hints)
-        self.args = tuple(typing.get_args(tp) for tp in self.type_hints)
+        self.origs = tuple(get_origin(tp) for tp in self.type_hints)
+        self.args = tuple(get_args(tp) for tp in self.type_hints)
 
     def prefix_msg(self, msg: str):
         """Prefix a message with context infos"""
         return (
             "".join(
                 [
-                    f"While deserializing a {self.jsonable.__name__} object, "
-                    if self.jsonable
-                    else "",
-                    f"Under key {self.key!s}, " if self.key else "",
+                    f"In '{self.jsonable.__name__}' object, " if self.jsonable else "",
+                    f"at {self.key!s}, " if self.key else "",
                 ]
             )
             + msg
@@ -102,7 +115,8 @@ class DecodeContext:
 
     def get_msg(self, value=Ellipsis, match=None):
         return self.prefix_msg(
-            f"Expected value matching {match or Union[self.type_hints]}"
+            "Expected "
+            + (match if match else f"type {Union[self.type_hints]}")
             + (f", got {value!s}" if value is not Ellipsis else "")
             + ", at"
         )
@@ -116,7 +130,9 @@ class DecodeContext:
             self.args,
         )
         if not self.tps:
-            raise TypedJSONDecodeError(self.get_msg(), self.string, self.start)
+            raise TypedJSONDecodeError(
+                self.get_msg("'Object'"), self.string, self.start
+            )
 
     def notify_array(self):
         self.tps, self.origs, self.args = sync_filter(
@@ -126,14 +142,14 @@ class DecodeContext:
             self.args,
         )
         if not self.tps:
-            raise TypedJSONDecodeError(self.get_msg(), self.string, self.start)
+            raise TypedJSONDecodeError(self.get_msg("'Array'"), self.string, self.start)
 
     def notify_value(self, value):
         if self.cur_key is None:
             raise JsonError(
                 "[!! This is a bug !! Please report] Anomalous notification of DecodeContext"
             )
-        prev_tps = self.tps
+        old_tps = self.tps
         if isinstance(self.cur_key, int):
             self.tps, self.origs, self.args = sync_filter(
                 lambda tp, orig, args: typecheck(
@@ -164,7 +180,11 @@ class DecodeContext:
         if not self.tps:
             self.key = (*self.key, self.cur_key)
             raise TypedJSONDecodeError(
-                self.get_msg(value, prev_tps), self.string, self.start
+                self.prefix_msg(
+                    f"{type(value).__name__} does not match inferred type {Union[old_tps]}, at"
+                ),
+                self.string,
+                self.start,
             )
 
     def __getitem__(self, key_and_start):
@@ -181,7 +201,7 @@ class DecodeContext:
             )
             if not self.tps:
                 raise TypedJSONDecodeError(
-                    self.get_msg(f"an array of length >= {key+1}"),
+                    self.get_msg(f"'Array' of length >= {key+1}"),
                     self.string,
                     self.start,
                 )
@@ -215,7 +235,7 @@ class DecodeContext:
             if not self.tps:
                 raise TypedJSONDecodeError(
                     self.prefix_msg(
-                        f"Key '{key}' is invalid for type {Union[old_tps]} (previous keys may have narrowed the type), at"
+                        f"inferred type {Union[old_tps]} has not key '{key}', at"
                     ),
                     self.string,
                     self.start,
@@ -247,17 +267,21 @@ class DecodeContext:
         return val, end
 
     def check_object(self, obj, end):
-        jsonable_cls = [
+        cls_list = [
             tp
             for tp, orig in zip(self.tps, self.origs)
             if orig is None and issubclass(tp, Jsonable)
         ]
-        if len(jsonable_cls) > 1:
+        cls_list = [
+            cls for i, cls in enumerate(cls_list)
+            if all(not issubclass(cls, other) for other in cls_list[i+1:])
+        ]
+        if len(cls_list) > 1:
             raise JsonError(
                 "[!! This is a bug !! Please report] Multiple Jsonable subclass available at deserialization"
             )
-        if jsonable_cls:
-            cls = jsonable_cls[0]
+        if cls_list:
+            cls = cls_list[0]
             return (
                 cls(
                     **{
@@ -278,7 +302,9 @@ class DecodeContext:
         )
         if not self.origs:
             raise TypedJSONDecodeError(
-                self.prefix_msg(f"the value {array} miss keys to match {self.tps}, at"),
+                self.prefix_msg(
+                    f"{array} is incomplete for inferred type {self.tps}, at"
+                ),
                 self.string,
                 self.start,
             )

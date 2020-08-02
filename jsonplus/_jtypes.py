@@ -40,7 +40,7 @@ JsonType = Union[JsonValue, JsonArray, JsonObject]
 TypeHint = Type[List]
 
 # Constant
-_JsonValueTypes = [type(None), bool, int, float, str]
+_JsonValueTypes = (type(None), bool, int, float, str)
 
 
 class JsonTypeError(AutoFormatMixin, JsonError):
@@ -95,7 +95,7 @@ def typeof(obj: JsonType) -> Type[JsonType]:
     """
     from ._jsonize import Jsonable  # delayed import to avoid circular deps
 
-    if obj is None or isinstance(obj, (int, float, str)):
+    if obj is None or isinstance(obj, _JsonValueTypes):
         return JsonValue
     elif isinstance(obj, list):
         return JsonArray
@@ -105,16 +105,19 @@ def typeof(obj: JsonType) -> Type[JsonType]:
 
 
 def is_json(obj: object) -> bool:
-    """Check if a python object is valid JSON
-    
-    Implemented by trying typeof(obj) and catching JsonType errors
-    """
-    try:
-        typeof(obj)
-        return True
-    except JsonTypeError:
-        return False
+    """Check if a python object is valid JSON"""
+    from ._jsonize import Jsonable
 
+    type_ = type(obj)
+    if type_ in _JsonValueTypes:
+        return True
+    elif issubclass(type_, Jsonable):
+        return True
+    elif type_ is list:
+        return all(is_json(val) for val in obj)
+    elif type_ is dict:
+        return all(type(key) is str and is_json(val) for key, val in obj.items())
+    return False
 
 def is_number(obj: JsonType) -> bool:
     """
