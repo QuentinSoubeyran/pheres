@@ -17,10 +17,12 @@ Partial recoding of the stdlib json module to support Jsonable decoding
 # The PSL authorize such derivative work (see PYTHON-LICENSE file)
 
 # Standard library import
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from functools import partial
+import functools
 from itertools import chain
-from json import JSONDecodeError
+from json import JSONDecodeError, JSONDecoder
+import types
 from typing import (
     Dict,
     Iterable,
@@ -34,18 +36,26 @@ from typing import (
     get_args,
 )
 
-# import of stdlib 'json' module internals
+# Local import
+from .jsonize import JSONable
+from .jtyping import (
+    JsonArray,
+    JsonObject,
+    _JsonValueTypes,
+    normalize_json_tp,
+    typecheck,
+)
+from .misc import JsonError
+
+# import internals of stdlib 'json' module
 # Those are not part of the public API
 from json.decoder import WHITESPACE, WHITESPACE_STR, scanstring
 from json.scanner import NUMBER_RE
 
-# Local import
-from ._misc import JsonError
-from ._jsonize import Jsonable
-from ._jtypes import JsonArray, JsonObject, _JsonValueTypes
+__all__ = ["TypedJSONDecodeError", "TypedJSONDecoder"]
 
 
-class TypedJSONDecodeError(JSONDecodeError):
+class TypedJSONDecodeError(JsonError, JSONDecodeError):
     """
     Raised when the decoded type is not the expected one
     """
@@ -59,19 +69,6 @@ def sync_filter(func, *iterables):
     return tuple(zip(*tuple(i for i in zip(*iterables) if func(*i)))) or ((),) * len(
         iterables
     )
-
-
-def typecheck(tp, value) -> bool:
-    """internal helper - Type check a value against a JSON type hint"""
-    if tp in _JsonValueTypes:
-        return isinstance(value, tp)
-    elif (orig := get_origin(tp)) is None and issubclass(tp, Jsonable):
-        return isinstance(value, tp)
-    elif orig is Literal:
-        return value in get_args(tp)
-    elif orig is Union:
-        return any(typecheck(arg, value) for arg in get_args(tp))
-    raise JsonError("[BUG] Unhandled typecheck")
 
 
 @dataclass
@@ -124,7 +121,7 @@ class DecodeContext:
     def notify_object(self):
         self.tps, self.origs, self.args = sync_filter(
             lambda tp, orig, args: orig is dict
-            or (orig is None and issubclass(tp, Jsonable)),
+            or (isinstance(tp, type) and issubclass(tp, JSONable)),
             self.tps,
             self.origs,
             self.args,
@@ -223,8 +220,8 @@ class DecodeContext:
                 lambda tp, orig, args: (
                     orig is dict
                     or (
-                        orig is None
-                        and issubclass(tp, Jsonable)
+                        isinstance(tp, type)
+                        and issubclass(tp, JSONable)
                         and any(jattr.name == key for jattr in tp._ALL_JATTRS)
                     )
                 ),
@@ -267,14 +264,15 @@ class DecodeContext:
         return val, end
 
     def check_object(self, obj, end):
+        cls_list = list(
+            filter(
+                lambda tp: isinstance(tp, type) and issubclass(tp, JSONable), self.tps
+            )
+        )
         cls_list = [
-            tp
-            for tp, orig in zip(self.tps, self.origs)
-            if orig is None and issubclass(tp, Jsonable)
-        ]
-        cls_list = [
-            cls for i, cls in enumerate(cls_list)
-            if all(not issubclass(cls, other) for other in cls_list[i+1:])
+            cls
+            for i, cls in enumerate(cls_list)
+            if all(not issubclass(cls, other) for other in cls_list[i + 1 :])
         ]
         if len(cls_list) > 1:
             raise JsonError(
@@ -517,3 +515,98 @@ def JSONArray(s_and_end, scan_once, ctx, _w=WHITESPACE.match, _ws=WHITESPACE_STR
             pass
 
     return ctx.check_array(values, end)
+
+
+def _tp_cache(func):
+    """Wrapper caching __class_getitem__ on type hints
+
+    Provides a fallback if arguments are not hashable    
+    """
+    cache = functools.lru_cache()(func)
+
+    @functools.wraps(func)
+    def wrapper(type_hint):
+        try:
+            return cache(type_hint)
+        except TypeError as err:  # unhashable args
+            print(err)
+            pass
+        return func(type_hint)
+
+    return wrapper
+
+
+def _exec_body(namespace, type_hint):
+    """Internal helper to initialize parametrized TypedJSONDecoder"""
+    namespace["type_hint"] = property(lambda self: type_hint)
+
+
+class TypedJSONDecoder(ABC, JSONDecoder):
+    """
+    JSONDecoder subclass to typed JSON decoding
+
+    The type to decode must be provided my indexing this class by
+    a tye hint, like in the 'typing' module. The type hint must be
+    valid in a JSON context.
+
+    Jsonable subclasses are supported, as this is the whole point
+    of that class
+
+    Example:
+
+    # type check that all values are int
+    json.load(..., cls=JSONableDecoder[Dict[str, int]])
+    """
+
+    @property
+    @abstractmethod
+    def type_hint(self):
+        """Type hint that this decoder decodes"""
+
+    @classmethod
+    @_tp_cache
+    def _class_getitem_cache(cls, tp):
+        """Parametrize the TypedJSONDecoder to decode the provided type hint
+
+        Jsonable subclasses are supported
+        """
+        return types.new_class(
+            "ParametrizedTypedJSONDecoder",
+            (cls,),
+            exec_body=functools.partial(_exec_body, type_hint=tp),
+        )
+
+    def __class_getitem__(cls, tp):
+        """Parametrize the TypedJSONDecoder to decode the provided type hint
+
+        Jsonable subclasses are supported
+        """
+        tp = normalize_json_tp(tp)
+        return cls._class_getitem_cache(tp)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Replace default decoder by our contextualized decoder
+        self.parse_object = JSONObject
+        self.parse_array = JSONArray
+        self.scan_once = py_make_scanner(self)
+
+    @functools.wraps(JSONDecoder.raw_decode)
+    def raw_decode(self, s, idx=0):
+        try:
+            obj, end = self.scan_once(
+                s,
+                idx,
+                ctx=DecodeContext(
+                    string=s,
+                    start=idx,
+                    type_hints=self.type_hint,
+                    jsonable=self.type_hint
+                    if isinstance(self.type_hint)
+                    and issubclass(self.type_hint, JSONable)
+                    else None,
+                ),
+            )
+        except StopIteration as err:
+            raise JSONDecodeError("Expecting value", s, err.value) from None
+        return obj, end

@@ -7,7 +7,10 @@ Part of the Pheres package
 
 import functools
 import inspect
-from metadata import __name__
+
+from .metadata import name
+
+__all__ = ["JsonError"]
 
 
 class AutoFormatMixin(Exception):
@@ -31,6 +34,8 @@ class AutoFormatMixin(Exception):
                 bound_args.arguments["message"] = msg.format(**bound_args.arguments)
             return init_method(*bound_args.args, **bound_args.kwargs)
 
+        wrapped_init.__signature__ = init_sig
+
         return wrapped_init
 
     def __init_subclass__(cls, **kwargs):
@@ -39,4 +44,20 @@ class AutoFormatMixin(Exception):
 
 
 class JsonError(Exception):
-    f"""Base exception for the {__name__} module"""
+    f"""Base exception for the {name} module
+    
+    Raised as-is in case of bug. Only subclasses are normaly raised
+    """
+
+
+def split(function, iterable):
+    """split an iterable based on the boolean value of the function
+
+    return two tuples """
+    falsy, truthy = [], []
+    functools.reduce(
+        lambda appends, next: appends[bool(function(next))](next) or appends,
+        iterable,
+        (falsy.append, truthy.append),
+    )
+    return tuple(falsy), tuple(truthy)

@@ -8,9 +8,30 @@ Part of the Pheres package
 from typing import Dict, List, Tuple, Union
 
 # Local import
-from ._jtypes import JsonError, JsonType, JsonValue, JsonArray, JsonObject, typeof
+from .jtyping import (
+    JsonError,
+    JsonTypeError,
+    JsonType,
+    JsonValue,
+    JsonArray,
+    JsonObject,
+    typeof,
+)
+from .misc import JsonError, AutoFormatMixin
+
+from . import metadata
+
+__version__ = metadata.version
+__status__ = metadata.status
+__author__ = metadata.author
+__copyright__ = metadata.copyright
+__license__ = metadata.license
+__maintainer__ = metadata.maintainer
+__email__ = metadata.email
 
 __all__ = [
+    # Errors
+    "JsonKeyError",
     # Types
     "FlatKey",
     "FlatJson",
@@ -23,6 +44,22 @@ __all__ = [
 # Types used in his module
 FlatKey = Tuple[Union[int, str], ...]
 FlatJson = Dict[FlatKey, JsonValue]
+
+
+class JsonKeyError(AutoFormatMixin, JsonError):
+    """Raised when a JSON array/object doesn't have the specified key
+
+    Attributes:
+        obj -- object with the missing key
+        key -- key that is missing
+        message -- explanation of the error
+    """
+
+    def __init__(self, obj, key, message="{obj} has no key '{key}'"):
+        super().__init__(self, message)
+        self.obj = obj
+        self.key = key
+        self.message = message
 
 
 def _flatten(flat_json: FlatJson, keys: FlatKey, obj: JsonType) -> FlatJson:
@@ -146,3 +183,76 @@ def compact(json_obj: JsonObject, *, sep="/") -> JsonObject:
                 continue
         ret[k] = v
     return ret
+
+
+def get(
+    obj: Union[JsonArray, JsonObject], key: Union[int, str, FlatKey], default=Ellipsis
+):
+    """Retrieve a value on a JSON array or object. Return Default if provided and the key is missing
+
+    Arguments
+        obj -- JSON array or object to retrive the value from
+        key -- key to index
+        default -- optional value to return if key is missing
+
+    Raises
+        JsonKeyError if the key is missing and 'default' is not provided
+    """
+    if not isinstance(key, tuple):
+        key = (key,)
+    try:
+        for k in key[:-1]:
+            obj = obj[k]
+        return obj[key[-1]]
+    except (IndexError, KeyError):
+        if default is not Ellipsis:
+            return default
+        raise JsonKeyError(obj, key) from None
+
+
+def has(obj: Union[JsonArray, JsonObject], key: Union[int, str, FlatKey]):
+    """Test if a JSON has the provided key
+
+    Implemented by calling get(obj, key) and catching JsonKeyError
+    """
+    try:
+        get(obj, key)
+        return True
+    except JsonKeyError:
+        return False
+
+
+def set(
+    obj: Union[JsonArray, JsonObject], key: Union[int, str, FlatKey], value: JsonObject
+):
+    """Sets the value of the key in the JSON
+
+    Possibly creates the full path at once
+    
+    Raises
+        IndexError -- when setting a value in a array past its length. Adding an element at
+            the end is supported
+    """
+    if not isinstance(key, tuple):
+        key = (key,)
+    k = key[0]
+    for next_key in key[1:]:
+        if isinstance(next_key, int):
+            next_obj = []
+        elif isinstance(next_key, str):
+            next_obj = {}
+        else:
+            raise JsonTypeError(
+                next_key,
+                message=f"JSON key must have type int or str, not {type(next_key)}",
+            )
+        if isinstance(obj, list) and k == len(obj):
+            obj.append(next_obj)
+        else:
+            obj[k] = next_obj
+        obj = next_obj
+        k = next_key
+    if isinstance(obj, list) and k == len(obj):
+        obj.append(value)
+    else:
+        obj[k] = value
