@@ -21,6 +21,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import functools
 from itertools import chain
+import json
 from json import JSONDecodeError, JSONDecoder
 import types
 from typing import (
@@ -607,3 +608,17 @@ class TypedJSONDecoder(ABC, JSONDecoder):
         except StopIteration as err:
             raise JSONDecodeError("Expecting value", s, err.value) from None
         return obj, end
+    
+    @classmethod
+    @functools.wraps(json.load)
+    def load(cls, *args, **kwargs):
+        if cls is TypedJSONDecoder:
+            raise TypeError(f"You must parametrize {cls.__name__} before using it")
+        return json.load(*args, cls=cls, **kwargs)
+    
+    @classmethod
+    @functools.wraps(json.loads)
+    def loads(cls, *args, **kwargs):
+        if cls is TypedJSONDecoder:
+            raise TypeError(f"You must parametrize {cls.__name__} before using it")
+        return json.loads(*args, cls=cls, **kwargs)
