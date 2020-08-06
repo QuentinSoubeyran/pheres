@@ -7,10 +7,14 @@ Part of the Pheres package
 
 import functools
 import inspect
+from typing import Callable, Dict, Iterable, Optional, TypeVar
 
 from .metadata import name
 
-__all__ = ["JsonError"]
+__all__ = ["JSONError"]
+
+U = TypeVar("U")
+V = TypeVar("V")
 
 
 class AutoFormatMixin(Exception):
@@ -43,7 +47,7 @@ class AutoFormatMixin(Exception):
         cls.__init__ = AutoFormatMixin._init_wrapper(cls.__init__)
 
 
-class JsonError(Exception):
+class JSONError(Exception):
     f"""Base exception for the {name} module
     
     Raised as-is in case of bug. Only subclasses are normaly raised
@@ -61,3 +65,56 @@ def split(function, iterable):
         (falsy.append, truthy.append),
     )
     return tuple(falsy), tuple(truthy)
+
+
+def _test_injection(matches, unassigned, availables, acc):
+    """internal helper for find_injection"""
+    if len(unassigned) == 0:
+        return acc
+    elem, *unassigned = unassigned
+    for match in matches[elem] & availables:
+        if (
+            result := _test_injection(
+                matches, unassigned, availables - {match}, {**{elem: match}, **acc}
+            )
+        ) is not None:
+            return result
+    # No match worked, or no match availabe anymore
+    return None
+
+
+def find_injection(
+    A: Iterable[U],
+    B: Iterable[V],
+    match_func: Callable[[U, V], bool],
+    validator_func: Callable[[Dict[U, V]], bool] = lambda _: True,
+) -> Optional[Dict[U, V]]:
+    """Assign an element b of B to each element a of A such that test_f(a, b) is True
+    and no element of B is used more than once
+
+    Arguments:
+        A -- iterable of element to match from. All element in A will be matched
+        B -- iterable if element to match to. Some elements may not be matched
+        match_func -- callable returning if an element from A can be matched with an element from B
+        validator_func -- (Optional) function validating the found(s) matching. If it return False,
+            the found matching is abandonned and another one is tried
+
+    Returns
+        The first matching found from A to B, such that all pairs satisfy match_func and the matching
+        satisfy validator_func
+
+        return None if no such matching exists
+    """
+    A = list(A)
+    B = list(B)
+    # Quick test
+    if len(A) > len(B) or len(A) == 0:
+        return None
+    # Find possible matches
+    matches = {
+        i: {j for j, b in enumerate(B) if match_func(a, b)} for i, a in enumerate(A)
+    }
+    injection = _test_injection(matches, list(range(len(A))), set(range(len(B))), {})
+    if injection is not None:
+        return {A[a_index]: B[b_index] for a_index, b_index in injection.items()}
+    return None

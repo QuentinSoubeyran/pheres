@@ -5,48 +5,42 @@ module with utilities for using and transforming JSON
 Part of the Pheres package
 """
 # stdlib import
+from collections.abc import Iterable
 from typing import Dict, List, Tuple, Union
 
 # Local import
 from .jtyping import (
-    JsonError,
-    JsonTypeError,
-    JsonType,
-    JsonValue,
-    JsonArray,
-    JsonObject,
+    JSONError,
+    JSONTypeError,
+    JSONType,
+    JSONValue,
+    JSONArray,
+    JSONObject,
     typeof,
 )
-from .misc import JsonError, AutoFormatMixin
-
-from . import metadata
-
-__version__ = metadata.version
-__status__ = metadata.status
-__author__ = metadata.author
-__copyright__ = metadata.copyright
-__license__ = metadata.license
-__maintainer__ = metadata.maintainer
-__email__ = metadata.email
+from .misc import JSONError, AutoFormatMixin
 
 __all__ = [
     # Errors
-    "JsonKeyError",
+    "JSONKeyError",
     # Types
     "FlatKey",
-    "FlatJson",
+    "FlatJSON",
     # Processing utilities
     "flatten",
     "expand",
     "compact",
+    "get",
+    "has",
+    "set"
 ]
 
 # Types used in his module
 FlatKey = Tuple[Union[int, str], ...]
-FlatJson = Dict[FlatKey, JsonValue]
+FlatJSON = Dict[FlatKey, JSONValue]
 
 
-class JsonKeyError(AutoFormatMixin, JsonError):
+class JSONKeyError(AutoFormatMixin, JSONError):
     """Raised when a JSON array/object doesn't have the specified key
 
     Attributes:
@@ -62,27 +56,27 @@ class JsonKeyError(AutoFormatMixin, JsonError):
         self.message = message
 
 
-def _flatten(flat_json: FlatJson, keys: FlatKey, obj: JsonType) -> FlatJson:
+def _flatten(flat_json: FlatJSON, keys: FlatKey, obj: JSONType) -> FlatJSON:
     """
     Helper function to flatten a json object
     """
     jtype = typeof(obj)
-    if jtype is JsonValue:
+    if jtype is JSONValue:
         flat_json[keys] = obj
-    elif jtype is JsonArray:
+    elif jtype is JSONArray:
         for index, value in enumerate(obj):
             _flatten(flat_json, (*keys, index), value)
-    elif jtype is JsonObject:
+    elif jtype is JSONObject:
         for key, value in obj.itesm():
             _flatten(flat_json, (*keys, key), value)
     else:
-        raise JsonError(
+        raise JSONError(
             f"[!! This is a bug !! Please report] Unhandled json type {jtype} in flatten()"
         )
     return flat_json
 
 
-def flatten(obj: JsonObject) -> FlatJson:
+def flatten(obj: JSONObject) -> FlatJSON:
     """
     Flattens a JSON object to a dict with a single level of mapping. Key become tuples that store the
     path from the top-level object down to the value. Object keys are stored as str, Array index as int
@@ -96,7 +90,7 @@ def flatten(obj: JsonObject) -> FlatJson:
     return _flatten({}, tuple(), obj)
 
 
-def _expand(flat_json: FlatJson, array_as_dict: bool, sort: bool, pre_keys: FlatKey):
+def _expand(flat_json: FlatJSON, array_as_dict: bool, sort: bool, pre_keys: FlatKey):
     """
     Helper function for expand
     """
@@ -107,7 +101,7 @@ def _expand(flat_json: FlatJson, array_as_dict: bool, sort: bool, pre_keys: Flat
             groups.setdefault(keys[0], {})[keys[1:]] = value
         elif keys[0] in groups:
             raise ValueError(
-                f"Flat key {pre_keys + keys} has mixed json type: JsonValue and other"
+                f"Flat key {pre_keys + keys} has mixed json type: JSONValue and other"
             )
         else:
             groups[keys[0]] = value
@@ -118,7 +112,7 @@ def _expand(flat_json: FlatJson, array_as_dict: bool, sort: bool, pre_keys: Flat
         type_ = list
     else:
         raise ValueError(
-            f"Flat key {pre_keys} has mixed json type: JsonArray and JsonObject"
+            f"Flat key {pre_keys} has mixed json type: JSONArray and JSONObject"
         )
     # Expand sub-values
     for key, value in groups.items():
@@ -139,19 +133,19 @@ def _expand(flat_json: FlatJson, array_as_dict: bool, sort: bool, pre_keys: Flat
 
 
 def expand(
-    flat_json: FlatJson, *, array_as_dict: bool = False, sort: bool = True
-) -> JsonObject:
+    flat_json: FlatJSON, *, array_as_dict: bool = False, sort: bool = True
+) -> JSONObject:
     """
-    Expand a flat JSON back into a Json object. This is the inverse operation of flatten().
+    Expand a flat JSON back into a JSON object. This is the inverse operation of flatten().
     If there are duplicated values under the same key, a random one is kept
 
     Arguments
         flat_json -- flat json to expand
-        array_as_dict -- represent arrays as dict[int, JsonValue] instead of list
-        sort -- sort JsonObject by keys
+        array_as_dict -- represent arrays as dict[int, JSONValue] instead of list
+        sort -- sort JSONObject by keys
     
     Returns
-        A Json object that is the expanded representation of the flat_json
+        A JSON object that is the expanded representation of the flat_json
     
     Raises
         ValueError -- the flat_json is invalid
@@ -159,7 +153,7 @@ def expand(
     return _expand(flat_json, array_as_dict, sort, tuple())
 
 
-def compact(json_obj: JsonObject, *, sep="/") -> JsonObject:
+def compact(json_obj: JSONObject, *, sep="/") -> JSONObject:
     """
     Returns a new dict-only json that is a copy of `json_obj` where keys with only one element are
     merged with their parent key
@@ -173,9 +167,9 @@ def compact(json_obj: JsonObject, *, sep="/") -> JsonObject:
     """
     ret = {}
     for k, v in json_obj.items():
-        if typeof(v) is JsonArray:
+        if typeof(v) is JSONArray:
             v = {str(i): elem for i, elem in enumerate(v)}
-        if typeof(v) is JsonObject:
+        if typeof(v) is JSONObject:
             v = compact(v, sep=sep)
             if len(v) == 1:
                 kp, v = next(iter(v.items()))
@@ -186,7 +180,7 @@ def compact(json_obj: JsonObject, *, sep="/") -> JsonObject:
 
 
 def get(
-    obj: Union[JsonArray, JsonObject], key: Union[int, str, FlatKey], default=Ellipsis
+    obj: Union[JSONArray, JSONObject], key: Union[int, str, FlatKey], default=Ellipsis
 ):
     """Retrieve a value on a JSON array or object. Return Default if provided and the key is missing
 
@@ -196,9 +190,11 @@ def get(
         default -- optional value to return if key is missing
 
     Raises
-        JsonKeyError if the key is missing and 'default' is not provided
+        JSONKeyError if the key is missing and 'default' is not provided
     """
-    if not isinstance(key, tuple):
+    if isinstance(key, Iterable) and not isinstance(key, str):
+        key = tuple(key)
+    else:
         key = (key,)
     try:
         for k in key[:-1]:
@@ -207,23 +203,23 @@ def get(
     except (IndexError, KeyError):
         if default is not Ellipsis:
             return default
-        raise JsonKeyError(obj, key) from None
+        raise JSONKeyError(obj, key) from None
 
 
-def has(obj: Union[JsonArray, JsonObject], key: Union[int, str, FlatKey]):
+def has(obj: Union[JSONArray, JSONObject], key: Union[int, str, FlatKey]):
     """Test if a JSON has the provided key
 
-    Implemented by calling get(obj, key) and catching JsonKeyError
+    Implemented by calling get(obj, key) and catching JSONKeyError
     """
     try:
         get(obj, key)
         return True
-    except JsonKeyError:
+    except JSONKeyError:
         return False
 
 
 def set(
-    obj: Union[JsonArray, JsonObject], key: Union[int, str, FlatKey], value: JsonObject
+    obj: Union[JSONArray, JSONObject], key: Union[int, str, FlatKey], value: JSONObject
 ):
     """Sets the value of the key in the JSON
 
@@ -233,7 +229,9 @@ def set(
         IndexError -- when setting a value in a array past its length. Adding an element at
             the end is supported
     """
-    if not isinstance(key, tuple):
+    if isinstance(key, Iterable) and not isinstance(key, str):
+        key = tuple(key)
+    else:
         key = (key,)
     k = key[0]
     for next_key in key[1:]:
@@ -242,7 +240,7 @@ def set(
         elif isinstance(next_key, str):
             next_obj = {}
         else:
-            raise JsonTypeError(
+            raise JSONTypeError(
                 next_key,
                 message=f"JSON key must have type int or str, not {type(next_key)}",
             )

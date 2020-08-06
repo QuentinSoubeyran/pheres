@@ -39,13 +39,10 @@ from typing import (
 # Local import
 from .jsonize import JSONable
 from .jtyping import (
-    JsonArray,
-    JsonObject,
-    _JsonValueTypes,
     normalize_json_tp,
     typecheck,
 )
-from .misc import JsonError
+from .misc import JSONError
 
 # import internals of stdlib 'json' module
 # Those are not part of the public API
@@ -55,7 +52,7 @@ from json.scanner import NUMBER_RE
 __all__ = ["TypedJSONDecodeError", "TypedJSONDecoder"]
 
 
-class TypedJSONDecodeError(JsonError, JSONDecodeError):
+class TypedJSONDecodeError(JSONError, JSONDecodeError):
     """
     Raised when the decoded type is not the expected one
     """
@@ -143,7 +140,7 @@ class DecodeContext:
 
     def notify_value(self, value):
         if self.cur_key is None:
-            raise JsonError(
+            raise JSONError(
                 "[!! This is a bug !! Please report] Anomalous notification of DecodeContext"
             )
         old_tps = self.tps
@@ -171,7 +168,7 @@ class DecodeContext:
                 self.args,
             )
         else:
-            raise JsonError(
+            raise JSONError(
                 "[!! This is a bug !! Please report] Anomalous notification of DecodeContext"
             )
         if not self.tps:
@@ -252,7 +249,7 @@ class DecodeContext:
                 key=(*self.key, key),
                 upper_context=self,
             )
-        raise JsonError(
+        raise JSONError(
             "[!! This is a bug !! Please report] Anomalous indexing of DecodeContext"
         )
 
@@ -275,7 +272,7 @@ class DecodeContext:
             if all(not issubclass(cls, other) for other in cls_list[i + 1 :])
         ]
         if len(cls_list) > 1:
-            raise JsonError(
+            raise JSONError(
                 "[!! This is a bug !! Please report] Multiple Jsonable subclass available at deserialization"
             )
         if cls_list:

@@ -1,5 +1,5 @@
 name = "pheres"
-version = "1.0a1"
+version = "1.0a2"
 py_version = "3.8"
 author = "Quentin Soubeyran"
 copyright = "Copyright 2020, Quentin Soubeyran"

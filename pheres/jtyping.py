@@ -22,57 +22,53 @@ from typing import (
 )
 
 # Local imports
-from .misc import AutoFormatMixin, JsonError, split
+from .misc import AutoFormatMixin, JSONError, split
 
 __all__ = [
     # Types
-    "JsonValue",
-    "JsonArray",
-    "JsonObject",
-    "JsonType",
+    "JSONValue",
+    "JSONArray",
+    "JSONObject",
+    "JSONType",
+    # Error
+    "JSONTypeError",
+    "TypeHintError",
+    "CycleError",
     # Type utilities
-    "JsonTypeError",
     "typeof",
     "is_json",
     "is_number",
     "is_value",
     "is_array",
     "is_object",
+    "typecheck",
+    # Type Hint utilities
+    "normalize_json_tp",
+    "is_json_type_hint",
+    "have_common_value"    
 ]
 
 # Type hint aliases for JSON
-JsonValue = Union[None, bool, int, float, str]
-JsonArray = Union[Tuple["JsonType", ...], List["JsonType"]]
-JsonObject = Union[Dict[str, "JsonType"], "JSONable"]
-JsonType = Union[JsonValue, JsonArray, JsonObject]
-JsonLiteral = Union[bool, int, str]
+JSONValue = Union[None, bool, int, float, str]
+JSONArray = Union[Tuple["JSONType", ...], List["JSONType"]]
+JSONObject = Union[Dict[str, "JSONType"], "JSONable"]
+JSONType = Union[JSONValue, JSONArray, JSONObject]
+JSONLiteral = Union[bool, int, str]
 
 # Type hint aliases for this module
 TypeHint = Type[List]
 
 # Constant
-_JsonLiteralTypes = (bool, int, str)
-_JsonValueTypes = (type(None), bool, int, float, str)
-_JsonArrayTypes = (tuple, list)
-_JsonObjectTypes = (dict,)
+_JSONLiteralTypes = (bool, int, str)
+_JSONValueTypes = (type(None), bool, int, float, str)
+_JSONArrayTypes = (tuple, list)
+_JSONObjectTypes = (dict,)
 
+##############
+# EXCEPTIONS #
+##############
 
-class CycleError(JsonError):
-    """
-    Raised when a value has cycles in it
-
-    Attributes:
-        obj -- cyclic object
-        cycle -- detected cycle
-        message -- explanation of the error
-    """
-
-    def __init__(self, obj, cycle, message="object has circular reference"):
-        super().__init__(message)
-        self.obj = obj
-
-
-class JsonTypeError(AutoFormatMixin, JsonError):
+class JSONTypeError(AutoFormatMixin, JSONError):
     """
     Raised when an object is not a valid JSON value, or on problems with types in JSON
 
@@ -86,7 +82,7 @@ class JsonTypeError(AutoFormatMixin, JsonError):
         self.obj = obj
 
 
-class TypeHintError(AutoFormatMixin, JsonError):
+class TypeHintError(AutoFormatMixin, JSONError):
     """
     Raised when a type hint is not valid for JSON values
 
@@ -101,36 +97,53 @@ class TypeHintError(AutoFormatMixin, JsonError):
         super().__init__(message)
         self.type_hint = type_hint
 
-
-def typeof(obj: JsonType) -> Type[JsonType]:
+class CycleError(JSONError):
     """
-    Return the type alias of the type of the passed Json object.
+    Raised when a value has cycles in it
+
+    Attributes:
+        obj -- cyclic object
+        cycle -- detected cycle
+        message -- explanation of the error
+    """
+
+    def __init__(self, obj, cycle, message="object has circular reference"):
+        super().__init__(message)
+        self.obj = obj
+
+##################
+# TYPE UTILITIES #
+##################
+
+def typeof(obj: JSONType) -> Type[JSONType]:
+    """
+    Return the type alias of the type of the passed JSON object.
     
     For nested types such as list or dict, the test is shallow
     and only checks the container type.
     The returned value is a type hints, equality testing must be done with `is`:
     
-    typeof({}) == JsonObject # undefined
-    typeof({}) is JsonObject # True
+    typeof({}) == JSONObject # undefined
+    typeof({}) is JSONObject # True
 
     Arguments
         obj -- object to get the type of
     
     Returns
-        JsonValue, JsonArray or JsonObject based on the type of the passed object
+        JSONValue, JSONArray or JSONObject based on the type of the passed object
     
     Raises
-        JsonTypeError if the passed object is not a valid JSON
+        JSONTypeError if the passed object is not a valid JSON
     """
     from .jsonize import JSONable
 
-    if obj is None or isinstance(obj, _JsonValueTypes):
-        return JsonValue
+    if obj is None or isinstance(obj, _JSONValueTypes):
+        return JSONValue
     elif isinstance(obj, (list, tuple)):
-        return JsonArray
+        return JSONArray
     elif isinstance(obj, (dict, JSONable)):
-        return JsonObject
-    raise JsonTypeError(obj)
+        return JSONObject
+    raise JSONTypeError(obj)
 
 
 def _is_json(obj: Any, rec_guard: Tuple[Any]) -> bool:
@@ -142,14 +155,14 @@ def _is_json(obj: Any, rec_guard: Tuple[Any]) -> bool:
     if obj in rec_guard:
         raise CycleError(obj, rec_guard[rec_guard.index(obj) :])
     type_ = type(obj)
-    if type_ in _JsonValueTypes:
+    if type_ in _JSONValueTypes:
         return True
     elif issubclass(type_, JSONable):
         return True
-    elif type_ in _JsonArrayTypes:
+    elif type_ in _JSONArrayTypes:
         rec_guard = (*rec_guard, obj)
         return all(_is_json(elem, rec_guard) for elem in obj)
-    elif type_ in _JsonObjectTypes:
+    elif type_ in _JSONObjectTypes:
         rec_guard = (*rec_guard, obj)
         return all(
             type(key) is str and _is_json(val, rec_guard) for key, val in obj.items()
@@ -181,6 +194,8 @@ def is_json(obj: Any) -> bool:
     True
     >>> is_json([None, True, 0, 0.1, "a string"])
     True
+    >>> is_json({1, 2, 3})
+    False
 
     Dictionary *must* have string as keys
 
@@ -198,7 +213,7 @@ def is_json(obj: Any) -> bool:
     return _is_json(obj, ())
 
 
-def is_number(obj: JsonType) -> bool:
+def is_number(obj: JSONType) -> bool:
     """
     Test if the JSON object is a JSON number
 
@@ -209,12 +224,12 @@ def is_number(obj: JsonType) -> bool:
         True if the object is a json number, False otherwise
     
     Raises
-        JsonTypeError if the object is not a valid JSON
+        JSONTypeError if the object is not a valid JSON
     """
     return type(obj) in (int, float)
 
 
-def is_value(obj: JsonType) -> bool:
+def is_value(obj: JSONType) -> bool:
     """
     Test if the JSON object is a JSON value
 
@@ -223,14 +238,14 @@ def is_value(obj: JsonType) -> bool:
     
     Return
         True if the object is a json value, False otherwise
-    
-    Raises
-        JsonTypeError if the object is not a valid JSON
     """
-    return typeof(obj) is JsonValue
+    try:
+        return typeof(obj) is JSONValue
+    except JSONTypeError:
+        return False
 
 
-def is_array(obj: JsonType) -> bool:
+def is_array(obj: JSONType) -> bool:
     """
     Test if the JSON object is a JSON Array
 
@@ -241,12 +256,15 @@ def is_array(obj: JsonType) -> bool:
         True if the object is a json array, False otherwise
     
     Raises
-        JsonTypeError if the object is not a valid JSON
+        JSONTypeError if the object is not a valid JSON
     """
-    return typeof(obj) is JsonArray
+    try:
+        return typeof(obj) is JSONArray
+    except JSONTypeError:
+        return False
 
 
-def is_object(obj: JsonType) -> bool:
+def is_object(obj: JSONType) -> bool:
     """
     Test if the JSON object is a JSON Object
 
@@ -257,10 +275,62 @@ def is_object(obj: JsonType) -> bool:
         True if the object is a json Object, False otherwise
     
     Raises
-        JsonTypeError if the object is not a valid JSON
+        JSONTypeError if the object is not a valid JSON
     """
-    return typeof(obj) is JsonObject
+    try:
+        return typeof(obj) is JSONObject
+    except JSONTypeError:
+        return False
 
+
+def typecheck(value: Any, tp: TypeHint) -> bool:
+    """Test that a JSON value matches a JSON type hint
+    
+    Arguments
+        tp -- type hint to check against. Must be normalized
+        value -- value to test
+    
+    Return
+        True if the value is valid for the type hint, False otherwise
+    
+    Raises
+        TypeHintError if the type hint could not be handled
+    """
+    from .jsonize import JSONable
+
+    if tp in _JSONValueTypes:
+        return isinstance(value, tp)
+    elif isinstance(tp, type) and issubclass(tp, JSONable):
+        return isinstance(value, tp)
+    elif (orig := get_origin(tp)) is Literal:
+        return value in get_args(tp)
+    elif orig is Union:
+        return any(typecheck(arg, value) for arg in get_args(tp))
+    elif orig in _JSONArrayTypes:
+        if orig is tuple:
+            args = get_args(tp)
+            return (
+                isinstance(value, _JSONArrayTypes)
+                and len(value) == len(args)
+                and all(typecheck(val, arg) for val, arg in zip(value, args))
+            )
+        elif orig is list:
+            tp = get_args(tp)[0]
+            return all(typecheck(val, tp) for val in value)
+        raise JSONError(f"[BUG] Unhandled typecheck {tp}")
+    elif orig in _JSONObjectTypes:
+        if orig is dict:
+            tp = get_args(tp)[1]
+            return all(
+                isinstance(key, str) and typecheck(val, tp)
+                for key, val in value.items()
+            )
+        raise JSONError(f"[BUG] Unhandled typecheck {tp}")
+    raise TypeHintError(tp, message="Unhandled type hint {type_hint} during type_check")
+
+########################
+# TYPE-HINTS UTILITIES #
+########################
 
 def _make_normalize():
     lock = RLock()
@@ -288,12 +358,12 @@ def _make_normalize():
             old_guard = guard
             try:
                 guard = guard | {tp}
-                if tp in _JsonValueTypes or (
+                if tp in _JSONValueTypes or (
                     isinstance(tp, type) and issubclass(tp, JSONable)
                 ):
                     return tp
                 elif (orig := get_origin(tp)) is Literal:
-                    if all(isinstance(lit, _JsonLiteralTypes) for lit in get_args(tp)):
+                    if all(isinstance(lit, _JSONLiteralTypes) for lit in get_args(tp)):
                         return tp
                 elif orig is Union:
                     lits, others = split(
@@ -303,12 +373,12 @@ def _make_normalize():
                     if lits:
                         return Union[(Literal[sum(map(get_args, lits), ())], *others)]
                     return Union[others]
-                elif orig in _JsonArrayTypes:
+                elif orig in _JSONArrayTypes:
                     args = get_args(tp)
                     if orig is list or (len(args) > 1 and args[1] is Ellipsis):
                         return List[normalize_json_tp(args[0])]
                     return Tuple[tuple(normalize_json_tp(arg) for arg in args)]
-                elif orig in _JsonObjectTypes:
+                elif orig in _JSONObjectTypes:
                     args = get_args(tp)
                     if args[0] is str:
                         return Dict[str, normalize_json_tp(args[1])]
@@ -326,7 +396,7 @@ del _make_normalize
 def is_json_type_hint(type_hint: TypeHint) -> bool:
     """Check that the type_hint is valid for JSON
 
-    Supports Jsonable subclasses. Implemented by calling
+    Supports JSONable subclasses. Implemented by calling
     normalize_json_tp() and catching TypeHintError
 
     Arguments
@@ -362,7 +432,7 @@ def have_common_value(ltp: TypeHint, rtp: TypeHint) -> bool:
         values = largs if lorig is Literal else rargs
         type_ = ltp if lorig is Literal else rtp
         return any(typecheck(v, type_) for v in values)
-    if ltp in _JsonValueTypes and rtp in _JsonValueTypes:
+    if ltp in _JSONValueTypes and rtp in _JSONValueTypes:
         return ltp == rtp or (ltp in (int, float) and rtp in (int, float))
     elif (
         isinstance(ltp, type)
@@ -373,7 +443,7 @@ def have_common_value(ltp: TypeHint, rtp: TypeHint) -> bool:
         return issubclass(ltp, rtp) or issubclass(rtp, ltp)
     elif lorig is rorig is Union:
         return any(have_common_value(lsub, rsub) for lsub in largs for rsub in rargs)
-    elif lorig in _JsonArrayTypes and rorig in _JsonArrayTypes:
+    elif lorig in _JSONArrayTypes and rorig in _JSONArrayTypes:
         lvariadic = lorig is list or len(largs) < 2 or largs[1] == Ellipsis
         rvariadic = rorig is list or len(rargs) < 2 or rargs[1] == Ellipsis
         if lvariadic and rvariadic:
@@ -391,49 +461,3 @@ def have_common_value(ltp: TypeHint, rtp: TypeHint) -> bool:
     elif lorig is rorig is dict:
         return have_common_value(largs[1], rargs[1])
     return False
-
-
-def typecheck(value: Any, tp: TypeHint) -> bool:
-    """Test that a JSON value matches a JSON type hint
-    
-    Arguments
-        tp -- type hint to check against. Must be normalized
-        value -- value to test
-    
-    Return
-        True if the value is valid for the type hint, False otherwise
-    
-    Raises
-        TypeHintError if the type hint could not be handled
-    """
-    from .jsonize import JSONable
-
-    if tp in _JsonValueTypes:
-        return isinstance(value, tp)
-    elif isinstance(tp, type) and issubclass(tp, JSONable):
-        return isinstance(value, tp)
-    elif (orig := get_origin(tp)) is Literal:
-        return value in get_args(tp)
-    elif orig is Union:
-        return any(typecheck(arg, value) for arg in get_args(tp))
-    elif orig in _JsonArrayTypes:
-        if orig is tuple:
-            args = get_args(tp)
-            return (
-                isinstance(value, _JsonArrayTypes)
-                and len(value) == len(args)
-                and all(typecheck(val, arg) for val, arg in zip(value, args))
-            )
-        elif orig is list:
-            tp = get_args(tp)[0]
-            return all(typecheck(val, tp) for val in value)
-        raise JsonError(f"[BUG] Unhandled typecheck {tp}")
-    elif orig in _JsonObjectTypes:
-        if orig is dict:
-            tp = get_args(tp)[1]
-            return all(
-                isinstance(key, str) and typecheck(val, tp)
-                for key, val in value.items()
-            )
-        raise JsonError(f"[BUG] Unhandled typecheck {tp}")
-    raise TypeHintError(tp, message="Unhandled type hint {type_hint} during type_check")
