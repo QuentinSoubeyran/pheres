@@ -105,11 +105,6 @@ class JSONable(ABC):
         """
         return json.loads(dump(obj), cls=cls.Decoder)
 
-
-# Local import that depends on JSONable being define
-from .decoder import TypedJSONDecoder
-
-
 @dataclass(frozen=True)
 class JAttr:
     name: str = None
@@ -223,6 +218,8 @@ def _validate_under(
 
 def _process_class(cls: type, /, *, all_attrs: bool) -> type:
     """Internal helper to make a class JSONable"""
+    from .decoder import TypedJSONDecoder # avoid circular deps
+
     all_jattrs = _get_jattrs(cls, all_attrs)
     req_jattrs = [jattr for jattr in all_jattrs if jattr.default is MISSING]
     # Check for conflict with previously registered classes
@@ -243,13 +240,13 @@ def _process_class(cls: type, /, *, all_attrs: bool) -> type:
             )
     cls._REQ_JATTRS = req_jattrs
     cls._ALL_JATTRS = all_jattrs
-    cls.Decoder = TypedJSONDecoder[cls]
     cls.to_json = JSONable.to_json
     cls.from_json_file = JSONable.from_json_file
     cls.from_json_str = JSONable.from_json_str
     cls.from_json = JSONable.from_json
-    JSONable._REGISTER.append(cls)
     JSONable.register(cls)
+    JSONable._REGISTER.append(cls)
+    cls.Decoder = TypedJSONDecoder[cls] # last because the class must already be JSONable
     return cls
 
 

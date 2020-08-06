@@ -522,13 +522,13 @@ def _tp_cache(func):
     cache = functools.lru_cache()(func)
 
     @functools.wraps(func)
-    def wrapper(type_hint):
+    def wrapper(*args, **kwargs):
         try:
-            return cache(type_hint)
+            return cache(*args, **kwargs)
         except TypeError as err:  # unhashable args
-            print(err)
+            print(err) # TODO: remove
             pass
-        return func(type_hint)
+        return func(*args, **kwargs)
 
     return wrapper
 
