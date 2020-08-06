@@ -283,7 +283,7 @@ class DecodeContext:
             return (
                 cls(
                     **{
-                        jattr.py_name: obj.get(jattr.name, jattr.default)
+                        jattr.py_name: obj[jattr.name] if jattr.name in obj else jattr.get_default()
                         for jattr in cls._ALL_JATTRS
                     }
                 ),

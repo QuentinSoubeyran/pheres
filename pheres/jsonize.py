@@ -6,7 +6,9 @@ Part of the Pheres package
 """
 # stdlib import
 from abc import ABC
-from dataclasses import dataclass, field
+from copy import deepcopy
+import dataclasses
+from dataclasses import dataclass
 import functools
 import json
 import types
@@ -55,29 +57,54 @@ class JAttrError(JSONableError):
     Exception for when an attribute is improperly jsonized
     """
 
+#################
+# JSONABLE  API #
+#################
 
 class JSONable(ABC):
     """Asbstract class to represent objects that can be serialized and deserialized to JSON
 
     """
-    _REGISTER = [] # List of registered classes
+    _REGISTER = []  # List of registered classes
+    _REQ_JATTRS = []  # Defined on subclasses/decorated classes
+    _ALL_JATTRS = []  # Defined on subclasses/decorated classes
+    Decoder = json.JSONDecoder # Defined on subclasses/decorated classes
 
-    def __init_subclass__(cls, **kwargs):
-        # TODO
-        raise NotImplementedError
+    def __init_subclass__(cls, all_attrs: bool = True, **kwargs):
+        super().__init_subclass__(**kwargs)
+        _process_class(cls, all_attrs=all_attrs)
 
     def to_json(self):
-        # TODO
-        raise NotImplementedError
+        return {
+            jattr.name: value.to_json() if isinstance(value, JSONable) else value
+            for jattr in self._ALL_JATTRS
+            if (value := getattr(self, jattr.py_name)) != jattr.get_default()
+        }
+    
+    @classmethod
+    def from_json_file(cls, /, fp):
+        """Deserialize ``fp`` (a ``.read()``-supporting file-like object containing
+        a JSON document) to 
+        """
+        return json.load(fp, cls=cls.Decoder)
+    
+    @classmethod
+    def from_json_str(cls, /, s):
+        """Deserialize ``s`` (a ``str``, ``bytes`` or ``bytearray`` instance
+        containing a JSON document) to an instance of the class this method is called on.
+        """
+        return json.loads(s, cls=cls.Decoder)
 
+    @classmethod
+    def from_json(cls, /, obj):
+        """Deserialize a Python object to an instance of the class this method is called on.
+
+        Implemented by serializing obj to a JSON string, and then deserializing
+        """
+        return json.loads(dump(obj), cls=cls.Decoder)
 
 # Local import that depends on JSONable being define
 from .decoder import TypedJSONDecoder
-
-#################
-# JSONABLE  API #
-#################
-
 
 @dataclass(frozen=True)
 class JAttr:
@@ -87,12 +114,6 @@ class JAttr:
 # Activate in 3.9
 # T = TypeVar("T", JsonType)
 # JsonAttr = Annotated[T, JAttr()]
-
-
-class JsonAttr:
-    """
-    Internal marker class. More use in python 3.9 when API is extended
-    """
 
 
 @dataclass(frozen=True)
@@ -112,29 +133,10 @@ class _JsonisedAttribute:
     py_name: str
     type_hint: TypeHint
     default: object = MISSING
-    # #literal_values: List[Union[bool, int, str]] = field(
-    # #    default=None, init=False, hash=True
-    # #)
 
-    # def __post_init__(self) -> None:
-    #     orig = typing.get_origin(self.type_hint)
-    #     args = typing.get_args(self.type_hint)
-    #     if orig is Literal:
-    #         if self.default is not MISSING:
-    #             raise JSONableError(
-    #                 f"Literal jsonized attribute {self.py_name} cannot have a default value"
-    #             )
-    #         object.__setattr__(self, "literal_values", args)
-    #         if not all(
-    #             isinstance((errored_val := v), (bool, int, str))
-    #             for v in self.literal_values
-    #         ):
-    #             raise JSONableError(
-    #                 f"Literal jsonized attribute {self.py_name} must have a value of type bool, int or str,"  # pylint: disable=undefined-variable
-    #                 f"got {type(errored_val)}"
-    #             )
-    #     if orig is tuple and len(args) > 1 and args[1] is Ellipsis:
-    #         object.__setattr__(self, "type_hint", List[args[0]])
+    def __post_init__(self, /) -> None:
+        if callable(self.default) and not jtyping.is_json((value := self.default())):
+            raise JAttrError(f"A callable default must produce a valid JSON value, got {value}")
 
     def overlaps(self, /, other: "_JsonKey") -> bool:
         """
@@ -149,19 +151,51 @@ class _JsonisedAttribute:
         return self.name == other.name and jtyping.have_common_value(
             self.type_hint, other.type_hint
         )
+    
+    def get_default(self, /) -> JsonObject:
+        """Return the default value for that attribute"""
+        if callable(self.default):
+            return
+        return deepcopy(self.default)
 
 def _get_jattrs(cls: type, all_attrs=bool) -> List[_JsonisedAttribute]:
     """Internal helper to find the attributes to jsonize on a class"""
-    # TODO check if @dataclass has already been applied
-    # TODO handle default list/dict in values, or callables to compute the value
+    jattrs = []
+    # TODO: handle 3.9 Annotated type hint
+    for py_name, tp in typing.get_type_hints(cls, localns={cls.__name__: cls}).items():
+        if all_attrs:
+            default = getattr(cls, py_name, MISSING)
+            if isinstance(default, dataclasses.Field):
+                if default.default is not dataclasses.MISSING:
+                    default = default.default
+                elif default.default_factory is not dataclasses.MISSING:
+                    default = default.default_factory
+                else:
+                    default = MISSING
+            # TODO: handle name in python 3.9
+            jattrs.append(
+                _JsonisedAttribute(
+                    name=py_name, # TODO: change in 3.9
+                    py_name=py_name,
+                    type_hint=jtyping.normalize_json_tp(tp),
+                    default=default
+                )
+            )
+    if dataclasses.is_dataclass(cls):
+        for field in dataclasses.fields(cls):
+            if field.default is dataclasses.MISSING and field.default_factory is not dataclasses.MISSING:
+                # TODO: handle name in python 3.9
+                jattrs.append(
+                    _JsonisedAttribute(
+                        name=field.name, # TODO : change in python 3.9
+                        py_name=field.name,
+                        type_hint=field.type,
+                        default=field.default_factory
+                    )
+                )
+    return jattrs
 
-    for attr_name, tp in typing.get_type_hints(cls, localns={cls.__name__: cls}).items():
-        # TODO: handle dataclass fields !!
-        pass
-    raise NotImplementedError
-    return []
-
-def _is_jattr_subset(
+def _validates_under(
     subset: List[_JsonisedAttribute], superset: List[_JsonisedAttribute]
 ):
     """
@@ -192,7 +226,6 @@ def _is_jattr_subset(
             return False
     return True
     
-
 def _process_class(cls: type, /, *, all_attrs: bool) -> type:
     """Internal helper to make a class JSONable"""
     all_jattrs = _get_jattrs(cls, all_attrs)
@@ -201,8 +234,8 @@ def _process_class(cls: type, /, *, all_attrs: bool) -> type:
     for other_cls in JSONable._REGISTER:
         if (
             not issubclass(cls, other_cls)
-            and _is_jattr_subset(req_jattrs, other_cls._ALL_JATTRS)
-            and _is_jattr_subset(other_cls._REQ_JATTRS, all_jattrs)
+            and _validates_under(req_jattrs, other_cls._ALL_JATTRS)
+            and _validates_under(other_cls._REQ_JATTRS, all_jattrs)
         ):
             raise JSONableError(
                 f"Jsonable '{cls.__name__}' overlaps with '{other_cls.__name__}' without inheriting from it"
@@ -210,8 +243,11 @@ def _process_class(cls: type, /, *, all_attrs: bool) -> type:
     cls._REQ_JATTRS = req_jattrs
     cls._ALL_JATTRS = all_jattrs
     cls.Decoder = TypedJSONDecoder[cls]
-    Jsonable._REGISTERED_CLASSES.append(cls)
-    raise NotImplementedError
+    cls.to_json = JSONable.to_json
+    cls.from_json = JSONable.from_json
+    JSONable._REGISTER.append(cls)
+    JSONable.register(cls)
+    return cls
 
 
 def jsonize(cls:type=None, /, *, all_attrs:bool=True) -> type:
@@ -224,13 +260,6 @@ def jsonize(cls:type=None, /, *, all_attrs:bool=True) -> type:
     else:
         return functools.partial(_process_class, all_attrs=all_attrs)
 
-# TODO:
-# Function to handle class
-# -- find jsonized attr
-# -- decorator: by default, take all annotated attributes
-# -- full compatibility, both ways, with @dataclass
-# -- Only 3.9 allows rename, with Annotated[]
-
 
 
 #################
@@ -239,11 +268,11 @@ def jsonize(cls:type=None, /, *, all_attrs:bool=True) -> type:
 
 class JSONableEncoder(json.JSONEncoder):
     """
-    JSONEncoder subclass that supports Jsonable instance
+    JSONEncoder subclass that supports JSONable classes
     """
 
     def default(self, obj: object):
-        if isinstance(obj, Jsonable):
+        if isinstance(obj, JSONable):
             return obj.to_json()
         return super().default(obj)
 
@@ -262,168 +291,10 @@ def dumps(*args, cls=JSONableEncoder, **kwargs):
 # DESERIALIZATION #
 ###################
 
-# TODO
-# Deserialization: make it infer types ! (additional to TypedJSONDecoder)
-
-def jsonable_hook():
-    # TODO
-    raise NotImplementedError
-
-@functools.wraps(json.load)
-def load(*args, object_hook=jsonable_hook, **kwargs):
-    return json.load(*args, object_hook=object_hook, **kwargs)
-
-
-@functools.wraps(json.loads)
-def loads(*args, object_hook=jsonable_hook, **kwargs):
-    return json.loads(*args, object_hook=object_hook, **kwargs)
-
 raise NotImplementedError("This module is under construction")
 
-#################################################################################
-#################################################################################
-# OLD CODE BELOW -- NEEDS UPDATE
-#################################################################################
-#################################################################################
-
-
-# TODO: replace values by the use of Literal
-# def jsonize(
-#     type_hint: TypeHint,
-#     name: str = None,
-#     default: JsonType = MISSING,
-#     # values: Union[JsonLiteral, Iterable[JsonLiteral]] = None,
-# ) -> TypeHint:
-#     f"""
-#     Return the type hint that marks an attribute as jsonized in a {__name__}.Jsonable subclass.
-
-#     Arguments
-#         type_hint - the type hint of the attributes. Must be valid for JSON (this includes sublass of Jsonable)
-#         name      - name of the attribute in JSON. Otherwise, the name is the same as in python
-#         default   - default value of the jsonized attribute
-    
-#     Returns
-#         A special type hint that marks the attributes as jsonized
-#     """
-#     type_hint = jtyping.normalize_json_tp(type_hint)  # raises on problem
-#     if default is MISSING:
-#         default = Ellipsis  # Hack to get a simple repr()
-#     elif not jtyping.is_json(default):
-#         raise JAttrError(
-#             "Default value for jsonized attribute must be a valid JSON value"
-#         )
-#     kwargs = {"name": name, "default": default}
-#     return Union[
-#         JsonAttr, Literal[repr(kwargs)], type_hint
-#     ]  # Ugly hack for python 3.8; waiting on python 3.9's typing.Annotated
-
-
-def _get_jsonised_attr(cls: type):
-    """Internal helper to find jsonized attribute on a class"""
-    jsonized_attrs = []
-    for attr_name, tp in typing.get_type_hints(cls).items():
-        if (
-            typing.get_origin(tp) is Union
-            and (args := typing.get_args(tp))[0] is JsonAttr
-        ):
-            tp = Union[args[2:]]
-            data = eval(
-                typing.get_args(args[1])[0]
-            )  # Retrieved the kwargs dict that was in Literal (see JsonAttr.__class_getitem__)
-            if data["default"] is Ellipsis:
-                default = getattr(cls, attr_name, MISSING)
-                if default is not MISSING and not jtyping.is_json(default):
-                    raise JAttrError(
-                        f"Default value for jsonized attribute must be valid JSON, got {default}"
-                    )
-                data["default"] = default
-            jsonized_attrs.append(
-                _JsonisedAttribute(
-                    name=data["name"] or attr_name,
-                    py_name=attr_name,
-                    type_hint=tp,
-                    default=data["default"],
-                )
-            )
-    for i, jattr in enumerate(jsonized_attrs):
-        for other in jsonized_attrs[i + 1 :]:
-            if jattr.name == other.name:
-                raise JAttrError(
-                    f"Jsonized attributes {jattr.py_name} and {other.py_name} have the same json name"
-                )
-    return jsonized_attrs
-
-
-class Jsonable:
-    f"""
-    Mixin Class to make subclass (de)serializable (from)to JSON.
-    
-    Interacts well with dataclasses of NamedTuples
-    This can be used e.g. to write config files as python classes and have them automatically loaded
-    from JSON.
-
-    Usage:
-
-    Use the type hint generated by {__name__}.JsonAttr to mark an attribute as part of the JSON
-
-    class Foo(Jsonable):
-        value : Jsonize[int] # the attribute 'value' will be serialized
-        names : Jsonize[List[int]] # attribute can be of any valid JsonType type
-        id_   : JsonAttr[int, "id"] # change the attribute name in JSON. may not be supported by type checkers
-
-    foo = Foo(value=5, names=["andrew", "bob"], id_=87456621)
-    foo.asjson() == {{"value": 5, "names": ["andrew", "bob"], "id": 87456621}}
-    """
-
-    # All Jsonable subclasses
-    _REGISTERED_CLASSES: List[Type["Jsonable"]] = []
-
-    # Defined on subclasses by __init_suclass__
-    _REQ_JATTRS: List[_JsonisedAttribute] = []
-    _ALL_JATTRS: List[_JsonisedAttribute] = []
-    Decoder = None
-
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        all_jattrs = _get_jsonised_attr(cls)
-        req_jattrs = [jattr for jattr in all_jattrs if jattr.default is MISSING]
-        # Check for conflict with previously registered classes
-        for other_cls in Jsonable._REGISTERED_CLASSES:
-            if (
-                not issubclass(cls, other_cls)
-                and _is_jattr_subset(req_jattrs, other_cls._ALL_JATTRS)
-                and _is_jattr_subset(other_cls._REQ_JATTRS, all_jattrs)
-            ):
-                raise JSONableError(
-                    f"Jsonable '{cls.__name__}' overlaps with '{other_cls.__name__}' without inheriting from it"
-                )
-        cls._REQ_JATTRS = req_jattrs
-        cls._ALL_JATTRS = all_jattrs
-        cls.Decoder = TypedJSONDecoder[cls]
-        Jsonable._REGISTERED_CLASSES.append(cls)
-
-    def to_json(self: "Jsonable"):
-        """Serializes the instance as a JSON object"""
-        return {
-            jattr.name: value.to_json() if isinstance(value, Jsonable) else value
-            for jattr in self._ALL_JATTRS
-            if (value := getattr(self, jattr.py_name)) != jattr.default
-        }
-
-    @classmethod
-    def from_json(cls: "Jsonable", /, obj: JsonObject):
-        """Deserialize the provided JSON as a instance of this (sub)class"""
-        # TODO:
-        # - deserialize files, string and loaded object
-        # - typecheck on deserialization
-        # - track lineno and colno
-        # -
-        raise NotImplementedError
-
-
-###################
-# DESERIALIZATION #
-###################
+# TODO
+# Deserialization: make it infer types ! (additional to TypedJSONDecoder)
 
 # @dataclass(frozen=True)
 # class _JsonPair:
@@ -441,10 +312,9 @@ class Jsonable:
 #             entry.literal_value is _MISSING or self.value == entry.literal_value
 #         )
 
-
-# def jsonable_hook(obj: dict) -> Union[Jsonable, dict]:
+# def jsonable_hook(obj: dict) -> Union[Any, dict]:
 #     """
-#     Object hook for the json.load() and json.loads() methods to deserialize Jsonable subclasses
+#     Object hook for the json.load() and json.loads() methods to deserialize JSONable classes
 #     """
 #     pairs = [_JsonPair(k, v) for k, v in obj.items()]
 #     matched_cls = [
@@ -472,14 +342,14 @@ class Jsonable:
 #     else:
 #         return obj
 
+def jsonable_hook(obj):
+    raise NotImplementedError
+
+@functools.wraps(json.load)
+def load(*args, object_hook=jsonable_hook, **kwargs):
+    return json.load(*args, object_hook=object_hook, **kwargs)
 
 
-
-
-# from json import *
-
-
-# ## TODO:
-# # - Typechecking on Jsonized attributes
-# # - Deserialization of a particular object (how ?)
-# # - test
+@functools.wraps(json.loads)
+def loads(*args, object_hook=jsonable_hook, **kwargs):
+    return json.loads(*args, object_hook=object_hook, **kwargs)
