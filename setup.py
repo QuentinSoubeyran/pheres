@@ -1,28 +1,28 @@
+#
 import setuptools
-
-from pheres import metadata
 
 with open("README.md", "r") as f:
     readme = f.read()
 
 setuptools.setup(
     # Package
-    name=metadata.name.capitalize(),
-    version=metadata.version,
-    packages=setuptools.find_packages(),
-    python_requires=f">={metadata.py_version}",
+    name="pheres",
+    version="1.0a2",
+    packages=setuptools.find_packages("src"),
+    python_requires=">=3.8",
     # Metadata
-    author=metadata.author,
-    author_email=metadata.email,
+    author="Quentin Soubeyran",
+    author_email="45202794+QuentinSoubeyran@users.noreply.github.com",
     description="Extension to the builtin json module",
     long_description=readme,
     long_description_content_type="text/markdown",
-    url=metadata.project_url,
+    url="https://github.com/QuentinSoubeyran/pheres",
     keywords="json",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3.8",
+        "Typing :: Typed"
     ],
 )

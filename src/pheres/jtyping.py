@@ -208,7 +208,7 @@ def is_json(obj: Any) -> bool:
     >>> d["the key"] = d
     >>> is_json(d)
     Traceback (most recent call last):
-    CycleError: object has circular reference
+    pheres.jtyping.CycleError: object has circular reference
     """
     return _is_json(obj, ())
 
