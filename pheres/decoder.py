@@ -160,7 +160,7 @@ class DecodeContext:
                     args[1]
                     if orig is dict
                     else next(
-                        filter(lambda jattr: jattr.name == self.cur_key, tp._ALL_JATTRS)
+                        filter(lambda jattr: jattr.name == self.cur_key, tp._ALL_JATTRS.values())
                     ).type_hint,
                     value,
                 ),
@@ -220,7 +220,7 @@ class DecodeContext:
                     or (
                         isinstance(tp, type)
                         and issubclass(tp, JSONable)
-                        and any(jattr.name == key for jattr in tp._ALL_JATTRS)
+                        and any(jattr.name == key for jattr in tp._ALL_JATTRS.values())
                     )
                 ),
                 self.tps,
@@ -242,7 +242,7 @@ class DecodeContext:
                     args[1]
                     if orig is dict
                     else next(
-                        filter(lambda jattr: jattr.name == key, tp._ALL_JATTRS)
+                        filter(lambda jattr: jattr.name == key, tp._ALL_JATTRS.values())
                     ).type_hint
                     for tp, orig, args in zip(self.tps, self.origs, self.args)
                 ),
@@ -282,7 +282,7 @@ class DecodeContext:
                 cls(
                     **{
                         jattr.py_name: obj[jattr.name] if jattr.name in obj else jattr.get_default()
-                        for jattr in cls._ALL_JATTRS
+                        for jattr in cls._ALL_JATTRS.values()
                     }
                 ),
                 end,

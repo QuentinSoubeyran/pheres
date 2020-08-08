@@ -13,7 +13,7 @@ import functools
 import json
 import types
 import typing
-from typing import Any, Iterable, List, Literal, Optional, Type, Tuple, Union
+from typing import Any, Dict, Iterable, List, Literal, Optional, Type, Tuple, Union
 
 # local imports
 from . import jtyping
@@ -68,8 +68,8 @@ class JSONable(ABC):
     """
 
     _REGISTER = []  # List of registered classes
-    _REQ_JATTRS = []  # Defined on subclasses/decorated classes
-    _ALL_JATTRS = []  # Defined on subclasses/decorated classes
+    _REQ_JATTRS = {}  # Defined on subclasses/decorated classes
+    _ALL_JATTRS = {}  # Defined on subclasses/decorated classes
     Decoder = json.JSONDecoder  # Defined on subclasses/decorated classes
 
     def __init_subclass__(cls, all_attrs: bool = True, **kwargs):
@@ -79,7 +79,7 @@ class JSONable(ABC):
     def to_json(self):
         return {
             jattr.name: value.to_json() if isinstance(value, JSONable) else value
-            for jattr in self._ALL_JATTRS
+            for jattr in self._ALL_JATTRS.values()
             if (value := getattr(self, jattr.py_name)) != jattr.get_default()
         }
 
@@ -201,8 +201,8 @@ def _get_jattrs(cls: type, all_attrs=bool) -> List[_JsonisedAttribute]:
     return jattrs
 
 
-def _validate_under(
-    subset: List[_JsonisedAttribute], superset: List[_JsonisedAttribute]
+def _is_jattr_subset(
+    subset: Dict[str, _JsonisedAttribute], superset: Dict[str, _JsonisedAttribute]
 ):
     """
     Internal helper to test for conflicts between JSONable subclasses
@@ -211,8 +211,12 @@ def _validate_under(
     valid in 'superset' (i.e. such that all its key match something in 'superset')
     """
     # Quick fix: more stringent test, but assure the condition requires
+    # return all(
+    #     any(subattr.overlaps(superattr) for superattr in superset) for subattr in subset
+    # )
     return all(
-        any(subattr.overlaps(superattr) for superattr in superset) for subattr in subset
+        jattr.name in superset and jattr.overlaps(superset[jattr.name])
+        for jattr in subset
     )
 
 
@@ -220,20 +224,20 @@ def _process_class(cls: type, /, *, all_attrs: bool) -> type:
     """Internal helper to make a class JSONable"""
     from .decoder import TypedJSONDecoder # avoid circular deps
 
-    all_jattrs = _get_jattrs(cls, all_attrs)
-    req_jattrs = [jattr for jattr in all_jattrs if jattr.default is MISSING]
+    all_jattrs = {jattr.name: jattr for jattr in _get_jattrs(cls, all_attrs)}
+    req_jattrs = {jattr.name: jattr for jattr in all_jattrs.values() if jattr.default is MISSING}
     # Check for conflict with previously registered classes
     for other_cls in JSONable._REGISTER:
         if (
             not issubclass(cls, other_cls)
-            # and _validate_under(req_jattrs, other_cls._ALL_JATTRS)
-            # and _validate_under(other_cls._REQ_JATTRS, all_jattrs)
-            and find_injection(
-                req_jattrs, other_cls._ALL_JATTRS, jtyping.have_common_value
-            )
-            and find_injection(
-                other_cls._REQ_JATTRS, all_jattrs, jtyping.have_common_value
-            )
+            and _is_jattr_subset(req_jattrs, other_cls._ALL_JATTRS)
+            and _is_jattr_subset(other_cls._REQ_JATTRS, all_jattrs)
+            # and find_injection(
+            #     req_jattrs, other_cls._ALL_JATTRS, jtyping.have_common_value
+            # )
+            # and find_injection(
+            #     other_cls._REQ_JATTRS, all_jattrs, jtyping.have_common_value
+            # )
         ):
             raise JSONableError(
                 f"Jsonable '{cls.__name__}' overlaps with '{other_cls.__name__}' without inheriting from it"
@@ -298,18 +302,27 @@ def jsonable_hook(obj: dict) -> Union[Any, dict]:
     """
     valid_cls = []
     for cls in JSONable._REGISTER:
-        req_jattrs = set(cls._REQ_JATTRS)
+        # req_jattrs = set(cls._REQ_JATTRS)
         if (
-            find_injection(
-                A=obj.items(),
-                B=cls._ALL_JATTRS,
-                match_func=lambda kv, jattr: kv[0] == jattr.name
-                and jtyping.typecheck(kv[1], jattr.type_hint),
-                validator_func=lambda match: req_jattrs <= match.values(),
+            # find_injection(
+            #     A=obj.items(),
+            #     B=cls._ALL_JATTRS,
+            #     match_func=lambda kv, jattr: kv[0] == jattr.name
+            #     and jtyping.typecheck(kv[1], jattr.type_hint),
+            #     validator_func=lambda match: req_jattrs <= match.values(),
+            # )
+            # is not None
+            all( # all required arguments are there
+                key in obj and jtyping.typecheck(obj[key], jattr.type_hint)
+                for key, jattr in cls._REQ_JATTRS.items()
             )
-            is not None
+            and all(  # all keys are valid - don't test req, already did
+                key in cls._ALL_JATTRS and jtyping.typecheck(obj[key], cls._ALL_JATTRS[key].type_hint)
+                for key in obj.keys() - cls._REQ_JATTRS.items()
+            )
         ):
             valid_cls.append(cls)
+    # find less-specific class in case of inheritance
     valid_cls = [
         cls
         for i, cls in enumerate(valid_cls)
@@ -326,7 +339,7 @@ def jsonable_hook(obj: dict) -> Union[Any, dict]:
                 jattr.py_name: obj[jattr.name]
                 if jattr.name in obj
                 else jattr.get_default()
-                for jattr in cls._ALL_JATTRS
+                for jattr in cls._ALL_JATTRS.values()
             }
         )
     else:
