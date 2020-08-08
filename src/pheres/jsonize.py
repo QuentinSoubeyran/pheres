@@ -18,7 +18,7 @@ from typing import Any, Dict, Iterable, List, Literal, Optional, Type, Tuple, Un
 # local imports
 from . import jtyping
 from .jtyping import JSONType, JSONObject
-from .misc import JSONError, find_injection
+from .misc import JSONError
 
 __all__ = [
     # Errors
@@ -80,30 +80,25 @@ class JSONable(ABC):
         return {
             jattr.name: value.to_json() if isinstance(value, JSONable) else value
             for jattr in self._ALL_JATTRS.values()
-            if (value := getattr(self, jattr.py_name)) != jattr.get_default()
+            if (value := getattr(self, jattr.py_name)) != jattr.get_default() or typing.get_origin(jattr.type_hint) is Literal
         }
 
     @classmethod
-    def from_json_file(cls, /, fp):
-        """Deserialize ``fp`` (a ``.read()``-supporting file-like object containing
-        a JSON document) to 
-        """
-        return json.load(fp, cls=cls.Decoder)
-
-    @classmethod
-    def from_json_str(cls, /, s):
-        """Deserialize ``s`` (a ``str``, ``bytes`` or ``bytearray`` instance
-        containing a JSON document) to an instance of the class this method is called on.
-        """
-        return json.loads(s, cls=cls.Decoder)
-
-    @classmethod
     def from_json(cls, /, obj):
-        """Deserialize a Python object to an instance of the class this method is called on.
+        """Deserialize to an instance of the class this method is called on.
 
-        Implemented by serializing obj to a JSON string, and then deserializing
+        Tries to guess how to deserialize in the following order:
+         - if ``obj`` supports ``read``, use load()
+         - if ``obj`` is a string or bytes, use loads()
+         - else, serialize it to JSON and deserialize with loads()
+         NOTE: object are serialized then deserialized because its easier to get exact error this way
         """
-        return json.loads(dump(obj), cls=cls.Decoder)
+        if hasattr(obj, "read"):
+            return json.load(obj, cls=cls.Decoder)
+        elif isinstance(obj, (str, bytes)):
+            return json.loads(obj, cls=cls.Decoder)
+        else:
+            return json.loads(dumps(obj), cls=cls.Decoder)
 
 @dataclass(frozen=True)
 class JAttr:
@@ -156,7 +151,7 @@ class _JsonisedAttribute:
     def get_default(self, /) -> JSONObject:
         """Return the default value for that attribute"""
         if callable(self.default):
-            return
+            return self.default()
         return deepcopy(self.default)
 
 
@@ -216,7 +211,7 @@ def _is_jattr_subset(
     # )
     return all(
         jattr.name in superset and jattr.overlaps(superset[jattr.name])
-        for jattr in subset
+        for jattr in subset.values()
     )
 
 
@@ -232,22 +227,14 @@ def _process_class(cls: type, /, *, all_attrs: bool) -> type:
             not issubclass(cls, other_cls)
             and _is_jattr_subset(req_jattrs, other_cls._ALL_JATTRS)
             and _is_jattr_subset(other_cls._REQ_JATTRS, all_jattrs)
-            # and find_injection(
-            #     req_jattrs, other_cls._ALL_JATTRS, jtyping.have_common_value
-            # )
-            # and find_injection(
-            #     other_cls._REQ_JATTRS, all_jattrs, jtyping.have_common_value
-            # )
         ):
             raise JSONableError(
-                f"Jsonable '{cls.__name__}' overlaps with '{other_cls.__name__}' without inheriting from it"
+                f"JSONable class '{cls.__name__}' overlaps with '{other_cls.__name__}' without inheriting from it"
             )
     cls._REQ_JATTRS = req_jattrs
     cls._ALL_JATTRS = all_jattrs
-    cls.to_json = JSONable.to_json
-    cls.from_json_file = JSONable.from_json_file
-    cls.from_json_str = JSONable.from_json_str
-    cls.from_json = JSONable.from_json
+    setattr(cls, "to_json", JSONable.to_json)
+    setattr(cls, "from_json", classmethod(JSONable.from_json.__func__))
     JSONable.register(cls)
     JSONable._REGISTER.append(cls)
     cls.Decoder = TypedJSONDecoder[cls] # last because the class must already be JSONable
@@ -304,14 +291,6 @@ def jsonable_hook(obj: dict) -> Union[Any, dict]:
     for cls in JSONable._REGISTER:
         # req_jattrs = set(cls._REQ_JATTRS)
         if (
-            # find_injection(
-            #     A=obj.items(),
-            #     B=cls._ALL_JATTRS,
-            #     match_func=lambda kv, jattr: kv[0] == jattr.name
-            #     and jtyping.typecheck(kv[1], jattr.type_hint),
-            #     validator_func=lambda match: req_jattrs <= match.values(),
-            # )
-            # is not None
             all( # all required arguments are there
                 key in obj and jtyping.typecheck(obj[key], jattr.type_hint)
                 for key, jattr in cls._REQ_JATTRS.items()

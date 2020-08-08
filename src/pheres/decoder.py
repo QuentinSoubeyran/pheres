@@ -148,7 +148,7 @@ class DecodeContext:
         if isinstance(self.cur_key, int):
             self.tps, self.origs, self.args = sync_filter(
                 lambda tp, orig, args: typecheck(
-                    args[0 if orig is list else self.cur_key], value
+                    value, args[0 if orig is list else self.cur_key]
                 ),
                 self.tps,
                 self.origs,
@@ -157,12 +157,12 @@ class DecodeContext:
         elif isinstance(self.cur_key, str):
             self.tps, self.origs, self.args = sync_filter(
                 lambda tp, orig, args: typecheck(
+                    value,
                     args[1]
                     if orig is dict
                     else next(
                         filter(lambda jattr: jattr.name == self.cur_key, tp._ALL_JATTRS.values())
                     ).type_hint,
-                    value,
                 ),
                 self.tps,
                 self.origs,
@@ -255,7 +255,7 @@ class DecodeContext:
         )
 
     def check_value(self, val, end, start):
-        if not any(typecheck(tp, val) for tp in self.tps):
+        if not any(typecheck(val, tp) for tp in self.tps):
             raise TypedJSONDecodeError(self.get_msg(val), self.string, start)
         if self.upper_context:
             self.upper_context.notify_value(val)
@@ -600,7 +600,7 @@ class TypedJSONDecoder(ABC, JSONDecoder):
                     start=idx,
                     type_hints=self.type_hint,
                     jsonable=self.type_hint
-                    if isinstance(self.type_hint)
+                    if isinstance(self.type_hint, type)
                     and issubclass(self.type_hint, JSONable)
                     else None,
                 ),

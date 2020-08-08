@@ -1,4 +1,3 @@
-#
 import setuptools
 
 with open("README.md", "r") as f:
@@ -9,9 +8,11 @@ setuptools.setup(
     name="pheres",
     version="1.0a2",
     packages=setuptools.find_packages("src"),
+    package_dir={"": "src"},
     python_requires=">=3.8",
     # Metadata
     author="Quentin Soubeyran",
+    license="MIT",
     author_email="45202794+QuentinSoubeyran@users.noreply.github.com",
     description="Extension to the builtin json module",
     long_description=readme,

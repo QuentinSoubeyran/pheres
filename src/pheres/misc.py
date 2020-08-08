@@ -9,8 +9,6 @@ import functools
 import inspect
 from typing import Callable, Dict, Iterable, Optional, TypeVar
 
-from .metadata import name
-
 __all__ = ["JSONError"]
 
 U = TypeVar("U")
@@ -48,7 +46,7 @@ class AutoFormatMixin(Exception):
 
 
 class JSONError(Exception):
-    f"""Base exception for the {name} module
+    f"""Base exception for the pheres module
     
     Raised as-is in case of bug. Only subclasses are normaly raised
     """
