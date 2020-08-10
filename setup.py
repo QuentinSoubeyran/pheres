@@ -9,7 +9,7 @@ setuptools.setup(
     version="1.0a2",
     packages=setuptools.find_packages("src"),
     package_dir={"": "src"},
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     # Metadata
     author="Quentin Soubeyran",
     license="MIT",

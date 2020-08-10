@@ -32,7 +32,7 @@ __all__ = [
     "compact",
     "get",
     "has",
-    "set"
+    "set",
 ]
 
 # Types used in his module

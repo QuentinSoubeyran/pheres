@@ -161,7 +161,10 @@ class DecodeContext:
                     args[1]
                     if orig is dict
                     else next(
-                        filter(lambda jattr: jattr.name == self.cur_key, tp._ALL_JATTRS.values())
+                        filter(
+                            lambda jattr: jattr.name == self.cur_key,
+                            tp._ALL_JATTRS.values(),
+                        )
                     ).type_hint,
                 ),
                 self.tps,
@@ -281,7 +284,9 @@ class DecodeContext:
             return (
                 cls(
                     **{
-                        jattr.py_name: obj[jattr.name] if jattr.name in obj else jattr.get_default()
+                        jattr.py_name: obj[jattr.name]
+                        if jattr.name in obj
+                        else jattr.get_default()
                         for jattr in cls._ALL_JATTRS.values()
                     }
                 ),
@@ -527,7 +532,7 @@ def _tp_cache(func):
         try:
             return cache(*args, **kwargs)
         except TypeError as err:  # unhashable args
-            print(err) # TODO: remove
+            print(err)  # TODO: remove
             pass
         return func(*args, **kwargs)
 
@@ -608,14 +613,14 @@ class TypedJSONDecoder(ABC, JSONDecoder):
         except StopIteration as err:
             raise JSONDecodeError("Expecting value", s, err.value) from None
         return obj, end
-    
+
     @classmethod
     @functools.wraps(json.load)
     def load(cls, *args, **kwargs):
         if cls is TypedJSONDecoder:
             raise TypeError(f"You must parametrize {cls.__name__} before using it")
         return json.load(*args, cls=cls, **kwargs)
-    
+
     @classmethod
     @functools.wraps(json.loads)
     def loads(cls, *args, **kwargs):

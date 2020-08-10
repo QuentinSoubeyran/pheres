@@ -45,7 +45,7 @@ __all__ = [
     # Type Hint utilities
     "normalize_json_tp",
     "is_json_type_hint",
-    "have_common_value"    
+    "have_common_value",
 ]
 
 # Type hint aliases for JSON
@@ -67,6 +67,7 @@ _JSONObjectTypes = (dict,)
 ##############
 # EXCEPTIONS #
 ##############
+
 
 class JSONTypeError(AutoFormatMixin, JSONError):
     """
@@ -97,6 +98,7 @@ class TypeHintError(AutoFormatMixin, JSONError):
         super().__init__(message)
         self.type_hint = type_hint
 
+
 class CycleError(JSONError):
     """
     Raised when a value has cycles in it
@@ -111,9 +113,11 @@ class CycleError(JSONError):
         super().__init__(message)
         self.obj = obj
 
+
 ##################
 # TYPE UTILITIES #
 ##################
+
 
 def typeof(obj: JSONType) -> Type[JSONType]:
     """
@@ -328,9 +332,11 @@ def typecheck(value: Any, tp: TypeHint) -> bool:
         raise JSONError(f"[BUG] Unhandled typecheck {tp}")
     raise TypeHintError(tp, message="Unhandled type hint {type_hint} during type_check")
 
+
 ########################
 # TYPE-HINTS UTILITIES #
 ########################
+
 
 def _make_normalize():
     lock = RLock()
