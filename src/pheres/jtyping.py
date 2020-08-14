@@ -178,41 +178,8 @@ def is_json(obj: Any) -> bool:
     """Check if a python object is valid JSON
     
     Raises CycleError if the value has circular references
-
-    >>> is_json(None)
-    True
-    >>> is_json(True)
-    True
-    >>> is_json(0)
-    True
-    >>> is_json(0.1)
-    True
-    >>> is_json("a string")
-    True
-    >>> is_json(0+1j)
-    False
-
     Only tuples and lists are accepted for JSON arrays
-
-    >>> is_json((None, True, 0, 0.1, "a string"))
-    True
-    >>> is_json([None, True, 0, 0.1, "a string"])
-    True
-    >>> is_json({1, 2, 3})
-    False
-
     Dictionary *must* have string as keys
-
-    >>> is_json({"key": 0.0})
-    True
-    >>> is_json({0: 0.0})
-    False
-
-    >>> d = {}
-    >>> d["the key"] = d
-    >>> is_json(d)
-    Traceback (most recent call last):
-    pheres.jtyping.CycleError: object has circular reference
     """
     return _is_json(obj, ())
 

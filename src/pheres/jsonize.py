@@ -88,11 +88,12 @@ class JSONable(ABC):
         super().__init_subclass__(**kwargs)
         _process_class(cls, all_attrs=all_attrs)
 
-    def to_json(self):
+    def to_json(self, /, *, default_values=False):
         return {
             jattr.name: value.to_json() if isinstance(value, JSONable) else value
             for jattr in self._ALL_JATTRS.values()
             if (value := getattr(self, jattr.py_name)) != jattr.get_default()
+            or default_values
             or typing.get_origin(jattr.type_hint) is Literal
         }
 
@@ -270,7 +271,9 @@ def _is_jattr_subset(
 def _process_class(cls: type, /, *, all_attrs: bool) -> type:
     """Internal helper to make a class JSONable"""
     from .decoder import TypedJSONDecoder  # avoid circular deps
-
+    # If class has already been processed, skip it
+    if cls in JSONable._REGISTER:
+        return cls
     all_jattrs = {jattr.name: jattr for jattr in _get_jattrs(cls, all_attrs)}
     req_jattrs = {
         jattr.name: jattr for jattr in all_jattrs.values() if jattr.default is MISSING
