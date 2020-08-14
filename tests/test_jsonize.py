@@ -13,7 +13,7 @@ class BaseTypes(ph.JSONable):
     float_: float
     string: str
 
-@ph.jsonize
+@ph.jsonable
 @dataclass
 class ParamTypes(ph.JSONable):
     literal: Literal[0]
@@ -21,7 +21,7 @@ class ParamTypes(ph.JSONable):
     array: List[int]
     obj: Dict[str, str]
 
-@ph.jsonize
+@ph.jsonable
 @dataclass
 class DefaultBaseTypes(ph.JSONable):
     type_: Literal["dbt"]
@@ -32,7 +32,7 @@ class DefaultBaseTypes(ph.JSONable):
     string_d: str = ""
 
 # Test without dataclass
-@ph.jsonize
+@ph.jsonable
 class _DefaultParamTypes(ph.JSONable):
     type_: Literal["_dbt"]
     _literal_d: Literal[0, 1] = 0
@@ -46,7 +46,7 @@ class _DefaultParamTypes(ph.JSONable):
         self._array_d = arr
         self._obj_d = obj
 
-@ph.jsonize
+@ph.jsonable
 @dataclass
 class DefaultParamTypes(ph.JSONable):
     type_: Literal["dpt"]
@@ -55,13 +55,13 @@ class DefaultParamTypes(ph.JSONable):
     array_d: List[int] = field(default_factory=lambda: [])
     obj_d : Dict[str, str] = field(default_factory=lambda:{})
 
-@ph.jsonize
+@ph.jsonable
 @dataclass
 class JSONableTypes(ph.JSONable):
     base_types: BaseTypes
     param_types: ParamTypes
 
-@ph.jsonize
+@ph.jsonable
 @dataclass
 class DefaultJSONableTypes(ph.JSONable):
     type_: Literal["dj"]

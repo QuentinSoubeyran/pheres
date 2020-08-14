@@ -254,7 +254,7 @@ def is_object(obj: JSONType) -> bool:
         return False
 
 
-def typecheck(value: Any, tp: TypeHint) -> bool:
+def typecheck(value: JSONType, tp: TypeHint) -> bool:
     """Test that a JSON value matches a JSON type hint
     
     Arguments
@@ -310,7 +310,7 @@ def _make_normalize():
     guard = frozenset()
 
     @lru_cache
-    def normalize_json_tp(tp):
+    def normalize_json_tp(tp: TypeHint):
         """Normalize a type hint for JSON values
 
         Arguments

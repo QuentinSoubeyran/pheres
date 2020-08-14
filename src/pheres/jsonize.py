@@ -38,7 +38,7 @@ __all__ = [
     "JAttrError",
     # Jsonable API
     "JSONable",
-    "jsonize",
+    "jsonable",
     ## Serialization
     "JSONableEncoder",
     "dump",
@@ -300,7 +300,7 @@ def _process_class(cls: type, /, *, all_attrs: bool) -> type:
     return cls
 
 
-def jsonize(cls: type = None, /, *, all_attrs: bool = True) -> type:
+def jsonable(cls: type = None, /, *, all_attrs: bool = True) -> type:
     """Decorator to make a class JSONable
 
     By default, all type-hinted attributes are used. Fully compatible with dataclasses
