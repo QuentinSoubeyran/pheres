@@ -9,7 +9,7 @@ from collections.abc import Iterable
 from typing import Dict, List, Tuple, Union
 
 # Local import
-from .jtyping import (
+from .jsonize import (
     JSONError,
     JSONTypeError,
     JSONType,
@@ -153,7 +153,7 @@ def expand(
     return _expand(flat_json, array_as_dict, sort, tuple())
 
 
-def compact(json_obj: JSONObject, *, sep="/") -> JSONObject:
+def compact(obj: JSONObject, *, sep="/") -> JSONObject:
     """
     Returns a new dict-only json that is a copy of `json_obj` where keys with only one element are
     merged with their parent key
@@ -166,7 +166,7 @@ def compact(json_obj: JSONObject, *, sep="/") -> JSONObject:
         A compact, dict-only, representation of json_obj
     """
     ret = {}
-    for k, v in json_obj.items():
+    for k, v in obj.items():
         if typeof(v) is JSONArray:
             v = {str(i): elem for i, elem in enumerate(v)}
         if typeof(v) is JSONObject:
@@ -181,7 +181,7 @@ def compact(json_obj: JSONObject, *, sep="/") -> JSONObject:
 
 def get(
     obj: Union[JSONArray, JSONObject], key: Union[int, str, FlatKey], default=Ellipsis
-):
+) -> JSONType:
     """Retrieve a value on a JSON array or object. Return Default if provided and the key is missing
 
     Arguments

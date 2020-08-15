@@ -17,13 +17,14 @@ Partial recoding of the stdlib json module to support Jsonable decoding
 # The PSL authorize such derivative work (see PYTHON-LICENSE file)
 
 # Standard library import
-from abc import ABC, abstractmethod
+from abc import ABCMeta, ABC, abstractmethod
 from dataclasses import dataclass
 import functools
 from itertools import chain
 import json
 from json import JSONDecodeError, JSONDecoder
 import types
+import typing
 from typing import (
     Dict,
     Iterable,
@@ -33,16 +34,11 @@ from typing import (
     Tuple,
     Type,
     Union,
-    get_origin,
-    get_args,
+    get_origin
 )
 
 # Local import
-from .jsonize import JSONable
-from .jtyping import (
-    normalize_json_tp,
-    typecheck,
-)
+from .jsonize import JSONType, normalize_json_tp, typecheck, JSONable
 from .misc import JSONError
 
 # import internals of stdlib 'json' module
@@ -58,6 +54,26 @@ class TypedJSONDecodeError(JSONError, JSONDecodeError):
     Raised when the decoded type is not the expected one
     """
 
+####################
+# MODULE UTILITIES #
+####################
+
+def _resolve_refs(tp):
+    if isinstance(tp, typing.ForwardRef):
+        if tp.__forward_arg__ == "JSONType":
+            return JSONType
+        if tp.__forward_arg__ == "JSONable":
+            return JSONable
+    return tp
+
+# Proactively resolve ForwardRef for JSONType
+@functools.wraps(typing.get_args)
+def get_args(type_hint):
+    return tuple(
+        _resolve_refs(tp)
+        for tp in typing.get_args(type_hint)
+    )
+
 
 def sync_filter(func, *iterables):
     """
@@ -68,6 +84,9 @@ def sync_filter(func, *iterables):
         iterables
     )
 
+####################
+# DECODING CONTEXT #
+####################
 
 @dataclass
 class DecodeContext:
@@ -312,6 +331,10 @@ class DecodeContext:
         return array, end
 
 
+############################
+# JSON INTERNALS OVERRIDES #
+############################
+
 # Original source code at:
 # https://github.com/python/cpython/blob/3.8/Lib/json/scanner.py
 def py_make_scanner(context):
@@ -520,6 +543,10 @@ def JSONArray(s_and_end, scan_once, ctx, _w=WHITESPACE.match, _ws=WHITESPACE_STR
     return ctx.check_array(values, end)
 
 
+######################
+# TYPED JSON DECODER #
+######################
+
 def _tp_cache(func):
     """Wrapper caching __class_getitem__ on type hints
 
@@ -541,8 +568,14 @@ def _tp_cache(func):
 
 def _exec_body(namespace, type_hint):
     """Internal helper to initialize parametrized TypedJSONDecoder"""
-    namespace["type_hint"] = property(lambda self: type_hint)
+    namespace["type_hint"] = type_hint #property(lambda self: type_hint)
 
+class ParametrizedTypedJSONDecoderMeta(ABCMeta):
+    """
+    Metaclass for parametrized TypedJSONDecoder classes -- provides a nice repr()
+    """
+    def __repr__(self):
+        return f"TypedJSONDecoder[{self.type_hint!r}]"
 
 class TypedJSONDecoder(ABC, JSONDecoder):
     """
@@ -577,6 +610,7 @@ class TypedJSONDecoder(ABC, JSONDecoder):
             "ParametrizedTypedJSONDecoder",
             (cls,),
             exec_body=functools.partial(_exec_body, type_hint=tp),
+            kwds={"metaclass": ParametrizedTypedJSONDecoderMeta}
         )
 
     def __class_getitem__(cls, tp):

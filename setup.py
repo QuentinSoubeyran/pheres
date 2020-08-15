@@ -9,7 +9,7 @@ setuptools.setup(
     version="1.0a2",
     packages=setuptools.find_packages("src"),
     package_dir={"": "src"},
-    python_requires=">=3.9",
+    python_requires="~=3.9",
     # Metadata
     author="Quentin Soubeyran",
     license="MIT",
@@ -18,6 +18,11 @@ setuptools.setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     url="https://github.com/QuentinSoubeyran/pheres",
+    project_urls={
+        "Documentation": r"https://github.com/QuentinSoubeyran/pheres/wiki",
+        "Source": r"https://github.com/QuentinSoubeyran/pheres",
+        "Tracker": r"https://github.com/QuentinSoubeyran/pheres/issues"
+    },
     keywords="json",
     classifiers=[
         "Development Status :: 3 - Alpha",
