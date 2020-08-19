@@ -34,12 +34,14 @@ from typing import (
     Tuple,
     Type,
     Union,
-    get_origin
+    get_origin,
+    get_type_hints,
 )
 
 # Local import
-from .jsonize import JSONType, normalize_json_tp, typecheck, JSONable
 from .misc import JSONError
+from . import jsonize
+from .jsonize import JSONType, get_args, normalize_json_tp, typecheck, JSONable
 
 # import internals of stdlib 'json' module
 # Those are not part of the public API
@@ -54,25 +56,10 @@ class TypedJSONDecodeError(JSONError, JSONDecodeError):
     Raised when the decoded type is not the expected one
     """
 
+
 ####################
 # MODULE UTILITIES #
 ####################
-
-def _resolve_refs(tp):
-    if isinstance(tp, typing.ForwardRef):
-        if tp.__forward_arg__ == "JSONType":
-            return JSONType
-        if tp.__forward_arg__ == "JSONable":
-            return JSONable
-    return tp
-
-# Proactively resolve ForwardRef for JSONType
-@functools.wraps(typing.get_args)
-def get_args(type_hint):
-    return tuple(
-        _resolve_refs(tp)
-        for tp in typing.get_args(type_hint)
-    )
 
 
 def sync_filter(func, *iterables):
@@ -84,9 +71,35 @@ def sync_filter(func, *iterables):
         iterables
     )
 
+
+def _make_pretty_type():
+    tps = get_type_hints(jsonize)
+    table = {
+        # Standard Type Hints
+        jsonize.JSONValue: "JSONValue",
+        jsonize.JSONArray: "JSONArray",
+        jsonize.JSONObject: "JSONObject",
+        JSONType: "JSONType",
+        # Resolved version
+        tps["_jval"]: "JSONValue",
+        tps["_jarr"]: "JSONArray",
+        tps["_jobj"]: "JSONObject",
+        tps["_jtyp"]: "JSONType",
+    }
+
+    def pretty_type(tp):
+        return table.get(tp, tp)
+
+    return pretty_type
+
+
+pretty_type = _make_pretty_type()
+
+
 ####################
 # DECODING CONTEXT #
 ####################
+
 
 @dataclass
 class DecodeContext:
@@ -130,7 +143,7 @@ class DecodeContext:
     def get_msg(self, value=Ellipsis, match=None):
         return self.prefix_msg(
             "Expected "
-            + (match if match else f"type {Union[self.type_hints]}")
+            + (match if match else f"type {pretty_type(Union[self.type_hints])}")
             + (f", got {value!s}" if value is not Ellipsis else "")
             + ", at"
         )
@@ -198,7 +211,7 @@ class DecodeContext:
             self.key = (*self.key, self.cur_key)
             raise TypedJSONDecodeError(
                 self.prefix_msg(
-                    f"{type(value).__name__} does not match inferred type {Union[old_tps]}, at"
+                    f"{type(value).__name__} does not match inferred type {pretty_type(Union[old_tps])}, at"
                 ),
                 self.string,
                 self.start,
@@ -252,7 +265,7 @@ class DecodeContext:
             if not self.tps:
                 raise TypedJSONDecodeError(
                     self.prefix_msg(
-                        f"inferred type {Union[old_tps]} has not key '{key}', at"
+                        f"inferred type {pretty_type(Union[old_tps])} has no key '{key}', at"
                     ),
                     self.string,
                     self.start,
@@ -323,7 +336,7 @@ class DecodeContext:
         if not self.origs:
             raise TypedJSONDecodeError(
                 self.prefix_msg(
-                    f"{array} is incomplete for inferred type {self.tps}, at"
+                    f"{array} is incomplete for inferred type {pretty_type(self.tps)}, at"
                 ),
                 self.string,
                 self.start,
@@ -547,6 +560,7 @@ def JSONArray(s_and_end, scan_once, ctx, _w=WHITESPACE.match, _ws=WHITESPACE_STR
 # TYPED JSON DECODER #
 ######################
 
+
 def _tp_cache(func):
     """Wrapper caching __class_getitem__ on type hints
 
@@ -568,14 +582,20 @@ def _tp_cache(func):
 
 def _exec_body(namespace, type_hint):
     """Internal helper to initialize parametrized TypedJSONDecoder"""
-    namespace["type_hint"] = type_hint #property(lambda self: type_hint)
+    namespace["type_hint"] = type_hint  # property(lambda self: type_hint)
+
 
 class ParametrizedTypedJSONDecoderMeta(ABCMeta):
     """
     Metaclass for parametrized TypedJSONDecoder classes -- provides a nice repr()
     """
+
     def __repr__(self):
-        return f"TypedJSONDecoder[{self.type_hint!r}]"
+        tp = pretty_type(self.type_hint)
+        if isinstance(tp, str):
+            return f"TypedJSONDecoder[{tp}]"
+        return f"TypedJSONDecoder[{tp!r}]"
+
 
 class TypedJSONDecoder(ABC, JSONDecoder):
     """
@@ -610,7 +630,7 @@ class TypedJSONDecoder(ABC, JSONDecoder):
             "ParametrizedTypedJSONDecoder",
             (cls,),
             exec_body=functools.partial(_exec_body, type_hint=tp),
-            kwds={"metaclass": ParametrizedTypedJSONDecoderMeta}
+            kwds={"metaclass": ParametrizedTypedJSONDecoderMeta},
         )
 
     def __class_getitem__(cls, tp):

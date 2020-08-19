@@ -28,7 +28,7 @@ from typing import (
     TypeVar,
     Tuple,
     Union,
-    get_origin
+    get_origin,
 )
 
 # local imports
@@ -40,6 +40,7 @@ __all__ = [
     "JSONArray",
     "JSONObject",
     "JSONType",
+    "register_forward_ref",
     # Errors
     "JSONTypeError",
     "TypeHintError",
@@ -61,6 +62,9 @@ __all__ = [
     # Jsonable API
     "JSONable",
     "jsonable",
+    "JSONAttr",
+    "JAttr",
+    "jattr",
     ## Serialization
     "JSONableEncoder",
     "dump",
@@ -87,12 +91,20 @@ _JSONValueTypes = (type(None), bool, int, float, str)
 _JSONArrayTypes = (tuple, list)
 _JSONObjectTypes = (dict,)
 
+# Annotations to force resolutions of the types hints
+# Used in decoder.py to get the resolved types
+_jval: JSONValue
+_jarr: JSONArray
+_jobj: JSONObject
+_jtyp: JSONType
+
 # Sentinel used in this module
 MISSING = object()
 
 ##############
 # EXCEPTIONS #
 ##############
+
 
 class JSONTypeError(AutoFormatMixin, JSONError):
     """
@@ -106,6 +118,7 @@ class JSONTypeError(AutoFormatMixin, JSONError):
     def __init__(self, obj, message="{obj} is not a valid JSON object"):
         super().__init__(message)
         self.obj = obj
+
 
 class TypeHintError(AutoFormatMixin, JSONError):
     """
@@ -137,6 +150,7 @@ class CycleError(JSONError):
         super().__init__(message)
         self.obj = obj
 
+
 class JSONableError(JSONError):
     """
     Base exception for problem with the JSONable ABC or the jsonize decorator
@@ -148,25 +162,46 @@ class JAttrError(JSONableError):
     Exception for when an attribute is improperly jsonized
     """
 
+
 ####################
 # MODULE UTILITIES #
 ####################
 
+# Temporary function until it is created
 def _resolve_refs(tp):
-    if isinstance(tp, typing.ForwardRef):
-        if tp.__forward_arg__ == "JSONType":
-            return JSONType
-        if tp.__forward_arg__ == "JSONable":
-            return JSONable
-    return tp
+    raise RuntimeError("Function hasn't been initialized")
 
-# Proactively resolve ForwardRef for JSONType
+
+def register_forward_ref(name, type_):
+    raise RuntimeError("Function hasn't been initialized")
+
+
+# The functions will be created later as they needs JSONable
+# to be defined
+def _make_refs_funcs():
+    lock = RLock()
+    refs_table = {"JSONType": JSONType, "JSONable": JSONable}
+
+    def _resolve_refs(tp):
+        if isinstance(tp, typing.ForwardRef):
+            with lock:
+                return refs_table.get(tp.__forward_arg__, tp)
+        return tp
+
+    def register_forward_ref(name: str, type_: TypeHint):
+        with lock:
+            if name in refs_table:
+                raise ValueError(f"{name} is already a registered")
+            refs_table[name] = normalize_json_tp(type_)
+
+    return (_resolve_refs, register_forward_ref)
+
+
+# Proactively resolve ForwardRef
 @functools.wraps(typing.get_args)
 def get_args(type_hint):
-    return tuple(
-        _resolve_refs(tp)
-        for tp in typing.get_args(type_hint)
-    )
+    return tuple(_resolve_refs(tp) for tp in typing.get_args(type_hint))
+
 
 ##################
 # TYPE UTILITIES #
@@ -378,6 +413,7 @@ def _make_normalize():
         """
         nonlocal lock, guard
         from .jsonize import JSONable  # Avoid circular deps
+
         if isinstance(tp, typing.ForwardRef):
             pass
 
@@ -469,14 +505,16 @@ def have_common_value(ltp: TypeHint, rtp: TypeHint) -> bool:
         and issubclass(ltp, JSONable)
         and issubclass(rtp, JSONable)
     ):
+        # TODO: improve that check
         return issubclass(ltp, rtp) or issubclass(rtp, ltp)
     elif lorig is rorig is Union:
         return any(have_common_value(lsub, rsub) for lsub in largs for rsub in rargs)
     elif lorig in _JSONArrayTypes and rorig in _JSONArrayTypes:
-        lvariadic = lorig is list or len(largs) < 2 or largs[1] == Ellipsis
-        rvariadic = rorig is list or len(rargs) < 2 or rargs[1] == Ellipsis
+        lvariadic = lorig is list or (len(largs) == 2 and largs[1] == Ellipsis)
+        rvariadic = rorig is list or (len(rargs) == 2 and rargs[1] == Ellipsis)
         if lvariadic and rvariadic:
-            return have_common_value(largs[0], rargs[0])
+            #return have_common_value(largs[0], rargs[0])
+            return True # empty array is valid for both
         else:
             if lvariadic == rvariadic and len(largs) != len(rargs):
                 return False
@@ -488,9 +526,9 @@ def have_common_value(ltp: TypeHint, rtp: TypeHint) -> bool:
                 )
             )
     elif lorig is rorig is dict:
-        return have_common_value(largs[1], rargs[1])
+        #return have_common_value(largs[1], rargs[1])
+        return True #empty dict is valid for both
     return False
-
 
 
 #################
@@ -499,9 +537,7 @@ def have_common_value(ltp: TypeHint, rtp: TypeHint) -> bool:
 
 
 class JSONable(ABC):
-    """Asbstract class to represent objects that can be serialized and deserialized to JSON
-
-    """
+    """Abstract class to represent objects that can be serialized and deserialized to JSON"""
 
     _REGISTER = []  # List of registered classes
     _REQ_JATTRS = {}  # Defined on subclasses/decorated classes
@@ -537,6 +573,10 @@ class JSONable(ABC):
             return json.loads(obj, cls=cls.Decoder)
         else:
             return json.loads(dumps(obj), cls=cls.Decoder)
+
+
+# Delayed utils, JSONable needed to be define
+_resolve_refs, register_forward_ref = _make_refs_funcs()
 
 
 @dataclass(frozen=True)
@@ -610,24 +650,25 @@ class _JsonisedAttribute:
             return self.default()
         return deepcopy(self.default)
 
-
+# TODO:
+# - avoid duplicates with @dataclass
+# - check their are no name conflicts between JSONized attributes
 def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
     """Internal helper to find the attributes to jsonize on a class"""
     jattrs = []
-    # TODO: handle 3.9 Annotated type hint
+    names = set()
+    py_names = set()
     for py_name, tp in typing.get_type_hints(
-        cls, localns={cls.__name__: cls}, include_extras=not all_attrs
+        cls, localns={cls.__name__: cls}, include_extras=True
     ).items():
+        name = py_name
         if typing.get_origin(tp) is Annotated:
-            if any(
-                isinstance((json_attr := arg), JSONAttr) for arg in typing.get_args(tp)
-            ):
-                name = json_attr.key or py_name
-            else:
+            tp, *args = typing.get_args(tp)
+            if any(isinstance((found := arg), JSONAttr) for arg in args):
+                name = found.key or name
+            elif not all_attrs:
                 continue
-        elif all_attrs:
-            name = py_name
-        else:
+        elif not all_attrs:
             continue
         default = getattr(cls, py_name, MISSING)
         if isinstance(default, dataclasses.Field):
@@ -637,6 +678,10 @@ def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
                 default = default.default_factory
             else:
                 default = MISSING
+        if name in names:
+            raise JAttrError(f"Duplicated attribute name {name} in JSONable class {cls.__name__}")
+        names.add(name)
+        py_names.add(py_name)
         jattrs.append(
             _JsonisedAttribute(
                 name=name,
@@ -651,22 +696,25 @@ def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
                 field.default is dataclasses.MISSING
                 and field.default_factory is not dataclasses.MISSING
             ):
-                if typing.get_origin(field.type) is Annotated:
-                    json_attr = next(
-                        (
-                            arg
-                            for arg in typing.get_args(field.type)
-                            if isinstance(arg, JSONAttr)
-                        )
-                    )
-                    name = json_attr.key or field.name
-                else:
-                    name = field.name
+                if field.name in py_names:
+                    continue # skip already handled attributes
+                tp = field.type
+                name = field.name
+                if typing.get_origin(tp) is Annotated:
+                    tp, *args = typing.get_args(tp)
+                    if any(isinstance((found := arg), JSONAttr) for arg in args):
+                        name = found.key or name
+                    elif not all_attrs:
+                        continue
+                elif not all_attrs:
+                    continue
+                if name in names:
+                    raise JAttrError(f"Duplicated attribute name {name} in JSONable class {cls.__name__}")
                 jattrs.append(
                     _JsonisedAttribute(
                         name=name,
                         py_name=field.name,
-                        type_hint=field.type,
+                        type_hint=normalize_json_tp(tp),
                         default=field.default_factory,
                     )
                 )
@@ -695,33 +743,43 @@ def _is_jattr_subset(
 def _process_class(cls: type, /, *, all_attrs: bool) -> type:
     """Internal helper to make a class JSONable"""
     from .decoder import TypedJSONDecoder  # avoid circular deps
+
     # If class has already been processed, skip it
     if cls in JSONable._REGISTER:
         return cls
-    all_jattrs = {jattr.name: jattr for jattr in _get_jattrs(cls, all_attrs)}
-    req_jattrs = {
-        jattr.name: jattr for jattr in all_jattrs.values() if jattr.default is MISSING
-    }
-    # Check for conflict with previously registered classes
-    for other_cls in JSONable._REGISTER:
-        if (
-            not issubclass(cls, other_cls)
-            and _is_jattr_subset(req_jattrs, other_cls._ALL_JATTRS)
-            and _is_jattr_subset(other_cls._REQ_JATTRS, all_jattrs)
-        ):
-            raise JSONableError(
-                f"JSONable class '{cls.__name__}' overlaps with '{other_cls.__name__}' without inheriting from it"
-            )
-    cls._REQ_JATTRS = req_jattrs
-    cls._ALL_JATTRS = all_jattrs
-    setattr(cls, "to_json", JSONable.to_json)
-    setattr(cls, "from_json", classmethod(JSONable.from_json.__func__))
-    JSONable.register(cls)
-    JSONable._REGISTER.append(cls)
-    cls.Decoder = TypedJSONDecoder[
-        cls
-    ]  # last because the class must already be JSONable
-    return cls
+    register_forward_ref(cls.__name__, cls)
+    try:
+        all_jattrs = {jattr.name: jattr for jattr in _get_jattrs(cls, all_attrs)}
+        req_jattrs = {
+            jattr.name: jattr
+            for jattr in all_jattrs.values()
+            if jattr.default is MISSING
+        }
+        # Check for conflict with previously registered classes
+        for other_cls in JSONable._REGISTER:
+            if (
+                not issubclass(cls, other_cls)
+                and _is_jattr_subset(req_jattrs, other_cls._ALL_JATTRS)
+                and _is_jattr_subset(other_cls._REQ_JATTRS, all_jattrs)
+            ):
+                raise JSONableError(
+                    f"JSONable class '{cls.__name__}' overlaps with '{other_cls.__name__}' without inheriting from it"
+                )
+        cls._REQ_JATTRS = req_jattrs
+        cls._ALL_JATTRS = all_jattrs
+        setattr(cls, "to_json", JSONable.to_json)
+        setattr(cls, "from_json", classmethod(JSONable.from_json.__func__))
+        JSONable.register(cls)
+        JSONable._REGISTER.append(cls)
+        # last because the class must already be JSONable
+        cls.Decoder = TypedJSONDecoder[cls]
+        return cls
+    except Exception:
+        # On error, undo the foward_ref registration
+        table = register_forward_ref.__closure__[1].cell_contents
+        if cls.__name__ in table:
+            del table[cls.__name__]
+        raise
 
 
 def jsonable(cls: type = None, /, *, all_attrs: bool = True) -> type:
