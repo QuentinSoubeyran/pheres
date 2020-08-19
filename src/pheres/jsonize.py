@@ -513,8 +513,8 @@ def have_common_value(ltp: TypeHint, rtp: TypeHint) -> bool:
         lvariadic = lorig is list or (len(largs) == 2 and largs[1] == Ellipsis)
         rvariadic = rorig is list or (len(rargs) == 2 and rargs[1] == Ellipsis)
         if lvariadic and rvariadic:
-            #return have_common_value(largs[0], rargs[0])
-            return True # empty array is valid for both
+            # return have_common_value(largs[0], rargs[0])
+            return True  # empty array is valid for both
         else:
             if lvariadic == rvariadic and len(largs) != len(rargs):
                 return False
@@ -526,8 +526,8 @@ def have_common_value(ltp: TypeHint, rtp: TypeHint) -> bool:
                 )
             )
     elif lorig is rorig is dict:
-        #return have_common_value(largs[1], rargs[1])
-        return True #empty dict is valid for both
+        # return have_common_value(largs[1], rargs[1])
+        return True  # empty dict is valid for both
     return False
 
 
@@ -650,6 +650,7 @@ class _JsonisedAttribute:
             return self.default()
         return deepcopy(self.default)
 
+
 # TODO:
 # - avoid duplicates with @dataclass
 # - check their are no name conflicts between JSONized attributes
@@ -679,7 +680,9 @@ def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
             else:
                 default = MISSING
         if name in names:
-            raise JAttrError(f"Duplicated attribute name {name} in JSONable class {cls.__name__}")
+            raise JAttrError(
+                f"Duplicated attribute name {name} in JSONable class {cls.__name__}"
+            )
         names.add(name)
         py_names.add(py_name)
         jattrs.append(
@@ -697,7 +700,7 @@ def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
                 and field.default_factory is not dataclasses.MISSING
             ):
                 if field.name in py_names:
-                    continue # skip already handled attributes
+                    continue  # skip already handled attributes
                 tp = field.type
                 name = field.name
                 if typing.get_origin(tp) is Annotated:
@@ -709,7 +712,9 @@ def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
                 elif not all_attrs:
                     continue
                 if name in names:
-                    raise JAttrError(f"Duplicated attribute name {name} in JSONable class {cls.__name__}")
+                    raise JAttrError(
+                        f"Duplicated attribute name {name} in JSONable class {cls.__name__}"
+                    )
                 jattrs.append(
                     _JsonisedAttribute(
                         name=name,
