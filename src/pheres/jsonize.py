@@ -651,9 +651,6 @@ class _JsonisedAttribute:
         return deepcopy(self.default)
 
 
-# TODO:
-# - avoid duplicates with @dataclass
-# - check their are no name conflicts between JSONized attributes
 def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
     """Internal helper to find the attributes to jsonize on a class"""
     jattrs = []
