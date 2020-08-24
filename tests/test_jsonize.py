@@ -13,16 +13,16 @@ class BaseTypes(ph.JSONable):
     float_: float
     string: str
 
-@ph.jsonable
 @dataclass
+@ph.jsonable
 class ParamTypes(ph.JSONable):
-    literal: Literal[0]
+    literal: Literal[0, 1]
     array_fixed: Tuple[None, bool, int, float, str]
     array: List[int]
     obj: Dict[str, str]
 
-@ph.jsonable
 @dataclass
+@ph.jsonable
 class DefaultBaseTypes(ph.JSONable):
     type_: Literal["dbt"]
     null_d: None = None
@@ -46,8 +46,8 @@ class _DefaultParamTypes(ph.JSONable):
         self._array_d = arr
         self._obj_d = obj
 
-@ph.jsonable
 @dataclass
+@ph.jsonable
 class DefaultParamTypes(ph.JSONable):
     type_: Literal["dpt"]
     literal_d: Literal[0, 1] = 0
@@ -55,14 +55,14 @@ class DefaultParamTypes(ph.JSONable):
     array_d: List[int] = field(default_factory=lambda: [])
     obj_d : Dict[str, str] = field(default_factory=lambda:{})
 
-@ph.jsonable
 @dataclass
+@ph.jsonable
 class JSONableTypes(ph.JSONable):
     base_types: BaseTypes
     param_types: ParamTypes
 
-@ph.jsonable
 @dataclass
+@ph.jsonable
 class DefaultJSONableTypes(ph.JSONable):
     type_: Literal["dj"]
     base_types_d: DefaultBaseTypes
@@ -94,19 +94,22 @@ def test_param_types():
 
 
 def test_default_bases():
-    obj = DefaultBaseTypes(type_ = "dbt")
+    obj = DefaultBaseTypes()
     assert obj.to_json() == {"type_": "dbt"}
-    assert obj.to_json(default_values=True) == {"type_": "dbt", "null_d": None, "boolean_d": False, "integer_d": 0, "float_d": 0.0, "string_d": ""}
+    assert obj.to_json(with_defaults=True) == {"type_": "dbt", "null_d": None, "boolean_d": False, "integer_d": 0, "float_d": 0.0, "string_d": ""}
     assert ph.dumps(obj) == r'{"type_": "dbt"}'
     assert obj == DefaultBaseTypes.Decoder.loads(ph.dumps(obj))
     assert obj == DefaultBaseTypes.from_json(ph.dumps(obj))
     assert isinstance(ph.loads(ph.dumps(obj)), DefaultBaseTypes)
 
-    obj = DefaultBaseTypes("dbt", None, True, 1, 1.0, "string")
+    obj = DefaultBaseTypes(None, True, 1, 1.0, "string")
     assert obj.to_json() == {"type_": "dbt", "boolean_d": True, "integer_d": 1, "float_d": 1.0, "string_d": "string"}
-    assert obj.to_json(default_values=True) == {"type_": "dbt", "null_d": None, "boolean_d": True, "integer_d": 1, "float_d": 1.0, "string_d": "string"}
+    assert obj.to_json(with_defaults=True) == {"type_": "dbt", "null_d": None, "boolean_d": True, "integer_d": 1, "float_d": 1.0, "string_d": "string"}
     assert ph.dumps(obj) == r'{"type_": "dbt", "boolean_d": true, "integer_d": 1, "float_d": 1.0, "string_d": "string"}'
     assert obj == DefaultBaseTypes.Decoder.loads(ph.dumps(obj))
     assert obj == DefaultBaseTypes.from_json(ph.dumps(obj))
     assert isinstance(ph.loads(ph.dumps(obj)), DefaultBaseTypes)
 
+def test_default_param():
+    obj = DefaultParamTypes()
+    assert obj.to_json() == {"type_": "dpt"}

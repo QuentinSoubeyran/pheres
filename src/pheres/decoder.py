@@ -41,7 +41,14 @@ from typing import (
 # Local import
 from .misc import JSONError
 from . import jsonize
-from .jsonize import JSONType, get_args, normalize_json_tp, typecheck, JSONable
+from .jsonize import (
+    JSONType,
+    get_args,
+    normalize_json_tp,
+    typecheck,
+    JSONable,
+    _make_instance,
+)
 
 # import internals of stdlib 'json' module
 # Those are not part of the public API
@@ -312,16 +319,8 @@ class DecodeContext:
                 "[!! This is a bug !! Please report] Multiple Jsonable subclass available at deserialization"
             )
         if cls_list:
-            cls = cls_list[0]
             return (
-                cls(
-                    **{
-                        jattr.py_name: obj[jattr.name]
-                        if jattr.name in obj
-                        else jattr.get_default()
-                        for jattr in cls._ALL_JATTRS.values()
-                    }
-                ),
+                _make_instance(cls_list[0], obj),
                 end,
             )
         return obj, end

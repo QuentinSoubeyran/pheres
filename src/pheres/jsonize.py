@@ -8,7 +8,7 @@ Part of the Pheres package
 from abc import ABC
 from copy import deepcopy
 import dataclasses
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import functools
 from itertools import repeat
 import json
@@ -548,14 +548,15 @@ class JSONable(ABC):
         super().__init_subclass__(**kwargs)
         _process_class(cls, all_attrs=all_attrs)
 
-    def to_json(self, /, *, default_values=False):
-        return {
-            jattr.name: value.to_json() if isinstance(value, JSONable) else value
-            for jattr in self._ALL_JATTRS.values()
-            if (value := getattr(self, jattr.py_name)) != jattr.get_default()
-            or default_values
-            or typing.get_origin(jattr.type_hint) is Literal
-        }
+    def to_json(self, /, *, with_defaults=False):
+        obj = {}
+        for jattr in self._ALL_JATTRS.values():
+            value = jattr.write_json(self, with_default=with_defaults)
+            if value is not MISSING:
+                obj[jattr.name] = (
+                    value.to_json() if isinstance(value, JSONable) else value
+                )
+        return obj
 
     @classmethod
     def from_json(cls, /, obj):
@@ -586,13 +587,14 @@ class JSONAttr:
     """
 
     key: str = None
+    json_only: bool = False
 
 
 T = TypeVar("T", JSONType, JSONable, covariant=True)
 JAttr = Annotated[T, JSONAttr()]
 
 
-def jattr(tp, /, *, key: str = None) -> TypeHint:
+def jattr(tp, /, *, key: str = None, json_only: bool = False) -> TypeHint:
     """
     Build a type hint to make the annotated attribute a JSONAttribute
 
@@ -603,7 +605,7 @@ def jattr(tp, /, *, key: str = None) -> TypeHint:
         tp -- the type hint for the attribute
         key -- the name of the key in JSON for that attributes
     """
-    return Annotated[tp, JSONAttr(key=key)]
+    return Annotated[tp, JSONAttr(key=key, json_only=json_only)]
 
 
 @dataclass(frozen=True)
@@ -623,12 +625,31 @@ class _JsonisedAttribute:
     py_name: str
     type_hint: TypeHint
     default: object = MISSING
+    json_only: bool = field(default=MISSING, init=True)
 
-    def __post_init__(self, /) -> None:
+    def __post_init__(self, /, init=MISSING) -> None:
         if callable(self.default) and not is_json((value := self.default())):
             raise JAttrError(
                 f"A callable default must produce a valid JSON value, got {value}"
             )
+        if init is MISSING:
+            if (
+                get_origin(self.type_hint) is Literal
+                and len(get_args(self.type_hint)) == 1
+            ):
+                arg = get_args(self.type_hint)[0]
+                default = self.default() if callable(self.default) else self.default
+                if default is not MISSING and default != arg:
+                    raise JAttrError(
+                        f"Incoherent Literal and default for json-only attribute: {arg} != {default}"
+                    )
+                object.__setattr__(self, "json_only", True)
+                if default is MISSING:
+                    object.__setattr__(self, "default", arg)
+            else:
+                object.__setattr__(self, "json_only", False)
+        if self.json_only and self.default is MISSING:
+            raise JAttrError("json-only JSONized Attributes must have a default value")
 
     def overlaps(self, /, other: "_JsonKey") -> bool:
         """
@@ -649,6 +670,16 @@ class _JsonisedAttribute:
         if callable(self.default):
             return self.default()
         return deepcopy(self.default)
+
+    def write_json(
+        self, /, instance: JSONable, *, with_default: bool = False
+    ) -> JSONObject:
+        if self.json_only:
+            return self.get_default()
+        value = getattr(instance, self.py_name)
+        if value == self.get_default() and not with_default:
+            return MISSING
+        return value
 
 
 def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
@@ -755,7 +786,7 @@ def _process_class(cls: type, /, *, all_attrs: bool) -> type:
         req_jattrs = {
             jattr.name: jattr
             for jattr in all_jattrs.values()
-            if jattr.default is MISSING
+            if jattr.default is MISSING or jattr.json_only
         }
         # Check for conflict with previously registered classes
         for other_cls in JSONable._REGISTER:
@@ -775,6 +806,14 @@ def _process_class(cls: type, /, *, all_attrs: bool) -> type:
         JSONable._REGISTER.append(cls)
         # last because the class must already be JSONable
         cls.Decoder = TypedJSONDecoder[cls]
+        if not dataclasses.is_dataclass(cls):
+            cls_annotations = cls.__dict__.get("__annotations__", {})
+            for jattr in req_jattrs.values():
+                if jattr.json_only:
+                    if hasattr(cls, jattr.py_name):
+                        delattr(cls, jattr.py_name)
+                    if jattr.py_name in cls_annotations:
+                        del cls_annotations[jattr.py_name]
         return cls
     except Exception:
         # On error, undo the foward_ref registration
@@ -782,6 +821,18 @@ def _process_class(cls: type, /, *, all_attrs: bool) -> type:
         if cls.__name__ in table:
             del table[cls.__name__]
         raise
+
+
+def _make_instance(cls, obj):
+    return cls(
+        **{
+            jattr.py_name: (
+                obj[jattr.name] if jattr.name in obj else jattr.get_default()
+            )
+            for jattr in cls._ALL_JATTRS.values()
+            if not jattr.json_only
+        }
+    )
 
 
 def jsonable(cls: type = None, /, *, all_attrs: bool = True) -> type:
@@ -853,15 +904,7 @@ def jsonable_hook(obj: dict) -> Union[Any, dict]:
             f"[!! This is a bug !! Please report] Multiple valid JSONable class found while deserializing {obj}"
         )
     elif len(valid_cls) == 1:
-        cls = valid_cls[0]
-        return cls(
-            **{
-                jattr.py_name: obj[jattr.name]
-                if jattr.name in obj
-                else jattr.get_default()
-                for jattr in cls._ALL_JATTRS.values()
-            }
-        )
+        return _make_instance(valid_cls[0], obj)
     else:
         return obj
 
