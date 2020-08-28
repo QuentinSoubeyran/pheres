@@ -150,6 +150,22 @@ class CycleError(JSONError):
         super().__init__(message)
         self.obj = obj
 
+class ForwardRefConflictError(AutoFormatMixin, JSONError):
+    """
+    Raised when registering a forward reference name that already exists
+
+    Attributes
+        name -- name of the foward reference
+        type -- registered type
+        new_type -- type attempted to be registered under 'name'
+        message -- explanation of the error
+    """
+    def __init__(self, name, type_, new_type, message="Cannot register '{new_type}', name '{name}' is already used by '{type_}'"):
+        super().__init__(message)
+        self.name = name
+        self.type_ = type_
+        self.new_type = type_
+
 
 class JSONableError(JSONError):
     """
@@ -188,10 +204,20 @@ def _make_refs_funcs():
                 return refs_table.get(tp.__forward_arg__, tp)
         return tp
 
-    def register_forward_ref(name: str, type_: TypeHint):
+    def register_forward_ref(name: str, type_: type):
+        """
+        Register a type under a name for use in FowardRef in JSONable classes
+
+        Arguments
+            name -- string name to use for the type
+            type_ -- type matching the name
+        
+        Raises
+            ValueError if 'name' is already used
+        """
         with lock:
             if name in refs_table:
-                raise ValueError(f"{name} is already a registered")
+                raise ForwardRefConflictError(name=name, type_=refs_table[name], new_type=type_)
             refs_table[name] = normalize_json_tp(type_)
 
     return (_resolve_refs, register_forward_ref)
@@ -367,6 +393,8 @@ def typecheck(value: JSONType, tp: TypeHint) -> bool:
     elif orig is Union:
         return any(typecheck(value, arg) for arg in get_args(tp))
     elif orig in _JSONArrayTypes:
+        if not isinstance(value, _JSONArrayTypes):
+            return False
         if orig is tuple:
             args = get_args(tp)
             return (
@@ -380,6 +408,8 @@ def typecheck(value: JSONType, tp: TypeHint) -> bool:
         raise JSONError(f"[BUG] Unhandled typecheck {tp}")
     elif orig in _JSONObjectTypes:
         if orig is dict:
+            if not isinstance(value, dict):
+                return False
             tp = get_args(tp)[1]
             return all(
                 isinstance(key, str) and typecheck(val, tp)
@@ -540,9 +570,16 @@ class JSONable(ABC):
     """Abstract class to represent objects that can be serialized and deserialized to JSON"""
 
     _REGISTER = []  # List of registered classes
+    _TEMP_REGISTER = [] # List of JSONable subclasses temporary registered during creation
     _REQ_JATTRS = {}  # Defined on subclasses/decorated classes
     _ALL_JATTRS = {}  # Defined on subclasses/decorated classes
     Decoder = json.JSONDecoder  # Defined on subclasses/decorated classes
+
+    @classmethod
+    def __subclasshook__(cls, /, subclass):
+        if subclass in cls._TEMP_REGISTER:
+            return True
+        return NotImplemented
 
     def __init_subclass__(cls, all_attrs: bool = True, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -583,35 +620,43 @@ _resolve_refs, register_forward_ref = _make_refs_funcs()
 @dataclass(frozen=True)
 class JSONAttr:
     """
-    Dataclass to store the info for attribute to convert to json
+    Annotation for JSONized arguments type that provides more control
+    on the JSONized attribute behavior. All arguments are optional.
+
+    Arguments
+        key -- Set the name of the key in JSON for that attribute.
+            Defaults to: the name of the attribute in python
+
+        json_only -- Make the attribute only present in JSON. The attribute
+            must have a default value or be a Literal of a single value. The
+            attribute is removed from the class' annotations at runtime
+            Defaults to:
+             * True for Literals of a single value
+             * False for all other types
     """
 
     key: str = None
-    json_only: bool = False
+    json_only: bool = MISSING
 
 
 T = TypeVar("T", JSONType, JSONable, covariant=True)
 JAttr = Annotated[T, JSONAttr()]
 
 
-def jattr(tp, /, *, key: str = None, json_only: bool = False) -> TypeHint:
+def jattr(T, /, **kwargs) -> TypeHint:
     """
-    Build a type hint to make the annotated attribute a JSONAttribute
+    Shortcut for Annotated[T, JSONAttr(**kwargs)]
 
-    Not compatible with type checker due to being run-time. Use JAttr[]
-    and Annotated[T, JSONAttr()] for compatibilty with type checkers
-
-    Arguments
-        tp -- the type hint for the attribute
-        key -- the name of the key in JSON for that attributes
+    See JSONAttr for a list of supported keyword arguments. Not compatible 
+    with type checkers due to being runtime
     """
-    return Annotated[tp, JSONAttr(key=key, json_only=json_only)]
+    return Annotated[T, JSONAttr(**kwargs)]
 
 
 @dataclass(frozen=True)
 class _JsonisedAttribute:
     """
-    Internal class for a json key-value pair that should be in the JSON serialization of a Jsonable instance
+    Internal class to represent a JSONized attribute
 
     Attributes
         name      -- name of the attribute in JSON
@@ -627,12 +672,12 @@ class _JsonisedAttribute:
     default: object = MISSING
     json_only: bool = field(default=MISSING, init=True)
 
-    def __post_init__(self, /, init=MISSING) -> None:
+    def __post_init__(self, /,json_only=MISSING) -> None:
         if callable(self.default) and not is_json((value := self.default())):
             raise JAttrError(
                 f"A callable default must produce a valid JSON value, got {value}"
             )
-        if init is MISSING:
+        if json_only is MISSING:
             if (
                 get_origin(self.type_hint) is Literal
                 and len(get_args(self.type_hint)) == 1
@@ -691,14 +736,25 @@ def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
         cls, localns={cls.__name__: cls}, include_extras=True
     ).items():
         name = py_name
+        json_only = MISSING
+        # Retrieve name, type hint and annotation
         if typing.get_origin(tp) is Annotated:
             tp, *args = typing.get_args(tp)
             if any(isinstance((found := arg), JSONAttr) for arg in args):
                 name = found.key or name
+                json_only = found.json_only
             elif not all_attrs:
                 continue
         elif not all_attrs:
             continue
+        # Check for name conflict
+        if name in names:
+            raise JAttrError(
+                f"Duplicated attribute name {name} in JSONable class {cls.__name__}"
+            )
+        names.add(name)
+        py_names.add(py_name)
+        # Get default value
         default = getattr(cls, py_name, MISSING)
         if isinstance(default, dataclasses.Field):
             if default.default is not dataclasses.MISSING:
@@ -707,20 +763,18 @@ def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
                 default = default.default_factory
             else:
                 default = MISSING
-        if name in names:
-            raise JAttrError(
-                f"Duplicated attribute name {name} in JSONable class {cls.__name__}"
-            )
-        names.add(name)
-        py_names.add(py_name)
+        # Create JSONized attribute
         jattrs.append(
             _JsonisedAttribute(
                 name=name,
                 py_name=py_name,
                 type_hint=normalize_json_tp(tp),
                 default=default,
+                json_only=json_only
             )
         )
+    # Handle dataclasses fields that were removed
+    # from the class' annotations
     if dataclasses.is_dataclass(cls):
         for field in dataclasses.fields(cls):
             if (
@@ -731,10 +785,12 @@ def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
                     continue  # skip already handled attributes
                 tp = field.type
                 name = field.name
+                json_only = MISSING
                 if typing.get_origin(tp) is Annotated:
                     tp, *args = typing.get_args(tp)
                     if any(isinstance((found := arg), JSONAttr) for arg in args):
                         name = found.key or name
+                        json_only = found.json_only
                     elif not all_attrs:
                         continue
                 elif not all_attrs:
@@ -749,6 +805,7 @@ def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
                         py_name=field.name,
                         type_hint=normalize_json_tp(tp),
                         default=field.default_factory,
+                        json_only=json_only
                     )
                 )
     return jattrs
@@ -780,47 +837,58 @@ def _process_class(cls: type, /, *, all_attrs: bool) -> type:
     # If class has already been processed, skip it
     if cls in JSONable._REGISTER:
         return cls
-    register_forward_ref(cls.__name__, cls)
+    # Temporary register
+    JSONable._TEMP_REGISTER.append(cls)
     try:
-        all_jattrs = {jattr.name: jattr for jattr in _get_jattrs(cls, all_attrs)}
-        req_jattrs = {
-            jattr.name: jattr
-            for jattr in all_jattrs.values()
-            if jattr.default is MISSING or jattr.json_only
-        }
-        # Check for conflict with previously registered classes
-        for other_cls in JSONable._REGISTER:
-            if (
-                not issubclass(cls, other_cls)
-                and _is_jattr_subset(req_jattrs, other_cls._ALL_JATTRS)
-                and _is_jattr_subset(other_cls._REQ_JATTRS, all_jattrs)
-            ):
-                raise JSONableError(
-                    f"JSONable class '{cls.__name__}' overlaps with '{other_cls.__name__}' without inheriting from it"
-                )
-        cls._REQ_JATTRS = req_jattrs
-        cls._ALL_JATTRS = all_jattrs
-        setattr(cls, "to_json", JSONable.to_json)
-        setattr(cls, "from_json", classmethod(JSONable.from_json.__func__))
-        JSONable.register(cls)
-        JSONable._REGISTER.append(cls)
-        # last because the class must already be JSONable
-        cls.Decoder = TypedJSONDecoder[cls]
-        if not dataclasses.is_dataclass(cls):
+        try:
+            register_forward_ref(cls.__name__, cls)
+        except ForwardRefConflictError as err:
+            raise JSONableError(f"Cannot register the new JSONable class under name '{err.name}': it is already used by '{err.type_}'") from None
+        try:
+            # Compute jsonized attributes of the class
+            all_jattrs = {jattr.name: jattr for jattr in _get_jattrs(cls, all_attrs)}
+            req_jattrs = {
+                jattr.name: jattr
+                for jattr in all_jattrs.values()
+                if jattr.default is MISSING or jattr.json_only
+            }
+            # Check for conflict with previously registered classes
+            for other_cls in JSONable._REGISTER:
+                if (
+                    not issubclass(cls, other_cls)
+                    and _is_jattr_subset(req_jattrs, other_cls._ALL_JATTRS)
+                    and _is_jattr_subset(other_cls._REQ_JATTRS, all_jattrs)
+                ):
+                    raise JSONableError(
+                        f"JSONable class '{cls.__name__}' overlaps with '{other_cls.__name__}' without inheriting from it"
+                    )
+            # Modify the class in-place
+            JSONable.register(cls)
+            JSONable._REGISTER.append(cls)
+            cls._REQ_JATTRS = req_jattrs
+            cls._ALL_JATTRS = all_jattrs
+            setattr(cls, "to_json", JSONable.to_json)
+            setattr(cls, "from_json", classmethod(JSONable.from_json.__func__))
+            cls.Decoder = TypedJSONDecoder[cls]
+            # Remove json_only attribute from the class's annotations and dict
             cls_annotations = cls.__dict__.get("__annotations__", {})
             for jattr in req_jattrs.values():
                 if jattr.json_only:
+                    if dataclasses.is_dataclass(cls):
+                        raise JSONableError("Using json-only attributes requires that @dataclass is applied after @jsonable")
                     if hasattr(cls, jattr.py_name):
                         delattr(cls, jattr.py_name)
                     if jattr.py_name in cls_annotations:
                         del cls_annotations[jattr.py_name]
-        return cls
-    except Exception:
-        # On error, undo the foward_ref registration
-        table = register_forward_ref.__closure__[1].cell_contents
-        if cls.__name__ in table:
-            del table[cls.__name__]
-        raise
+            return cls
+        except Exception:
+            # On error, undo the foward_ref registration
+            table = register_forward_ref.__closure__[1].cell_contents
+            if cls.__name__ in table:
+                del table[cls.__name__]
+            raise
+    finally:
+        JSONable._TEMP_REGISTER.remove(cls)
 
 
 def _make_instance(cls, obj):
