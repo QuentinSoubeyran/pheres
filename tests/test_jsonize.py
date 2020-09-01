@@ -3,7 +3,7 @@ from dataclasses import *
 import pheres as ph
 
 # fix tests being run mutiple times
-ph.JSONable._REGISTER.clear()
+ph.JSONable._REGISTRY.clear()
 
 @dataclass
 class BaseTypes(ph.JSONable):

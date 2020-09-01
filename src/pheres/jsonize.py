@@ -588,7 +588,7 @@ class JSONable(ABC):
 
     @classmethod
     def __subclasshook__(cls, /, subclass):
-        if subclass in cls._TEMP_REGISTER:
+        if subclass in cls._TEMP_REGISTRY:
             return True
         return NotImplemented
 
