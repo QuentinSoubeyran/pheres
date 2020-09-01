@@ -40,7 +40,7 @@ __all__ = [
     "JSONArray",
     "JSONObject",
     "JSONType",
-    "register_forward_ref",
+    "TypeHint",
     # Errors
     "JSONTypeError",
     "TypeHintError",
@@ -59,6 +59,7 @@ __all__ = [
     "normalize_json_tp",
     "is_json_type_hint",
     "have_common_value",
+    "register_forward_ref",
     # Jsonable API
     "JSONable",
     "jsonable",
@@ -83,7 +84,7 @@ JSONLiteral = Union[bool, int, str]
 JSONType = Union[JSONValue, JSONArray, JSONObject]
 
 # Type aliases for this module
-TypeHint = Union[type(List), type(Type)]
+TypeHint = Union[type, type(Union), type(Type), type(List)]
 
 # Constant
 _JSONLiteralTypes = (bool, int, str)
@@ -150,17 +151,25 @@ class CycleError(JSONError):
         super().__init__(message)
         self.obj = obj
 
+
 class ForwardRefConflictError(AutoFormatMixin, JSONError):
     """
     Raised when registering a forward reference name that already exists
 
     Attributes
         name -- name of the foward reference
-        type -- registered type
+        type_ -- registered type
         new_type -- type attempted to be registered under 'name'
         message -- explanation of the error
     """
-    def __init__(self, name, type_, new_type, message="Cannot register '{new_type}', name '{name}' is already used by '{type_}'"):
+
+    def __init__(
+        self,
+        name,
+        type_,
+        new_type,
+        message="Cannot register '{new_type}', name '{name}' is already used by '{type_}'",
+    ):
         super().__init__(message)
         self.name = name
         self.type_ = type_
@@ -204,7 +213,7 @@ def _make_refs_funcs():
                 return refs_table.get(tp.__forward_arg__, tp)
         return tp
 
-    def register_forward_ref(name: str, type_: type):
+    def register_forward_ref(name: str, type_: TypeHint):
         """
         Register a type under a name for use in FowardRef in JSONable classes
 
@@ -217,7 +226,9 @@ def _make_refs_funcs():
         """
         with lock:
             if name in refs_table:
-                raise ForwardRefConflictError(name=name, type_=refs_table[name], new_type=type_)
+                raise ForwardRefConflictError(
+                    name=name, type_=refs_table[name], new_type=type_
+                )
             refs_table[name] = normalize_json_tp(type_)
 
     return (_resolve_refs, register_forward_ref)
@@ -569,8 +580,8 @@ def have_common_value(ltp: TypeHint, rtp: TypeHint) -> bool:
 class JSONable(ABC):
     """Abstract class to represent objects that can be serialized and deserialized to JSON"""
 
-    _REGISTER = []  # List of registered classes
-    _TEMP_REGISTER = [] # List of JSONable subclasses temporary registered during creation
+    _REGISTRY = []  # List of registered classes
+    _TEMP_REGISTRY = []  # JSONable subclasses under registration
     _REQ_JATTRS = {}  # Defined on subclasses/decorated classes
     _ALL_JATTRS = {}  # Defined on subclasses/decorated classes
     Decoder = json.JSONDecoder  # Defined on subclasses/decorated classes
@@ -672,7 +683,7 @@ class _JsonisedAttribute:
     default: object = MISSING
     json_only: bool = field(default=MISSING, init=True)
 
-    def __post_init__(self, /,json_only=MISSING) -> None:
+    def __post_init__(self, /, json_only=MISSING) -> None:
         if callable(self.default) and not is_json((value := self.default())):
             raise JAttrError(
                 f"A callable default must produce a valid JSON value, got {value}"
@@ -770,7 +781,7 @@ def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
                 py_name=py_name,
                 type_hint=normalize_json_tp(tp),
                 default=default,
-                json_only=json_only
+                json_only=json_only,
             )
         )
     # Handle dataclasses fields that were removed
@@ -805,7 +816,7 @@ def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
                         py_name=field.name,
                         type_hint=normalize_json_tp(tp),
                         default=field.default_factory,
-                        json_only=json_only
+                        json_only=json_only,
                     )
                 )
     return jattrs
@@ -835,15 +846,17 @@ def _process_class(cls: type, /, *, all_attrs: bool) -> type:
     from .decoder import TypedJSONDecoder  # avoid circular deps
 
     # If class has already been processed, skip it
-    if cls in JSONable._REGISTER:
+    if cls in JSONable._REGISTRY:
         return cls
     # Temporary register
-    JSONable._TEMP_REGISTER.append(cls)
+    JSONable._TEMP_REGISTRY.append(cls)
     try:
         try:
             register_forward_ref(cls.__name__, cls)
         except ForwardRefConflictError as err:
-            raise JSONableError(f"Cannot register the new JSONable class under name '{err.name}': it is already used by '{err.type_}'") from None
+            raise JSONableError(
+                f"Cannot register the new JSONable class under name '{err.name}': it is already used by '{err.type_}'"
+            ) from None
         try:
             # Compute jsonized attributes of the class
             all_jattrs = {jattr.name: jattr for jattr in _get_jattrs(cls, all_attrs)}
@@ -853,7 +866,7 @@ def _process_class(cls: type, /, *, all_attrs: bool) -> type:
                 if jattr.default is MISSING or jattr.json_only
             }
             # Check for conflict with previously registered classes
-            for other_cls in JSONable._REGISTER:
+            for other_cls in JSONable._REGISTRY:
                 if (
                     not issubclass(cls, other_cls)
                     and _is_jattr_subset(req_jattrs, other_cls._ALL_JATTRS)
@@ -864,7 +877,7 @@ def _process_class(cls: type, /, *, all_attrs: bool) -> type:
                     )
             # Modify the class in-place
             JSONable.register(cls)
-            JSONable._REGISTER.append(cls)
+            JSONable._REGISTRY.append(cls)
             cls._REQ_JATTRS = req_jattrs
             cls._ALL_JATTRS = all_jattrs
             setattr(cls, "to_json", JSONable.to_json)
@@ -875,7 +888,9 @@ def _process_class(cls: type, /, *, all_attrs: bool) -> type:
             for jattr in req_jattrs.values():
                 if jattr.json_only:
                     if dataclasses.is_dataclass(cls):
-                        raise JSONableError("Using json-only attributes requires that @dataclass is applied after @jsonable")
+                        raise JSONableError(
+                            "Using json-only attributes requires that @dataclass is applied after @jsonable"
+                        )
                     if hasattr(cls, jattr.py_name):
                         delattr(cls, jattr.py_name)
                     if jattr.py_name in cls_annotations:
@@ -888,7 +903,7 @@ def _process_class(cls: type, /, *, all_attrs: bool) -> type:
                 del table[cls.__name__]
             raise
     finally:
-        JSONable._TEMP_REGISTER.remove(cls)
+        JSONable._TEMP_REGISTRY.remove(cls)
 
 
 def _make_instance(cls, obj):
@@ -950,7 +965,7 @@ def jsonable_hook(obj: dict) -> Union[Any, dict]:
     Object hook for the json.load() and json.loads() methods to deserialize JSONable classes
     """
     valid_cls = []
-    for cls in JSONable._REGISTER:
+    for cls in JSONable._REGISTRY:
         # req_jattrs = set(cls._REQ_JATTRS)
         if all(  # all required arguments are there
             key in obj and typecheck(obj[key], jattr.type_hint)
