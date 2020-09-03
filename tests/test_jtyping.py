@@ -16,6 +16,7 @@ test_cases = [
     ({"key": 0.0}, JSONObject),
 ]
 
+
 def test_typeof():
     from pheres import typeof
 
@@ -27,16 +28,20 @@ def test_typeof():
         else:
             assert typeof(value) is jtype
 
+
 def test_is_json():
     from pheres import is_json, CycleError
-    
+
     for value, jtype in test_cases:
-        print(f"Testing is_json({value}) == {not (isinstance(jtype, type) and issubclass(jtype, JSONError))}")
-        assert is_json(value) == (not (isinstance(jtype, type) and issubclass(jtype, JSONError)))
+        print(
+            f"Testing is_json({value}) == {not (isinstance(jtype, type) and issubclass(jtype, JSONError))}"
+        )
+        assert is_json(value) == (
+            not (isinstance(jtype, type) and issubclass(jtype, JSONError))
+        )
 
     assert not is_json({0: 0.0})
     d = {}
     d["key"] = d
     with pytest.raises(CycleError):
         is_json(d)
-
