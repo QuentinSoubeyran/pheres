@@ -3,13 +3,19 @@
 In greek methology, Pheres is (one of) the son of Jason. In python, Pheres expands the `json` builtin-module with useful utilities.
 It is a drop-in replacement for `json` and provides several utilities to work with JSON in python.
 
+# Disclaimer
+*Pheres* is currently in alpha. It might have bugs or features not working properly, and the API might change.
+
 # Installation
 
 > Not yet available on PyPI
 
+Install directly from GitHub:
+
 ```bash
-pip install pheres
+pip install "git+https://QuentinSoubeyran.github.com/pheres#egg=pheres"
 ```
+
 
 # Features
 

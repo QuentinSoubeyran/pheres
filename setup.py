@@ -14,7 +14,7 @@ setuptools.setup(
     author="Quentin Soubeyran",
     license="MIT",
     author_email="45202794+QuentinSoubeyran@users.noreply.github.com",
-    description="Extension to the builtin json module",
+    description="Extension of the builtin json module",
     long_description=readme,
     long_description_content_type="text/markdown",
     url="https://github.com/QuentinSoubeyran/pheres",
