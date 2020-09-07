@@ -13,7 +13,7 @@ It is a drop-in replacement for `json` and provides several utilities to work wi
 Install directly from GitHub:
 
 ```bash
-pip install "git+https://QuentinSoubeyran.github.com/pheres#egg=pheres"
+pip install "git+https://github.com/QuentinSoubeyran/pheres#egg=pheres"
 ```
 
 
