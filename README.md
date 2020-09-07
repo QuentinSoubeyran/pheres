@@ -19,7 +19,8 @@ Pheres is a drop-in replacement for `json`. It provides the complete `json` modu
 
 ## JSONable classes
 
-*Pheres* defines **JSONable classes** by passing the class to its `@pheres.jsonable` class decorator, or if the class inherits from `pheres.JSONable`. JSONable classes define their JSON representation using python's type hints, and are very easily serializable to and deserializable from JSON:
+*Pheres* adds **JSONable classes**. JSONable classes are classes that can readily be serialized and deserialized in the JSON format. No code user code is required.
+JSONable classes are easy to make, akin to dataclasses: pass the class to the `@pheres.jsonable` decorator (or inherit from `pheres.JSONable`) and annotate the attributes with type-hints.
 
 ```python
 from typing import *
@@ -28,8 +29,8 @@ from dataclasses import dataclass, field
 
 # Use type hint to specify the attributes to jsonize
 # The decorator order does not matter
-@jsonable
 @dataclass
+@jsonable
 class ExampleJSONable:
     x: int
     y: Union[Tuple[int, int, int], Dict[str, float]] # complex type hints are supported
@@ -61,33 +62,26 @@ jstring = """{
 ExampleJSONable.Decoder.loads(jstring)
 ```
 
-The main sell for JSONable classes is that they are fully *typed*. Type error will be detected early on during JSON decoding, and their exact location in the file or string reported.
+JSONable classes is that they are fully *typed*. Type errors will be detected early on during JSON decoding, and their exact location in the file or string reported.
 
-JSONable classes are fully compatible with the rest of the module, including as type-hint for future JSONable class definition. You can therefore describe a whole typed json in python. JSONable classes are also fully compatible with dataclasses from the `dataclasses` builtin module.
-
-This work really well for configuration file, for instance. You can declare the different parts of your configuration file are JSONable class, using the attributes. *Pheres* handles the deserialization for you. You then use methods to access and/or process your file.
+JSONable classes are fully compatible with [dataclasses](https://docs.python.org/3/library/dataclasses.html) and can be nested. This provides a powerfull API to define structured data as python classes whose methods use/handle the data. *Pheres* will provide seamless loading and dumping to JSON. The obvious example are configuration files.
 
 ### Serializing
 
-Just call the `to_json()` method of your JSONable class. If you need to encode, `pheres.JSONableEncoder` does that for you. Use it as the encoder `json.dumps(..., cls=pheres.JSONableEncoder)`. Or you can use `pheres.dumps()` that uses it by default.
+JSONable classes automatically gain a `to_json()` method, that return a python object suitable for `json.dump()`. `pheres.JSONableEncoder` can encode JSONable classes to string when used in `json.dumps(..., cls=pheres.JSONableEncoder)` and `pheres.dumps()` defaults to that encoder.
 
 ### Deserialization
 
-Pheres is really useful for deserializing complex typed data: all JSONable class can be easily deserialized from JSON, including from files. All deserialization are __completely typed__: if the JSON has a string were an array is required, or is missing a key to properly define your complex JSONable class, Pheres will find out exactly were the problem is (as in, the line and column in the file were things got wrong).
+All JSONable class can be deserialized from JSON object, string or files using the `from_josn()` method of any JSONable class. Deserialization is __typed__: values are type-checked against the type hint used in the definition, and errors are reported. 
 
-You can deserialize:
-- With `json.load` or `loads`, by providing the `json.JSONDecoder` subclass built into each JSONable class. You need to deserialize a complex type, `MyComplexConfig`, with recursive definitions ? It's as easy as `json.load(file, cls=MyComplexConfig.Decoder)`
-- As a shortcut to the above, each JSONable class have methods `from_json_file`, `from_json_str` and `from_json` that do just that, shorter
-- Or you can use `pheres.jsonable_hook()` as the `object_hook` argument of `json.load()`. This hook will recognize and convert any JSONable class present in the JSON. It finds the correct type by examining the keys and the types. `pheres.load()` uses that hook by default, so its quicker to use
-
-The (little) price for that easy deserialization, is that you cannot declare JSONable class that have common representation (unless they are subclasses of each other). See the wiki for details.
+Additionally, *Pheres* provides a `jsonable_hook` to pass to `json.load()` (or `pheres.load` directly) that detects any JSONable class serialization in the JSON and replace them by a proper instance. The drawbacks is that JSONable classes cannot have serialization that could correspond to more than a class, but *Pheres* provides mechanism to resolve such conflicts.
 
 ## Typing for JSON
 
-Pheres provides utilities to inspect and test the types of JSON object, such as `typeof`, `typecheck` and `is_json`. It also provides utilities for working with type-hints themselves: `normalize_json_tp` and `have_common_value` work on type hints objects.
+Pheres provides utilities to inspect and validate the types of JSON object, such as `typeof()`, `typecheck()` and `is_json()`. It also provides utilities for working with type-hints themselves.
 
 ## Various Utilities
 
-There are also useful small functions, such as `get`, `has` and `set` that accept several keys (`int` or `str`) at once and can navigate in python JSON object. Those are ultimately `dict`s and `list`s, but creating a key-value down an arborescent in one go is convinient.
+There are also useful small functions, such as `get`, `has` and `set` that accept nested keys (`int` or `str`) at once and can navigate in python JSON object. Those are ultimately `dict`s and `list`s, but creating a key-value down an arborescent in one go is convinient.
 
 The function `flatten`, `expand` and `compact` provide transformation on JSON objects to make handling them easier in certain contexts.
