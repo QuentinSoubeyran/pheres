@@ -9,7 +9,7 @@ from collections.abc import Iterable
 from typing import Dict, List, Tuple, Union
 
 # Local import
-from .jsonize import (
+from .jsonable import (
     JSONError,
     JSONTypeError,
     JSONType,
@@ -83,7 +83,7 @@ def flatten(obj: JSONObject) -> FlatJSON:
 
     Arguments
         obj -- json object to flatten
-    
+
     Returns
         A dict mapping tuples of index and key to the final value
     """
@@ -143,10 +143,10 @@ def expand(
         flat_json -- flat json to expand
         array_as_dict -- represent arrays as dict[int, JSONValue] instead of list
         sort -- sort JSONObject by keys
-    
+
     Returns
         A JSON object that is the expanded representation of the flat_json
-    
+
     Raises
         ValueError -- the flat_json is invalid
     """
@@ -161,7 +161,7 @@ def compact(obj: JSONObject, *, sep="/") -> JSONObject:
     Arguments
         obj -- json object object to compact
         sep -- separator to use for merging keys
-    
+
     Returns
         A compact, dict-only, representation of json_obj
     """
@@ -224,7 +224,7 @@ def set(
     """Sets the value of the key in the JSON
 
     Possibly creates the full path at once
-    
+
     Raises
         IndexError -- when setting a value in a array past its length. Adding an element at
             the end is supported

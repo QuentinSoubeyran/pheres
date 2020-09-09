@@ -197,7 +197,7 @@ def _resolve_refs(tp):
     raise RuntimeError("Function hasn't been initialized")
 
 
-def register_forward_ref(name, type_):
+def register_forward_ref(name: str, type_: TypeHint):
     raise RuntimeError("Function hasn't been initialized")
 
 
@@ -213,23 +213,23 @@ def _make_refs_funcs():
                 return refs_table.get(tp.__forward_arg__, tp)
         return tp
 
-    def register_forward_ref(name: str, type_: TypeHint):
+    def register_forward_ref(name: str, type_hint: TypeHint):
         """
         Register a type under a name for use in FowardRef in JSONable classes
 
         Arguments
             name -- string name to use for the type
             type_ -- type matching the name
-        
+
         Raises
             ValueError if 'name' is already used
         """
         with lock:
             if name in refs_table:
                 raise ForwardRefConflictError(
-                    name=name, type_=refs_table[name], new_type=type_
+                    name=name, type_=refs_table[name], new_type=type_hint
                 )
-            refs_table[name] = normalize_json_tp(type_)
+            refs_table[name] = normalize_json_type(type_hint)
 
     return (_resolve_refs, register_forward_ref)
 
@@ -248,24 +248,23 @@ def get_args(type_hint):
 def typeof(obj: JSONType) -> TypeHint:
     """
     Return the type alias of the type of the passed JSON object.
-    
+
     For nested types such as list or dict, the test is shallow
     and only checks the container type.
     The returned value is a type hints, equality testing must be done with `is`:
-    
+
     typeof({}) == JSONObject # undefined
     typeof({}) is JSONObject # True
 
     Arguments
         obj -- object to get the type of
-    
+
     Returns
         JSONValue, JSONArray or JSONObject based on the type of the passed object
-    
+
     Raises
         JSONTypeError if the passed object is not a valid JSON
     """
-    from .jsonize import JSONable
 
     if obj is None or isinstance(obj, _JSONValueTypes):
         return JSONValue
@@ -278,9 +277,8 @@ def typeof(obj: JSONType) -> TypeHint:
 
 def _is_json(obj: Any, rec_guard: Tuple[Any]) -> bool:
     """internal helper to check if object is valid JSON
-    
-    Has a guard to prevent infinite recursion """
-    from .jsonize import JSONable
+
+    Has a guard to prevent infinite recursion"""
 
     if obj in rec_guard:
         raise CycleError(obj, rec_guard[rec_guard.index(obj) :])
@@ -302,7 +300,7 @@ def _is_json(obj: Any, rec_guard: Tuple[Any]) -> bool:
 
 def is_json(obj: Any) -> bool:
     """Check if a python object is valid JSON
-    
+
     Raises CycleError if the value has circular references
     Only tuples and lists are accepted for JSON arrays
     Dictionary *must* have string as keys
@@ -316,10 +314,10 @@ def is_number(obj: JSONType) -> bool:
 
     Argument
         obj -- object to test the type of
-    
+
     Return
         True if the object is a json number, False otherwise
-    
+
     Raises
         JSONTypeError if the object is not a valid JSON
     """
@@ -332,7 +330,7 @@ def is_value(obj: JSONType) -> bool:
 
     Argument
         obj -- object to test the type of
-    
+
     Return
         True if the object is a json value, False otherwise
     """
@@ -348,10 +346,10 @@ def is_array(obj: JSONType) -> bool:
 
     Argument
         obj -- object to test the type of
-    
+
     Return
         True if the object is a json array, False otherwise
-    
+
     Raises
         JSONTypeError if the object is not a valid JSON
     """
@@ -367,10 +365,10 @@ def is_object(obj: JSONType) -> bool:
 
     Argument
         obj -- object to test the type of
-    
+
     Return
         True if the object is a json Object, False otherwise
-    
+
     Raises
         JSONTypeError if the object is not a valid JSON
     """
@@ -382,18 +380,17 @@ def is_object(obj: JSONType) -> bool:
 
 def typecheck(value: JSONType, tp: TypeHint) -> bool:
     """Test that a JSON value matches a JSON type hint
-    
+
     Arguments
         tp -- type hint to check against. Must be normalized
         value -- value to test
-    
+
     Return
         True if the value is valid for the type hint, False otherwise
-    
+
     Raises
         TypeHintError if the type hint could not be handled
     """
-    from .jsonize import JSONable
 
     if tp in _JSONValueTypes:
         return isinstance(value, tp)
@@ -440,12 +437,12 @@ def _make_normalize():
     guard = frozenset()
 
     @functools.lru_cache
-    def normalize_json_tp(tp: TypeHint):
+    def normalize_json_type(tp: TypeHint):
         """Normalize a type hint for JSON values
 
         Arguments
             type_hint -- JSON type hint to normalize
-        
+
         Returns
             normalized representation of type_hint
 
@@ -453,7 +450,6 @@ def _make_normalize():
             TypeHintError when type_hint is invalid in JSON
         """
         nonlocal lock, guard
-        from .jsonize import JSONable  # Avoid circular deps
 
         if isinstance(tp, typing.ForwardRef):
             pass
@@ -474,7 +470,7 @@ def _make_normalize():
                 elif orig is Union:
                     others, lits = split(
                         lambda tp: get_origin(tp) is Literal,
-                        (normalize_json_tp(tp) for tp in get_args(tp)),
+                        (normalize_json_type(tp) for tp in get_args(tp)),
                     )
                     if lits:
                         return Union[(Literal[sum(map(get_args, lits), ())], *others)]
@@ -482,20 +478,20 @@ def _make_normalize():
                 elif orig in _JSONArrayTypes:
                     args = get_args(tp)
                     if orig is list or (len(args) > 1 and args[1] is Ellipsis):
-                        return List[normalize_json_tp(args[0])]
-                    return Tuple[tuple(normalize_json_tp(arg) for arg in args)]
+                        return List[normalize_json_type(args[0])]
+                    return Tuple[tuple(normalize_json_type(arg) for arg in args)]
                 elif orig in _JSONObjectTypes:
                     args = get_args(tp)
                     if args[0] is str:
-                        return Dict[str, normalize_json_tp(args[1])]
+                        return Dict[str, normalize_json_type(args[1])]
                 raise TypeHintError(tp)  # handles all case that didn't return
             finally:
                 guard = old_guard
 
-    return normalize_json_tp
+    return normalize_json_type
 
 
-normalize_json_tp = _make_normalize()
+normalize_json_type = _make_normalize()
 del _make_normalize
 
 
@@ -507,12 +503,12 @@ def is_json_type_hint(type_hint: TypeHint) -> bool:
 
     Arguments
         type_hint : type hint to test
-    
+
     Return
         True if the type hint is valid for JSON, false otherwise
     """
     try:
-        normalize_json_tp(type_hint)
+        normalize_json_type(type_hint)
         return True
     except TypeHintError:
         return False
@@ -522,10 +518,9 @@ def is_json_type_hint(type_hint: TypeHint) -> bool:
 @functools.lru_cache
 def have_common_value(ltp: TypeHint, rtp: TypeHint) -> bool:
     """Check if two JSON tye hints have common values
-    
+
     Type hints must be normalized
     """
-    from .jsonize import JSONable  # Avoid circular deps
 
     lorig = get_origin(ltp)
     rorig = get_origin(rtp)
@@ -594,7 +589,8 @@ class JSONable(ABC):
 
     def __init_subclass__(cls, all_attrs: bool = True, **kwargs):
         super().__init_subclass__(**kwargs)
-        _process_class(cls, all_attrs=all_attrs)
+        if JSONable in cls.__bases__:
+            _process_class(cls, all_attrs=all_attrs)
 
     def to_json(self, /, *, with_defaults=False):
         obj = {}
@@ -658,7 +654,7 @@ def jattr(T, /, **kwargs) -> TypeHint:
     """
     Shortcut for Annotated[T, JSONAttr(**kwargs)]
 
-    See JSONAttr for a list of supported keyword arguments. Not compatible 
+    See JSONAttr for a list of supported keyword arguments. Not compatible
     with type checkers due to being runtime
     """
     return Annotated[T, JSONAttr(**kwargs)]
@@ -713,7 +709,7 @@ class _JsonisedAttribute:
 
         Arguments
             other : _JsonKey to check conflicts with
-        
+
         Return
             True in case of conflict, False otherwise
         """
@@ -779,7 +775,7 @@ def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
             _JsonisedAttribute(
                 name=name,
                 py_name=py_name,
-                type_hint=normalize_json_tp(tp),
+                type_hint=normalize_json_type(tp),
                 default=default,
                 json_only=json_only,
             )
@@ -814,7 +810,7 @@ def _get_jattrs(cls: type, all_attrs: bool) -> List[_JsonisedAttribute]:
                     _JsonisedAttribute(
                         name=name,
                         py_name=field.name,
-                        type_hint=normalize_json_tp(tp),
+                        type_hint=normalize_json_type(tp),
                         default=field.default_factory,
                         json_only=json_only,
                     )

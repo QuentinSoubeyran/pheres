@@ -18,7 +18,7 @@ Partial recoding of the stdlib json module to support Jsonable decoding
 
 # Standard library import
 from abc import ABCMeta, ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 import functools
 from itertools import chain
 import json
@@ -26,6 +26,7 @@ from json import JSONDecodeError, JSONDecoder
 import types
 import typing
 from typing import (
+    Callable,
     Dict,
     Iterable,
     List,
@@ -39,16 +40,19 @@ from typing import (
 )
 
 # Local import
+from . import jsonable
 from .misc import JSONError
-from . import jsonize
-from .jsonize import (
+from .jsonable import (
+    TypeHint,
     JSONType,
+    _JSONArrayTypes,
     get_args,
-    normalize_json_tp,
+    normalize_json_type,
     typecheck,
     JSONable,
     _make_instance,
 )
+from .utils import FlatKey
 
 # import internals of stdlib 'json' module
 # Those are not part of the public API
@@ -57,11 +61,36 @@ from json.scanner import NUMBER_RE
 
 __all__ = ["TypedJSONDecodeError", "TypedJSONDecoder"]
 
+# Type Aliases
+TypeTuple = Tuple[TypeHint, ...]
+OrigTuple = Tuple[Optional[TypeHint], ...]
+ArgsTuple = Tuple[Optional[TypeHint], ...]
+TypeFilter = Callable[[TypeHint, Optional[TypeHint], Optional[TypeHint]], bool]
+
+# sentinel value
+MISSING = object()
+
 
 class TypedJSONDecodeError(JSONError, JSONDecodeError):
     """
     Raised when the decoded type is not the expected one
     """
+
+    def __init__(
+        self, msg: str, doc: Union[str, object], pos: Union[int, FlatKey]
+    ) -> None:
+        """
+        Special case when the decoded document is an object
+        """
+        if not isinstance(doc, str):
+            keys = " -> ".join(("<base object>", *pos))
+            errmsg = "%s: at %s" % (msg, keys)
+            ValueError.__init__(self, errmsg)
+            self.msg = msg
+            self.doc = doc
+            self.pos = pos
+        else:
+            super().__init__(msg, doc, pos)
 
 
 ####################
@@ -80,12 +109,12 @@ def sync_filter(func, *iterables):
 
 
 def _make_pretty_type():
-    tps = get_type_hints(jsonize)
+    tps = get_type_hints(jsonable)
     table = {
         # Standard Type Hints
-        jsonize.JSONValue: "JSONValue",
-        jsonize.JSONArray: "JSONArray",
-        jsonize.JSONObject: "JSONObject",
+        jsonable.JSONValue: "JSONValue",
+        jsonable.JSONArray: "JSONArray",
+        jsonable.JSONObject: "JSONObject",
         JSONType: "JSONType",
         # Resolved version
         tps["_jval"]: "JSONValue",
@@ -108,248 +137,291 @@ pretty_type = _make_pretty_type()
 ####################
 
 
-@dataclass
+@dataclass(frozen=True)
 class DecodeContext:
-    string: str
-    start: int
-    type_hints: List[Type[Type]]  # type of the value to decode
-    jsonable: Optional[type] = None  # Last Jsonable subclass seen
-    key: Tuple[str, ...] = ()  # Key of the last Jsonable subclass currently decoding
-    upper_context: "DecodeContext" = None
+    """
+    Internal class to keep tracks of types during typed decoding
 
-    cur_key = None
+    DecodeContext are immutable
+    """
 
-    def __post_init__(self):
-        if not isinstance(self.type_hints, tuple):
-            if isinstance(self.type_hints, Iterable):
-                self.type_hints = tuple(self.type_hints)
-            else:
-                self.type_hints = (self.type_hints,)  # 1-tuple
-        self.type_hints = tuple(
-            chain.from_iterable(
-                get_args(tp) if get_origin(tp) is Union else (tp,)
-                for tp in self.type_hints
+    doc: object  # decoded JSON
+    pos: Union[int, FlatKey]
+    types: TypeTuple
+    origs: OrigTuple = None
+    args: ArgsTuple = None
+    parent_context: Optional["DecodeContext"] = None
+    parent_key: Optional[Union[int, str]] = None
+
+    def __post_init__(self, /):
+        # cache types origins and arguments for performance
+        if self.origs is None:
+            object.__setattr__(
+                self, "origs", tuple(get_origin(tp) for tp in self.types)
             )
-        )
-        self.tps = self.type_hints
-        self.origs = tuple(get_origin(tp) for tp in self.type_hints)
-        self.args = tuple(get_args(tp) for tp in self.type_hints)
+        if self.args is None:
+            object.__setattr__(self, "args", tuple(get_args(tp) for tp in self.types))
+        if self.parent_context is not None and self.parent_key is None:
+            raise ValueError("DecodeContext with a parent must be given a parent key")
 
-    def prefix_msg(self, msg: str):
-        """Prefix a message with context infos"""
-        return (
-            "".join(
-                [
-                    f"In '{self.jsonable.__name__}' object, " if self.jsonable else "",
-                    f"at {self.key!s}, " if self.key else "",
-                ]
-            )
-            + msg
-        )
-
-    def get_msg(self, value=Ellipsis, match=None):
-        return self.prefix_msg(
-            "Expected "
-            + (match if match else f"type {pretty_type(Union[self.type_hints])}")
-            + (f", got {value!s}" if value is not Ellipsis else "")
-            + ", at"
-        )
-
-    def notify_object(self):
-        self.tps, self.origs, self.args = sync_filter(
-            lambda tp, orig, args: orig is dict
-            or (isinstance(tp, type) and issubclass(tp, JSONable)),
-            self.tps,
-            self.origs,
-            self.args,
-        )
-        if not self.tps:
-            raise TypedJSONDecodeError(
-                self.get_msg("'Object'"), self.string, self.start
-            )
-
-    def notify_array(self):
-        self.tps, self.origs, self.args = sync_filter(
-            lambda tp, orig, args: orig in (tuple, list),
-            self.tps,
-            self.origs,
-            self.args,
-        )
-        if not self.tps:
-            raise TypedJSONDecodeError(self.get_msg("'Array'"), self.string, self.start)
-
-    def notify_value(self, value):
-        if self.cur_key is None:
-            raise JSONError(
-                "[!! This is a bug !! Please report] Anomalous notification of DecodeContext"
-            )
-        old_tps = self.tps
-        if isinstance(self.cur_key, int):
-            self.tps, self.origs, self.args = sync_filter(
-                lambda tp, orig, args: typecheck(
-                    value, args[0 if orig is list else self.cur_key]
-                ),
-                self.tps,
-                self.origs,
-                self.args,
-            )
-        elif isinstance(self.cur_key, str):
-            self.tps, self.origs, self.args = sync_filter(
-                lambda tp, orig, args: typecheck(
-                    value,
-                    args[1]
-                    if orig is dict
-                    else next(
-                        filter(
-                            lambda jattr: jattr.name == self.cur_key,
-                            tp._ALL_JATTRS.values(),
-                        )
-                    ).type_hint,
-                ),
-                self.tps,
-                self.origs,
-                self.args,
-            )
+    def err_msg(self, /, *, expected_msg: Optional[str]=None, value=MISSING) -> str:
+        parts = []
+        if expected_msg:
+            parts.append(expected_msg)
         else:
-            raise JSONError(
-                "[!! This is a bug !! Please report] Anomalous notification of DecodeContext"
-            )
-        if not self.tps:
-            self.key = (*self.key, self.cur_key)
+            parts.append(f"Expected type {Union[self.types]}")
+        if value is not MISSING:
+            parts.append(f"got {value}")
+        parts.append("at")
+        return ", ".join(parts)
+
+    # HELPER METHODS
+    def filter_types(
+        self,
+        /,
+        func: TypeFilter,
+    ) -> Tuple[TypeTuple, OrigTuple, ArgsTuple]:
+        return sync_filter(func, self.types, self.origs, self.args)
+
+    @staticmethod
+    def get_array_subtypes(index: int, types: TypeTuple, origs: OrigTuple, args: ArgsTuple) -> TypeTuple:
+        subtypes = []
+        for type_, orig, arg in zip(types, origs, args):
+            if isinstance(orig, type):
+                if issubclass(orig, tuple):
+                    subtypes.append(arg[index])
+                    continue
+                elif issubclass(orig, list):
+                    subtypes.append(arg[0])
+                    continue
+            raise JSONError(f"Unhandled Array type {type_}")
+        return tuple(subtypes)
+
+    @staticmethod
+    def get_object_subtypes(key: str, types: TypeTuple, origs: OrigTuple, args: ArgsTuple) -> TypeTuple:
+        subtypes = []
+        for type_, orig, arg in zip(types, origs, args):
+            if isinstance(orig, type) and issubclass(orig, dict):
+                subtypes.append(arg[1])
+            elif isinstance(type_, type) and issubclass(type_, JSONable):
+                subtypes.append(type_._ALL_JATTRS[key].type_hint)
+            else:
+                raise JSONError(f"Unhandled Object type {type_}")
+        return tuple(subtypes)
+
+    # FILTER HELPER
+    @staticmethod
+    def accept_array(
+        type_: TypeHint, orig: Optional[TypeHint], arg: Optional[TypeHint]
+    ) -> bool:
+        return isinstance(orig, type) and issubclass(orig, _JSONArrayTypes)
+
+    @staticmethod
+    def accept_min_length(
+        index: int,
+    ) -> TypeFilter:
+        def accept(
+            type_: TypeHint, orig: Optional[TypeHint], arg: Optional[TypeHint]
+        ) -> bool:
+            if isinstance(orig, type):
+                if issubclass(orig, list):
+                    return True
+                elif issubclass(orig, tuple) and len(arg) > index:
+                    return True
+            return False
+
+        return accept
+
+    @staticmethod
+    def accept_array_value(
+        index: int, value: object
+    ) -> TypeFilter:
+        def accept(
+            type_: TypeHint, orig: Optional[TypeHint], arg: Optional[TypeHint]
+        ) -> bool:
+            if isinstance(orig, type):
+                if issubclass(orig, tuple):
+                    return typecheck(value, arg[index])
+                elif issubclass(orig, list):
+                    return typecheck(value, arg[0])
+                raise JSONError(f"Unhandled Array type {type_}")
+
+        return accept
+    
+    @staticmethod
+    def accept_length(length: int) -> TypeFilter:
+        def accept(
+            type_: TypeHint, orig: Optional[TypeHint], arg: Optional[TypeHint]
+        ) -> bool:
+            if isinstance(orig, type):
+                if issubclass(orig, list):
+                    return True
+                elif issubclass(orig, tuple):
+                    return len(arg) == length
+            raise JSONError(f"Unhandled Array type {type_}")
+        return accept
+
+    @staticmethod
+    def accept_object(
+        type_: TypeHint, orig: Optional[TypeHint], arg: Optional[TypeHint]
+    ) -> bool:
+        return (isinstance(orig, type) and issubclass(orig, dict)) or (
+            isinstance(type_, type) and issubclass(type_, JSONable)
+        )
+
+    @staticmethod
+    def accept_key(
+        key: str,
+    ) -> TypeFilter:
+        def accept(
+            type_: TypeHint, orig: Optional[TypeHint], arg: Optional[TypeHint]
+        ) -> bool:
+            if isinstance(orig, type) and issubclass(orig, dict):
+                return True
+            elif isinstance(type_, type) and issubclass(type_, JSONable):
+                return key in type_._ALL_JATTRS
+            return False
+
+        return accept
+
+    @staticmethod
+    def accept_object_value(
+        key: str, value: object
+    ) -> TypeFilter:
+        def accept(
+            type_: TypeHint, orig: Optional[TypeHint], arg: Optional[TypeHint]
+        ) -> bool:
+            if isinstance(orig, type) and issubclass(orig, dict):
+                return typecheck(value, arg[1])
+            elif isinstance(type_, type) and issubclass(type_, JSONable):
+                return typecheck(value, type_._ALL_JATTRS[key].type_hint)
+            raise JSONError(f"Unhandled Object type {type_}")
+
+        return accept
+
+    # CONTEXT SPECIALIZATION METHODS
+    def array_context(self, /) -> "DecodeContext":
+        types, origs, args = self.filter_types(self.accept_array)
+        if not types:
             raise TypedJSONDecodeError(
-                self.prefix_msg(
-                    f"{type(value).__name__} does not match inferred type {pretty_type(Union[old_tps])}, at"
-                ),
-                self.string,
-                self.start,
+                msg=self.err_msg(value="'Array'"), doc=self.doc, pos=self.pos
             )
+        return replace(self, types=types, origs=origs, args=args)
 
-    def __getitem__(self, key_and_start):
-        key, start = key_and_start
-        self.cur_key = key
-
-        if isinstance(key, int):
-            self.tps, self.origs, self.args = sync_filter(
-                lambda tp, orig, args: orig is list
-                or (orig is tuple and len(args) > key),
-                self.tps,
-                self.origs,
-                self.args,
+    def index_context(self, /, index: int, index_idx: int) -> "DecodeContext":
+        types, origs, args = self.filter_types(self.accept_min_length(index))
+        if not types:
+            raise TypedJSONDecodeError(
+                msg=self.err_msg(value=f"'Array' of length >={index+1}"),
+                doc=self.doc,
+                pos=self.pos,
             )
-            if not self.tps:
-                raise TypedJSONDecodeError(
-                    self.get_msg(f"'Array' of length >= {key+1}"),
-                    self.string,
-                    self.start,
-                )
-            return DecodeContext(
-                string=self.string,
-                start=start,
-                type_hints=tuple(
-                    args[0 if orig is list else key]
-                    for orig, args in zip(self.origs, self.args)
-                ),
-                jsonable=self.jsonable,
-                key=(*self.key, key),
-                upper_context=self,
-            )
-
-        elif isinstance(key, str):
-            old_tps = self.tps
-            self.tps, self.origs, self.args = sync_filter(
-                lambda tp, orig, args: (
-                    orig is dict
-                    or (
-                        isinstance(tp, type)
-                        and issubclass(tp, JSONable)
-                        and any(jattr.name == key for jattr in tp._ALL_JATTRS.values())
-                    )
-                ),
-                self.tps,
-                self.origs,
-                self.args,
-            )
-            if not self.tps:
-                raise TypedJSONDecodeError(
-                    self.prefix_msg(
-                        f"inferred type {pretty_type(Union[old_tps])} has no key '{key}', at"
-                    ),
-                    self.string,
-                    self.start,
-                )
-            return DecodeContext(
-                string=self.string,
-                start=start,
-                type_hints=tuple(
-                    args[1]
-                    if orig is dict
-                    else next(
-                        filter(lambda jattr: jattr.name == key, tp._ALL_JATTRS.values())
-                    ).type_hint
-                    for tp, orig, args in zip(self.tps, self.origs, self.args)
-                ),
-                jsonable=self.jsonable,
-                key=(*self.key, key),
-                upper_context=self,
-            )
-        raise JSONError(
-            "[!! This is a bug !! Please report] Anomalous indexing of DecodeContext"
+        parent = replace(self, types=types, origs=origs, args=args)
+        return DecodeContext(
+            doc=self.doc,
+            pos=index_idx,
+            types=self.get_array_subtypes(index, types, origs, args),
+            parent_context=parent,
+            parent_key=index,
         )
 
-    def check_value(self, val, end, start):
-        if not any(typecheck(val, tp) for tp in self.tps):
-            raise TypedJSONDecodeError(self.get_msg(val), self.string, start)
-        if self.upper_context:
-            self.upper_context.notify_value(val)
-        return val, end
-
-    def check_object(self, obj, end):
-        cls_list = list(
-            filter(
-                lambda tp: isinstance(tp, type) and issubclass(tp, JSONable), self.tps
+    def object_context(self, /) -> "DecodeContext":
+        types, origs, args = self.filter_types(self.accept_object)
+        if not types:
+            raise TypedJSONDecodeError(
+                msg=self.err_msg(value="'Object'"), doc=self.doc, pos=self.pos
             )
+        return replace(self, types=types, origs=origs, args=args)
+
+    def key_context(self, /, key: str, key_idx: int) -> "DecodeContext":
+        types, origs, args = self.filter_types(self.accept_key(key))
+        if not types:
+            raise TypedJSONDecodeError(
+                msg=self.err_msg(
+                    expected_msg=f"Inferred type {Union[self.types]} has no key '{key}' (at char {key_idx})"
+                ),
+                doc=self.doc,
+                pos=self.pos,
+            )
+        parent = replace(self, types=types, origs=origs, args=args)
+        return DecodeContext(
+            doc=self.doc,
+            pos=key_idx,
+            types=self.get_object_subtypes(key, types, origs, args),
+            parent_context=parent,
+            parent_key=key,
         )
-        cls_list = [
-            cls
-            for i, cls in enumerate(cls_list)
-            if all(not issubclass(cls, other) for other in cls_list[i + 1 :])
+
+    # TYPECHECKING METHODS
+    def typecheck_value(
+        self, /, value: object, end_idx: int, start_idx: int
+    ) -> Tuple[object, int, "DecodeContext"]:
+        if not any(typecheck(value, type_) for type_ in self.types):
+            raise TypedJSONDecodeError(
+                msg=self.err_msg(value=value), doc=self.doc, pos=start_idx
+            )
+        parent = None
+        if self.parent_context is not None:
+            parent = self.parent_context
+            key = self.parent_key
+            if isinstance(key, int):
+                types, origs, args = parent.filter_types(
+                    self.accept_array_value(key, value)
+                )
+            elif isinstance(key, str):
+                types, args, origs = parent.filter_types(
+                    self.accept_object_value(key, value)
+                )
+            else:
+                raise JSONError(f"Unhandled parent key {key}")
+            if not types:
+                raise TypedJSONDecodeError(
+                    msg=parent.err_msg(value=f"{value} of type {type(value)}"),
+                    doc=parent.doc,
+                    pos=parent.pos
+                )
+            parent = replace(parent, types=types, origs=origs, args=args)
+        return value, end_idx, parent
+    
+    def typecheck_array(self, /, array: object, end_idx: int) -> Tuple[object, int, "DecodeContext"]:
+        types, origs, args = self.filter_types(self.accept_length(len(array)))
+        if not types:
+            raise TypedJSONDecodeError(
+                msg=self.err_msg(expected_msg=f"Inferred type {Union[self.types]}", value=f"{array}, which is too short"),
+                doc=self.doc,
+                pos=self.pos
+            )
+        return array, end_idx, self.parent_context
+    
+    def typecheck_object(self, /, obj: object, end_idx: int) -> Tuple[object, int, "DecodeContext"]:
+        cls = [
+            type_ for type_ in self.types
+            if isinstance(type_, type) and issubclass(type_, JSONable)
         ]
-        if len(cls_list) > 1:
-            raise JSONError(
-                "[!! This is a bug !! Please report] Multiple Jsonable subclass available at deserialization"
-            )
-        if cls_list:
-            return (
-                _make_instance(cls_list[0], obj),
-                end,
-            )
-        return obj, end
-
-    def check_array(self, array, end):
-        length = len(array)
-        self.origs, self.args = sync_filter(
-            lambda orig, args: orig is list or len(args) == length,
-            self.origs,
-            self.args,
-        )
-        if not self.origs:
+        cls = [
+            type_ for i, type_ in enumerate(cls)
+            if all(not issubclass(type_, other) for other in cls[i + 1 :])
+        ]
+        if len(cls) > 1:
             raise TypedJSONDecodeError(
-                self.prefix_msg(
-                    f"{array} is incomplete for inferred type {pretty_type(self.tps)}, at"
-                ),
-                self.string,
-                self.start,
+                msg=self.err_msg(expected_msg=f"Multiple JSONable class found"),
+                doc=self.doc,
+                pos=self.pos
             )
-        return array, end
+        if cls:
+            return _make_instance(cls[0], obj), end_idx, self.parent_context
+        return obj, end_idx, self.parent_context
+
 
 
 ############################
 # JSON INTERNALS OVERRIDES #
 ############################
 
-# Original source code at:
-# https://github.com/python/cpython/blob/3.8/Lib/json/scanner.py
-def py_make_scanner(context):
+
+def py_make_scanner(
+    context: JSONDecoder,
+) -> Callable[[str, int, DecodeContext], Tuple[object, int, DecodeContext]]:
     parse_object = context.parse_object
     parse_array = context.parse_array
     parse_string = context.parse_string
@@ -362,34 +434,34 @@ def py_make_scanner(context):
     object_pairs_hook = context.object_pairs_hook
     memo = context.memo
 
-    def _scan_once(string, idx, ctx: DecodeContext):
+    def _scan_once(
+        string: str, idx: int, ctx: DecodeContext
+    ) -> Tuple[object, int, DecodeContext]:
         try:
             nextchar = string[idx]
         except IndexError:
             raise StopIteration(idx) from None
 
         if nextchar == '"':
-            return ctx.check_value(*parse_string(string, idx + 1, strict), idx)
+            return ctx.typecheck_value(*parse_string(string, idx + 1, strict), idx)
         elif nextchar == "{":
-            ctx.notify_object()
             return parse_object(
                 (string, idx + 1),
                 strict,
                 _scan_once,
-                ctx,
+                ctx.object_context(),
                 object_hook,
                 object_pairs_hook,
                 memo,
             )
         elif nextchar == "[":
-            ctx.notify_array()
-            return parse_array((string, idx + 1), _scan_once, ctx)
+            return parse_array((string, idx + 1), _scan_once, ctx.array_context())
         elif nextchar == "n" and string[idx : idx + 4] == "null":
-            return ctx.check_value(None, idx + 4, idx)
+            return ctx.typecheck_value(None, idx + 4, idx)
         elif nextchar == "t" and string[idx : idx + 4] == "true":
-            return ctx.check_value(True, idx + 4, idx)
+            return ctx.typecheck_value(True, idx + 4, idx)
         elif nextchar == "f" and string[idx : idx + 5] == "false":
-            return ctx.check_value(False, idx + 5, idx)
+            return ctx.typecheck_value(False, idx + 5, idx)
 
         m = match_number(string, idx)
         if m is not None:
@@ -398,17 +470,19 @@ def py_make_scanner(context):
                 res = parse_float(integer + (frac or "") + (exp or ""))
             else:
                 res = parse_int(integer)
-            return ctx.check_value(res, m.end(), idx)
+            return ctx.typecheck_value(res, m.end(), idx)
         elif nextchar == "N" and string[idx : idx + 3] == "NaN":
-            return ctx.check_value(parse_constant("NaN"), idx + 3, idx)
+            return ctx.typecheck_value(parse_constant("NaN"), idx + 3, idx)
         elif nextchar == "I" and string[idx : idx + 8] == "Infinity":
-            return ctx.check_value(parse_constant("Infinity"), idx + 8, idx)
+            return ctx.typecheck_value(parse_constant("Infinity"), idx + 8, idx)
         elif nextchar == "-" and string[idx : idx + 9] == "-Infinity":
-            return ctx.check_value(parse_constant("-Infinity"), idx + 9, idx)
+            return ctx.typecheck_value(parse_constant("-Infinity"), idx + 9, idx)
         else:
             raise StopIteration(idx)
 
-    def scan_once(string, idx, ctx):
+    def scan_once(
+        string: str, idx: int, ctx: DecodeContext
+    ) -> Tuple[object, int, DecodeContext]:
         try:
             return _scan_once(string, idx, ctx)
         finally:
@@ -420,17 +494,16 @@ def py_make_scanner(context):
 # Original Source code at:
 # https://github.com/python/cpython/blob/3.8/Lib/json/decoder.py
 def JSONObject(
-    s_and_end,
-    strict,
-    scan_once,
-    ctx,
-    object_hook,
-    object_pairs_hook,
-    memo=None,
-    _w=WHITESPACE.match,
-    _ws=WHITESPACE_STR,
-):
-    # TODO: use DecodeContext
+    s_and_end: Tuple[str, int],
+    strict: bool,
+    scan_once: Callable[[str, int, DecodeContext], Tuple[object, int, DecodeContext]],
+    ctx: DecodeContext,
+    object_hook: Callable,
+    object_pairs_hook: Callable,
+    memo: Optional[dict] = None,
+    _w: Callable = WHITESPACE.match,
+    _ws: str = WHITESPACE_STR,
+) -> Tuple[object, int, DecodeContext]:
     s, end = s_and_end
     pairs = []
     pairs_append = pairs.append
@@ -450,11 +523,11 @@ def JSONObject(
         if nextchar == "}":
             if object_pairs_hook is not None:
                 result = object_pairs_hook(pairs)
-                return ctx.check_object(result, end + 1)
+                return ctx.typecheck_object(result, end + 1)
             pairs = {}
             if object_hook is not None:
                 pairs = object_hook(pairs)
-            return ctx.check_object(pairs, end + 1)
+            return ctx.typecheck_object(pairs, end + 1)
         elif nextchar != '"':
             raise JSONDecodeError(
                 "Expecting property name enclosed in double quotes", s, end
@@ -480,7 +553,7 @@ def JSONObject(
         except IndexError:
             pass
         try:
-            value, end = scan_once(s, end, ctx=ctx[key, key_start])
+            value, end, ctx = scan_once(s, end, ctx=ctx.key_context(key, key_start))
         except StopIteration as err:
             raise JSONDecodeError("Expecting value", s, err.value) from None
         pairs_append((key, value))
@@ -506,17 +579,22 @@ def JSONObject(
             )
     if object_pairs_hook is not None:
         result = object_pairs_hook(pairs)
-        return ctx.check_object(result, end)
+        return ctx.typecheck_object(result, end)
     pairs = dict(pairs)
     if object_hook is not None:
         pairs = object_hook(pairs)
-    return ctx.check_object(pairs, end)
+    return ctx.typecheck_object(pairs, end)
 
 
 # Original Source code at:
 # https://github.com/python/cpython/blob/3.8/Lib/json/decoder.py
-def JSONArray(s_and_end, scan_once, ctx, _w=WHITESPACE.match, _ws=WHITESPACE_STR):
-    # TODO: use decode context
+def JSONArray(
+    s_and_end: Tuple[str, int],
+    scan_once: Callable[[str, int, DecodeContext], Tuple[object, int, DecodeContext]],
+    ctx: DecodeContext,
+    _w: Callable = WHITESPACE.match,
+    _ws: str = WHITESPACE_STR,
+) -> Tuple[object, int, DecodeContext]:
     s, end = s_and_end
     values = []
     nextchar = s[end : end + 1]
@@ -525,13 +603,13 @@ def JSONArray(s_and_end, scan_once, ctx, _w=WHITESPACE.match, _ws=WHITESPACE_STR
         nextchar = s[end : end + 1]
     # Look-ahead for trivial empty array
     if nextchar == "]":
-        return ctx.check_array(values, end + 1)
+        return ctx.typecheck_array(values, end + 1)
     _append = values.append
     i = -1
     while True:
         try:
             i += 1
-            value, end = scan_once(s, end, ctx=ctx[i, end])
+            value, end, ctx = scan_once(s, end, ctx=ctx.index_context(i, end))
         except StopIteration as err:
             raise JSONDecodeError("Expecting value", s, err.value) from None
         _append(value)
@@ -552,18 +630,21 @@ def JSONArray(s_and_end, scan_once, ctx, _w=WHITESPACE.match, _ws=WHITESPACE_STR
         except IndexError:
             pass
 
-    return ctx.check_array(values, end)
+    return ctx.typecheck_array(values, end)
 
 
 ######################
 # TYPED JSON DECODER #
 ######################
 
+def _clean_tp(type_hint):
+    raise NotImplementedError
+
 
 def _tp_cache(func):
     """Wrapper caching __class_getitem__ on type hints
 
-    Provides a fallback if arguments are not hashable    
+    Provides a fallback if arguments are not hashable
     """
     cache = functools.lru_cache()(func)
 
@@ -637,7 +718,7 @@ class TypedJSONDecoder(ABC, JSONDecoder):
 
         Jsonable subclasses are supported
         """
-        tp = normalize_json_tp(tp)
+        tp = normalize_json_type(tp)
         return cls._class_getitem_cache(tp)
 
     def __init__(self, *args, **kwargs):
@@ -654,14 +735,10 @@ class TypedJSONDecoder(ABC, JSONDecoder):
                 s,
                 idx,
                 ctx=DecodeContext(
-                    string=s,
-                    start=idx,
-                    type_hints=self.type_hint,
-                    jsonable=self.type_hint
-                    if isinstance(self.type_hint, type)
-                    and issubclass(self.type_hint, JSONable)
-                    else None,
-                ),
+                    doc=s,
+                    pos=idx,
+                    types=_clean_tp(self.type_hint)
+                )
             )
         except StopIteration as err:
             raise JSONDecodeError("Expecting value", s, err.value) from None

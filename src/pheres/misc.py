@@ -47,7 +47,7 @@ class AutoFormatMixin(Exception):
 
 class JSONError(Exception):
     f"""Base exception for the pheres module
-    
+
     Raised as-is in case of bug. Only subclasses are normaly raised
     """
 
@@ -55,7 +55,7 @@ class JSONError(Exception):
 def split(function, iterable):
     """split an iterable based on the boolean value of the function
 
-    return two tuples """
+    return two tuples"""
     falsy, truthy = [], []
     functools.reduce(
         lambda appends, next: appends[bool(function(next))](next) or appends,

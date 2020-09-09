@@ -6,7 +6,7 @@ with open("README.md", "r") as f:
 setuptools.setup(
     # Package
     name="pheres",
-    version="1.0a4",
+    version="1.0a5",
     packages=setuptools.find_packages("src"),
     package_dir={"": "src"},
     python_requires="~=3.9",
@@ -21,7 +21,7 @@ setuptools.setup(
     project_urls={
         "Documentation": r"https://github.com/QuentinSoubeyran/pheres/wiki",
         "Source": r"https://github.com/QuentinSoubeyran/pheres",
-        "Tracker": r"https://github.com/QuentinSoubeyran/pheres/issues"
+        "Tracker": r"https://github.com/QuentinSoubeyran/pheres/issues",
     },
     keywords="json",
     classifiers=[
@@ -29,6 +29,6 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3.9",
-        "Typing :: Typed"
+        "Typing :: Typed",
     ],
 )

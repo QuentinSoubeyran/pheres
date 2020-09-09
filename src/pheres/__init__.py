@@ -6,5 +6,5 @@ from json import *
 
 from .misc import *
 from .utils import *
-from .jsonize import *
+from .jsonable import *
 from .decoder import *
