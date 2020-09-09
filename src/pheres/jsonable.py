@@ -56,7 +56,7 @@ __all__ = [
     "is_object",
     "typecheck",
     # Type Hint utilities
-    "normalize_json_tp",
+    "normalize_json_type",
     "is_json_type_hint",
     "have_common_value",
     "register_forward_ref",

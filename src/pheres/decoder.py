@@ -40,7 +40,6 @@ from typing import (
 )
 
 # Local import
-from . import jsonable
 from .misc import JSONError
 from .jsonable import (
     TypeHint,
@@ -52,6 +51,7 @@ from .jsonable import (
     JSONable,
     _make_instance,
 )
+from . import jsonable
 from .utils import FlatKey
 
 # import internals of stdlib 'json' module
@@ -638,7 +638,11 @@ def JSONArray(
 ######################
 
 def _clean_tp(type_hint):
-    raise NotImplementedError
+    # TODO: improve function
+    # it should check that there are not ambiguities in the type_hint
+    if get_origin(type_hint) is Union:
+        return get_args(type_hint)
+    return (type_hint,)
 
 
 def _tp_cache(func):
@@ -731,7 +735,7 @@ class TypedJSONDecoder(ABC, JSONDecoder):
     @functools.wraps(JSONDecoder.raw_decode)
     def raw_decode(self, s, idx=0):
         try:
-            obj, end = self.scan_once(
+            obj, end, _ = self.scan_once(
                 s,
                 idx,
                 ctx=DecodeContext(
