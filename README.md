@@ -23,10 +23,10 @@ This is a quick introduction. See the [wiki](https://github.com/QuentinSoubeyran
 
 Pheres is a drop-in replacement for `json`. It provides the complete `json` module content, tweaks the loading and dumping functions (see below) and adds many utilities.
 
-## JSONable classes
+## Jsonable classes
 
-*Pheres* adds **JSONable classes**. JSONable classes are classes that can readily be serialized and deserialized in the JSON format. No code user code is required.
-JSONable classes are easy to make, akin to dataclasses: pass the class to the `@pheres.jsonable` decorator (or inherit from `pheres.JSONable`) and annotate the attributes with type-hints.
+*Pheres* adds **jsonable classes**. Jsonable classes are classes that can readily be serialized and deserialized in the JSON format. (Almost) no code user code is required.
+Jsonable classes are easy to make, akin to dataclasses: pass the class to the `@pheres.jsonable` decorator and annotate the attributes with type-hints.
 
 ```python
 from typing import *
@@ -68,19 +68,21 @@ jstring = """{
 ExampleJSONable.Decoder.loads(jstring)
 ```
 
-JSONable classes is that they are fully *typed*. Type errors will be detected early on during JSON decoding, and their exact location in the file or string reported.
+Jsonable classes are fully *typed*. Type errors will be detected early on during JSON decoding, and their exact location in the file or string reported.
 
-JSONable classes are fully compatible with [dataclasses](https://docs.python.org/3/library/dataclasses.html) and can be nested. This provides a powerfull API to define structured data as python classes whose methods use/handle the data. *Pheres* will provide seamless loading and dumping to JSON. The obvious example are configuration files.
+Jsonable classes are fully compatible with [dataclasses](https://docs.python.org/3/library/dataclasses.html) and can be nested. This provides a powerfull API to define structured data as python classes whose methods use/handle the data. *Pheres* will provide seamless loading and dumping to JSON. The obvious example are configuration files.
+
+It is also possible to create classes that serialize to (deserialize from) simple JSON values or arrays.
 
 ### Serializing
 
-JSONable classes automatically gain a `to_json()` method, that return a python object suitable for `json.dump()`. `pheres.JSONableEncoder` can encode JSONable classes to string when used in `json.dumps(..., cls=pheres.JSONableEncoder)` and `pheres.dumps()` defaults to that encoder.
+Jsonable classes automatically gain a `to_json()` method, that return a python object suitable for `json.dump()`. `pheres.JSONableEncoder` can encode Jsonable classes to a string when used in `json.dumps(..., cls=pheres.JSONableEncoder)`, and `pheres.dumps()` defaults to that encoder.
 
 ### Deserialization
 
-All JSONable class can be deserialized from JSON object, string or files using the `from_josn()` method of any JSONable class. Deserialization is __typed__: values are type-checked against the type hint used in the definition, and errors are reported. 
+All Jsonable class can be deserialized from JSON object, string or files using the `from_josn()` method of any Jsonable class. Deserialization is __typed__: values are type-checked against the type hint used in the definition, and errors are reported. 
 
-Additionally, *Pheres* provides a `jsonable_hook` to pass to `json.load()` (or `pheres.load` directly) that detects any JSONable class serialization in the JSON and replace them by a proper instance. The drawbacks is that JSONable classes cannot have serialization that could correspond to more than a class, but *Pheres* provides mechanism to resolve such conflicts.
+Additionally, *Pheres* provides a `jsonable_hook` to pass to `json.load()` (or `pheres.load` directly) that detects any Jsonable class serialization in the JSON and replace them by a proper instance. The drawbacks is that Jsonable classes cannot have serialization that could correspond to more than a single class, but *Pheres* provides a mechanism to resolve such conflicts.
 
 ## Typing for JSON
 
@@ -88,6 +90,6 @@ Pheres provides utilities to inspect and validate the types of JSON object, such
 
 ## Various Utilities
 
-There are also useful small functions, such as `get`, `has` and `set` that accept nested keys (`int` or `str`) at once and can navigate in python JSON object. Those are ultimately `dict`s and `list`s, but creating a key-value down an arborescent in one go is convinient.
+There are also useful small functions, such as `get`, `has` and `set` that accept nested keys (`int` or `str`) at once and can navigate in python JSON object. Those are ultimately `dict`s and `list`s, but adding a key-value pair deep down an arborescent in one go is convenient.
 
-The function `flatten`, `expand` and `compact` provide transformation on JSON objects to make handling them easier in certain contexts.
+The function `flatten`, `expand` and `compact` provide transformations on JSON objects that make handling them easier in certain contexts.
