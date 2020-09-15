@@ -42,8 +42,9 @@ from typing import (
 )
 
 # Local import
+from . import core
 from .misc import JSONError
-from .jsonable import (
+from .core import (
     # Type Hints
     TypeHint,
     JSONValue,
@@ -60,9 +61,8 @@ from .jsonable import (
     _JSONableValue,
     _JSONableArray,
     _JSONableObject,
-    SmartDecoder
+    SmartDecoder,
 )
-from . import jsonable
 from .utils import FlatKey
 
 # import internals of stdlib 'json' module
@@ -140,12 +140,12 @@ def sync_filter(func, *iterables):
 
 
 def _make_pretty_type():
-    tps = get_type_hints(jsonable)
+    tps = get_type_hints(core)
     table = {
         # Standard Type Hints
-        jsonable.JSONValue: "JSONValue",
-        jsonable.JSONArray: "JSONArray",
-        jsonable.JSONObject: "JSONObject",
+        core.JSONValue: "JSONValue",
+        core.JSONArray: "JSONArray",
+        core.JSONObject: "JSONObject",
         JSONType: "JSONType",
         # Resolved version
         tps["_jval"]: "JSONValue",
@@ -261,9 +261,9 @@ class DecodeContext:
     # FILTERS AND FILTER FACTORIES
     @staticmethod
     def accept_array(tp: TypeHint, orig: TypeOrig, arg: TypeArgs) -> bool:
-        return (
-            isinstance(orig, type) and issubclass(orig, _JSONArrayTypes)
-        ) or isinstance(tp, _JSONableArray)
+        return (isinstance(orig, type) and issubclass(orig, _JSONArrayTypes)) or (
+            isinstance(tp, type) and issubclass(tp, _JSONableArray)
+        )
 
     @staticmethod
     def accept_min_length(index: int) -> TypeFilter:
@@ -290,7 +290,7 @@ class DecodeContext:
                 elif issubclass(orig, list):
                     return typecheck(value, args[0])
             elif isinstance(tp, type) and issubclass(tp, _JSONableArray):
-                if issubclass(tp._JTYPES, tuple):
+                if isinstance(tp._JTYPES, tuple):
                     return typecheck(value, tp._JTYPES[index])
                 return typecheck(value, tp._JTYPES[0])
             raise JSONError(f"Unhandled Array type {tp}")

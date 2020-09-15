@@ -9,7 +9,7 @@ from collections.abc import Iterable
 from typing import Dict, List, Tuple, Union
 
 # Local import
-from .jsonable import (
+from .core import (
     JSONError,
     JSONTypeError,
     JSONType,

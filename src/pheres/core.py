@@ -210,6 +210,21 @@ def get_args(type_hint):
 # TYPE UTILITIES #
 ##################
 
+# Adapted version of typing._type_repr
+def _type_repr(tp):
+    """Return the repr() of objects, special casing types and tuples"""
+    if isinstance(tp, tuple):
+        return ", ".join(map(_type_repr, tp))
+    if isinstance(tp, type):
+        if tp.__module__ == "builtins":
+            return tp.__qualname__
+        return f"{tp.__module__}.{tp.__qualname__}"
+    if tp is Ellipsis:
+        return "..."
+    if isinstance(tp, types.FunctionType):
+        return tp.__name__
+    return repr(tp)
+
 
 def typeof(obj: JSONType) -> TypeHint:
     """
@@ -630,7 +645,36 @@ class _Registry(ABC):
         cls.registry.discard(subclass)
 
 
-class _JSONableValue(_Registry, _registry=WeakSet()):
+class _VirtualJSONable(ABC):
+    """
+    Internal class - provides common code for all JSONable virtual classes
+    """
+
+    @staticmethod
+    @abstractmethod
+    def make(cls, obj):
+        """Create an instance of cls from the JSON object obj"""
+
+    @classmethod
+    def from_json(cls, /, obj):
+        """Deserialize to an instance of the class this method is called on.
+
+        Tries to guess how to deserialize in the following order:
+         - if ``obj`` supports ``read``, use load()
+         - if ``obj`` is a string or bytes, use loads()
+         - else, deserialize it as a python JSON object
+        """
+        if hasattr(obj, "read"):
+            return json.load(obj, cls=cls.Decoder)
+        elif isinstance(obj, (str, bytes)):
+            return json.loads(obj, cls=cls.Decoder)
+        else:
+            from .decoder import deserialize
+
+            return deserialize(obj, cls)
+
+
+class _JSONableValue(_VirtualJSONable, _Registry, _registry=WeakSet()):
     """
     Abstract Base Class for JSONable values
 
@@ -673,11 +717,6 @@ class _JSONableValue(_Registry, _registry=WeakSet()):
         """Makes an instance of cls from a JSON value"""
         return cls(value)
 
-    @classmethod
-    def from_json(cls, /, obj):
-        # TODO
-        raise NotImplementedError
-
     def to_json(self):
         # TODO
         raise NotImplementedError
@@ -692,7 +731,7 @@ class _JSONableValue(_Registry, _registry=WeakSet()):
         return have_common_value(Union[cls._JTYPE], Union[other._JTYPE])
 
 
-class _JSONableArray(_Registry, _registry=WeakSet()):
+class _JSONableArray(_VirtualJSONable, _Registry, _registry=WeakSet()):
     """
     Abstract Base Class for JSONable arrays
 
@@ -719,12 +758,7 @@ class _JSONableArray(_Registry, _registry=WeakSet()):
     @staticmethod
     def make(cls, array):
         """Internal method - makes an instance of cls from a JSON array"""
-        return cls(array)
-
-    @classmethod
-    def from_json(cls, /, obj):
-        # TODO
-        raise NotImplementedError
+        return cls(*array)
 
     def to_json(self):
         # TODO
@@ -748,7 +782,7 @@ class _JSONableArray(_Registry, _registry=WeakSet()):
         return have_common_value(self_type, other_type)
 
 
-class _JSONableObject(_Registry, _registry=WeakSet()):
+class _JSONableObject(_VirtualJSONable, _Registry, _registry=WeakSet()):
     """Abstract Base Class for JSONable objects"""
 
     __slots__ = ()
@@ -775,31 +809,15 @@ class _JSONableObject(_Registry, _registry=WeakSet()):
             }
         )
 
-    @classmethod
-    def from_json(cls, /, obj):
-        """Deserialize to an instance of the class this method is called on.
-
-        Tries to guess how to deserialize in the following order:
-         - if ``obj`` supports ``read``, use load()
-         - if ``obj`` is a string or bytes, use loads()
-         - else, deserialize it as a python JSON object
-        """
-        if hasattr(obj, "read"):
-            return json.load(obj, cls=cls.Decoder)
-        elif isinstance(obj, (str, bytes)):
-            return json.loads(obj, cls=cls.Decoder)
-        else:
-            from .decoder import deserialize
-
-            return deserialize(obj, cls)
-
     def to_json(self, /, *, with_defaults=False):
         obj = {}
         for jattr in self._ALL_JATTRS.values():
-            value = jattr.write_json(self, with_default=with_defaults)
+            value = jattr.to_json(self, with_default=with_defaults)
             if value is not MISSING:
                 obj[jattr.name] = (
-                    value.to_json() if isinstance(value, _JSONableObject) else value
+                    value.to_json(with_defaults=with_defaults)
+                    if isinstance(value, _JSONableObject)
+                    else value
                 )
         return obj
 
@@ -967,7 +985,7 @@ class _JsonisedAttribute:
             return self.default()
         return deepcopy(self.default)
 
-    def write_json(
+    def to_json(
         self, /, instance: _JSONableObject, *, with_default: bool = False
     ) -> JSONObject:
         if self.json_only:
@@ -1002,24 +1020,41 @@ class jsonable:
     """
     Class decorator that makes a class JSONable.
 
-    Can be used directly, or called to specify arguments that controls the JSONization
-    process:
+    Can be used directly, or arguments that controls the JSONization
+    process can be specified.
+    It can also be indexed with type hint(s) to create a JSONable value
+    or array
 
     Arguments:
         all_attrs [Optional, True] -- use all attributes for JSONized attribute
 
     Usage:
-        @jsonable                   # uses default behavior
-        @jsonable()                 # uses default behavior
-        @jsonable(all_attrs=False)  # specify arguments
+        # Default behavior
+        @jsonable
+        @jsonable()
+
+        # Specify arguments
+        @jsonable(all_attrs=False)
+
+        # JSONable values
+        @jsonable[int]              # single value
+        @jsonable[int, ...]         # variable length array
+        @jsonable[int, int]         # fixed length array
     """
 
-    virtual_class: type = _JSONableObject
     all_attrs: bool = True
-    type_hint: TypeHint = None
+    virtual_class: type = field(default=_JSONableObject, init=False, repr=False)
+    type_hint: TypeHint = field(default=None, init=False, repr=False)
+
+    @classmethod
+    def _jsonable_factory(cls, type_hint, cls_arg=None, /, *args, **kwargs):
+        decorator = cls(*args, **kwargs)[type_hint]
+        if cls_arg is not None:
+            return decorator(cls_arg)
+        return decorator
 
     def __new__(cls, cls_arg=None, /, *args, **kwargs):
-        decorator = super().__new__(cls, *args, **kwargs)
+        decorator = super().__new__(cls)
         if cls_arg is not None:
             # __init__ hasn't been called automatically
             cls.__init__(decorator, *args, **kwargs)
@@ -1030,12 +1065,25 @@ class jsonable:
 
     @classmethod
     def __class_getitem__(cls, /, type_hint):
+        return functools.partial(cls._jsonable_factory, type_hint)
+
+    def __getitem__(self, type_hint):
+        if self.type_hint is not None:
+            raise TypeError("Cannot parametrize @jsonable twice")
+        obj = replace(self)
+        object.__setattr__(obj, "type_hint", type_hint)
         if isinstance(type_hint, tuple):
-            # JSONableArray
-            return cls(type_hint=type_hint, virtual_class=_JSONableArray)
+            object.__setattr__(obj, "virtual_class", _JSONableArray)
         else:
-            # JSONableValue
-            return cls(type_hint=type_hint, virtual_class=_JSONableValue)
+            object.__setattr__(obj, "virtual_class", _JSONableValue)
+        return obj
+
+    def __repr__(self):
+        return "%s%s(%s)" % (
+            self.__class__.__qualname__,
+            "" if self.type_hint is None else f"[{_type_repr(self.type_hint)}]",
+            ", ".join([f"{attr}={getattr(self, attr)!r}" for attr in ("all_attrs",)]),
+        )
 
     def __call__(self, cls: AnyClass) -> AnyClass:
         if not isinstance(cls, type):
@@ -1054,12 +1102,16 @@ class jsonable:
     def _modify_class_inplace(self, cls: AnyClass) -> None:
         from .decoder import TypedJSONDecoder
 
-        setattr(cls, "Decoder", TypedJSONDecoder[cls])
-        setattr(cls, "from_json", classmethod(self.virtual_class.from_json.__func__))
-        setattr(cls, "to_json", self.virtual_class.to_json)
-        setattr(
-            cls, "conflict_with", classmethod(self.virtual_class.conflict_with.__func__)
-        )
+        for (name, obj) in (
+            ("Decoder", TypedJSONDecoder[cls]),
+            ("from_json", classmethod(self.virtual_class.from_json.__func__)),
+            ("to_json", self.virtual_class.to_json),
+            ("conflict_with", classmethod(self.virtual_class.conflict_with.__func__)),
+        ):
+            # test if class define the method already
+            # ignore base classes, so no hasattr()
+            if name not in cls.__dict__:
+                setattr(cls, name, obj)
 
     @staticmethod
     def _register_class_ref(cls: AnyClass):
@@ -1097,7 +1149,7 @@ class jsonable:
         try:
             self._register_class_ref(cls)
             try:
-                cls._JTYPES = _JSONableArray.process_type(self.type_hint)
+                cls._JTYPES = _JSONableArray.process_type(*self.type_hint)
                 self._modify_class_inplace(cls)
                 return cls
             except Exception:

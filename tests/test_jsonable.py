@@ -1,13 +1,17 @@
 # Builtins
 from dataclasses import dataclass, field
-from typing import Tuple, List, Union, Literal, Dict
 import json
+from typing import Tuple, List, Union, Literal, Dict
+import pytest
 
+#thrid party import
 from pheres import jsonable, JSONable
 import pheres as ph
 
+
+
 # fix tests being run mutiple times
-from pheres.jsonable import _JSONableObject
+from pheres.core import _JSONableObject
 _JSONableObject.registry.clear()
 for key in list(ph.register_forward_ref._table.keys()):
     if key not in ("JSONType", "JSONable"):
@@ -238,6 +242,123 @@ def test_jsonables():
 @dataclass
 @jsonable
 class DefaultJSONableTypes(JSONable):
-    type_: Literal["dj"]
-    base_types_d: DefaultBaseTypes
-    param_types_d: DefaultParamTypes
+    base_types_d: DefaultBaseTypes = field(default_factory=DefaultBaseTypes)
+    param_types_d: DefaultParamTypes = field(default_factory=DefaultParamTypes)
+
+def test_default_jsonables():
+    obj = DefaultJSONableTypes()
+    assert obj.to_json() == {}
+    assert obj.to_json(with_defaults=True) == {
+        "base_types_d": {
+            "type_": "dbt",
+            "null_d": None,
+            "boolean_d": False,
+            "integer_d": 0,
+            "float_d": 0.0,
+            "string_d": "",
+        },
+        "param_types_d": {
+            "type_": "dpt",
+            "literal_d": 0,
+            "array_fixed_d": [None, False, 0, 0.0, ""],
+            "array_d": [],
+            "obj_d": {},
+        }
+    }
+    assert ph.dumps(obj) == r'{}'
+    assert obj == DefaultJSONableTypes.Decoder.loads(ph.dumps(obj))
+    assert obj == DefaultJSONableTypes.from_json(ph.dumps(obj))
+    assert obj == DefaultJSONableTypes.from_json(json.loads(ph.dumps(obj)))
+
+    base = DefaultBaseTypes(None, True, 1, 1.0, "string")
+    param = DefaultParamTypes(1, [None, True, 1, 1.0, "string"], [1, 2, 3], {"key": "value"})
+    obj = DefaultJSONableTypes(base, param)
+    print(ph.dumps(obj, indent=2))
+    assert obj.to_json(with_defaults=True) == {
+        "base_types_d": {
+            "type_": "dbt",
+            "null_d": None,
+            "boolean_d": True,
+            "integer_d": 1,
+            "float_d": 1.0,
+            "string_d": "string",
+        },
+        "param_types_d": {
+            "type_": "dpt",
+            "literal_d": 1,
+            "array_fixed_d": [None, True, 1, 1.0, "string"],
+            "array_d": [1, 2, 3],
+            "obj_d": {"key": "value"},
+        },
+    }
+    assert ph.dumps(obj) == (
+        "{"
+        r'"base_types_d": {"type_": "dbt", "boolean_d": true, "integer_d": 1, "float_d": 1.0, "string_d": "string"}, '
+        r'"param_types_d": {"type_": "dpt", "literal_d": 1, "array_fixed_d": [null, true, 1, 1.0, "string"], "array_d": [1, 2, 3], "obj_d": {"key": "value"}}'
+        "}"
+    )
+    assert obj == DefaultJSONableTypes.Decoder.loads(ph.dumps(obj))
+    assert obj == DefaultJSONableTypes.from_json(ph.dumps(obj))
+    assert obj == DefaultJSONableTypes.from_json(json.loads(ph.dumps(obj)))
+
+
+@jsonable[int]
+class JsonableInt(JSONable):
+    def __init__(self, value):
+        self.value = value
+    
+    def to_json(self):
+        return self.value
+    
+    def __eq__(self, other):
+        if isinstance(other, JsonableInt):
+            return self.value == other.value
+        return NotImplemented
+
+def test_jsonable_value():
+    obj = JsonableInt(1)
+    assert obj.to_json() == 1
+    assert ph.dumps(obj) == '1'
+    assert obj == JsonableInt.Decoder.loads(ph.dumps(obj))
+    assert obj == JsonableInt.from_json(ph.dumps(obj))
+    assert obj == JsonableInt.from_json(json.loads(ph.dumps(obj)))
+    with pytest.raises(ph.TypedJSONDecodeError):
+        JsonableInt.from_json(None)
+    with pytest.raises(ph.TypedJSONDecodeError):
+        JsonableInt.from_json(1.0)
+    with pytest.raises(ph.TypedJSONDecodeError):
+        JsonableInt.from_json(r'null')
+    with pytest.raises(ph.TypedJSONDecodeError):
+        JsonableInt.from_json(r'"string"')
+
+@jsonable[int, int, int]
+class JsonableArrayFixed(JSONable):
+    def __init__(self, *array):
+        self.array = list(array)
+    
+    def to_json(self):
+        return self.array
+    
+    def __eq__(self, other):
+        if isinstance(other, JsonableInt):
+            return self.array == other.array
+        return NotImplemented
+
+def test_jsonable_array():
+    obj = JsonableArrayFixed(1, 2, 3)
+    assert obj.to_json() == [1, 2, 3]
+    assert ph.dumps(obj) == r'[1, 2, 3]'
+    assert obj == JsonableArrayFixed.Decoder.loads(ph.dumps(obj))
+    assert obj == JsonableArrayFixed.from_json(ph.dumps(obj))
+    assert obj == JsonableArrayFixed.from_json(json.loads(ph.dumps(obj)))
+
+    with pytest.raises(ph.TypedJSONDecodeError):
+        JsonableArrayFixed.from_json([1, 2])
+    with pytest.raises(ph.TypedJSONDecodeError):
+        JsonableArrayFixed.from_json([1, 2, 3, 4])
+    with pytest.raises(ph.TypedJSONDecodeError):
+        JsonableArrayFixed.from_json(r"[1, 2]")
+    with pytest.raises(ph.TypedJSONDecodeError):
+        JsonableArrayFixed.from_json(r"[1,2,3,4]")
+    with pytest.raises(ph.TypedJSONDecodeError):
+        JsonableArrayFixed.from_json(r'[1, 2, "string"]')
