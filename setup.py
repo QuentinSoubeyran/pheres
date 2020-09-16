@@ -6,7 +6,7 @@ with open("README.md", "r") as f:
 setuptools.setup(
     # Package
     name="pheres",
-    version="1.0a6",
+    version="1.0a7",
     packages=setuptools.find_packages("src"),
     package_dir={"": "src"},
     python_requires="~=3.9",

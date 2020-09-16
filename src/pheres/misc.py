@@ -37,7 +37,6 @@ class AutoFormatMixin(Exception):
             return init_method(*bound_args.args, **bound_args.kwargs)
 
         wrapped_init.__signature__ = init_sig
-
         return wrapped_init
 
     def __init_subclass__(cls, **kwargs):
@@ -116,3 +115,13 @@ def find_injection(
     if injection is not None:
         return {A[a_index]: B[b_index] for a_index, b_index in injection.items()}
     return None
+
+class subscriptable:
+    """Decorator to make a subscriptable object from a function"""
+    __slots__ = ("_func",)
+
+    def __init__(self, func):
+        self._func = func
+    
+    def __getitem__(self, arg):
+        return self._func(arg)

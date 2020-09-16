@@ -37,7 +37,7 @@ from typing import (
 from weakref import WeakSet
 
 # local imports
-from .misc import AutoFormatMixin, JSONError, split
+from .misc import AutoFormatMixin, JSONError, split, subscriptable
 
 __all__ = [
     # Types
@@ -255,7 +255,7 @@ def typeof(obj: JSONType) -> TypeHint:
         return JSONValue
     elif isinstance(obj, _JSONArrayTypes) or isinstance(obj, _JSONableArray):
         return JSONArray
-    elif isinstance(obj, _JSONObjectTypes) or isinstance(obj, _JSONableObject):
+    elif isinstance(obj, _JSONObjectTypes) or isinstance(obj, _JSONableClass):
         return JSONObject
     raise JSONTypeError(obj)
 
@@ -270,7 +270,7 @@ def _is_json(obj: Any, rec_guard: Tuple[Any]) -> bool:
     type_ = type(obj)
     if type_ in _JSONValueTypes:
         return True
-    elif issubclass(type_, (_JSONableValue, _JSONableArray, _JSONableObject)):
+    elif issubclass(type_, (_JSONableValue, _JSONableArray, _JSONableClass)):
         return True
     elif type_ in _JSONArrayTypes:
         rec_guard = (*rec_guard, obj)
@@ -461,7 +461,7 @@ def _make_normalize():
                     in (
                         _JSONableValue.registry
                         | _JSONableArray.registry
-                        | _JSONableObject.registry
+                        | _JSONableClass.registry
                     )
                 ):
                     return tp
@@ -476,12 +476,12 @@ def _make_normalize():
                     if lits:
                         return Union[(Literal[sum(map(get_args, lits), ())], *others)]
                     return Union[others]
-                elif orig in _JSONArrayTypes:
+                elif issubclass(orig, _JSONArrayTypes):
                     args = get_args(tp)
                     if orig is list or (len(args) > 1 and args[1] is Ellipsis):
                         return List[normalize_json_type(args[0])]
                     return Tuple[tuple(normalize_json_type(arg) for arg in args)]
-                elif orig in _JSONObjectTypes:
+                elif issubclass(orig, _JSONObjectTypes):
                     args = get_args(tp)
                     if args[0] is str:
                         return Dict[str, normalize_json_type(args[1])]
@@ -525,9 +525,9 @@ def have_common_value(ltp: TypeHint, rtp: TypeHint) -> bool:
 
     # early unpacking
     if ltp in _JSONableValue.registry:
-        return have_common_value(Union[ltp._JTYPE], rtp)
+        return have_common_value(ltp._JTYPE, rtp)
     if rtp in _JSONableValue.registry:
-        return have_common_value(ltp, Union[rtp._JTYPE])
+        return have_common_value(ltp, rtp._JTYPE)
     if ltp in _JSONableArray.registry:
         ltype = (
             Tuple[ltp._JTYPES] if isinstance(ltp.JTYPES, tuple) else List[ltp._JTYPES]
@@ -578,7 +578,7 @@ def have_common_value(ltp: TypeHint, rtp: TypeHint) -> bool:
             )
     # Objects
     elif lorig is dict:
-        if rtp in _JSONableObject.registry:
+        if rtp in _JSONableClass.registry:
             # Required Jsonized attributes are sufficient for conflicts
             return all(
                 have_common_value(largs[1], jattr.type_hint)
@@ -586,13 +586,13 @@ def have_common_value(ltp: TypeHint, rtp: TypeHint) -> bool:
             )
         return rorig is dict
     elif rorig is dict:
-        if ltp in _JSONableObject.registry:
+        if ltp in _JSONableClass.registry:
             return all(
                 have_common_value(jattr.type_hint, rargs[1])
                 for jattr in ltp._REQ_JATTRS.values()
             )
         return lorig is dict
-    elif ltp in _JSONableObject.registry and rtp in _JSONableObject.registry:
+    elif ltp in _JSONableClass.registry and rtp in _JSONableClass.registry:
         # even if called during conflict checking in @jsonable
         # the method has been added to the class already
         ltp._pheres_conflict_with(rtp)
@@ -687,30 +687,22 @@ class _JSONableValue(_VirtualJSONable, _Registry, _registry=WeakSet()):
 
     # virtual subclasses attributes
     # added by the @jsonable decorator
-    _JTYPE: Union[(*_JSONValueTypes, Tuple[Union[_JSONValueTypes]])]
+    _JTYPE: Union[(*_JSONValueTypes, Type[Union[_JSONValueTypes]])]
 
     @staticmethod
     def process_type(
         tp: TypeHint,
-    ) -> Union[(*_JSONValueTypes, Tuple[Union[_JSONValueTypes]])]:
-        if get_origin(tp) is Union:
-            args = get_args(tp)
-            if not all(
-                isinstance((invalid := arg), type) and issubclass(arg, _JSONValueTypes)
-                for arg in args
-            ):
-                raise TypeHintError(
-                    invalid,
-                    message="{type_hint} is not a valid type hint for a JSONable value",
-                )
-            return args
-        else:
-            if not isinstance(tp, type) and issubclass(tp, _JSONValueTypes):
-                raise TypeHintError(
-                    tp,
-                    message="{type_hint} is not a valid type hint for a JSONable value",
-                )
-            return tp
+    ) -> Union[(*_JSONValueTypes, Type[Union[_JSONValueTypes]])]:
+        types = get_args(tp) if get_origin(tp) is Union else (tp,)
+        if not all(
+            isinstance((invalid := arg), type) and issubclass(arg, _JSONValueTypes)
+            for arg in types
+        ):
+            raise TypeHintError(
+                invalid,
+                message="{type_hint} is not a valid type hint for a Jsonable value",
+            )
+        return tp
 
     @staticmethod
     def make(cls, value):
@@ -718,8 +710,7 @@ class _JSONableValue(_VirtualJSONable, _Registry, _registry=WeakSet()):
         return cls(value)
 
     def to_json(self):
-        # TODO
-        raise NotImplementedError
+        raise NotImplementedError("You must implement the 'to_json' method of jsonable value")
 
     @classmethod
     def conflict_with(cls, /, other):
@@ -728,7 +719,7 @@ class _JSONableValue(_VirtualJSONable, _Registry, _registry=WeakSet()):
             raise TypeError("Can only check conflicts with JSONable classes")
         if not issubclass(other, _JSONableValue):
             return False
-        return have_common_value(Union[cls._JTYPE], Union[other._JTYPE])
+        return have_common_value(cls._JTYPE, other._JTYPE)
 
 
 class _JSONableArray(_VirtualJSONable, _Registry, _registry=WeakSet()):
@@ -744,10 +735,13 @@ class _JSONableArray(_VirtualJSONable, _Registry, _registry=WeakSet()):
 
     # virtual subclasses attributes
     # added by the @jsonable decorator
-    _JTYPES = Union[TypeHint, Tuple[TypeHint, ...]]
+    _JTYPES: Union[TypeHint, Tuple[TypeHint, ...]]
 
     @staticmethod
-    def process_type(*types: Tuple[TypeHint]) -> Union[TypeHint, Tuple[TypeHint, ...]]:
+    def process_type(types) -> Union[TypeHint, Tuple[TypeHint, ...]]:
+        if not isinstance(types, tuple):
+            # Assume list or tuple, should be filtered by @jsonable
+            types = get_args(types)
         if len(types) == 2 and types[1] is Ellipsis:
             # Variable length array
             return normalize_json_type(types[0])
@@ -761,8 +755,7 @@ class _JSONableArray(_VirtualJSONable, _Registry, _registry=WeakSet()):
         return cls(*array)
 
     def to_json(self):
-        # TODO
-        raise NotImplementedError
+        raise NotImplementedError("You must implement the 'to_json' method of jsonable array")
 
     @classmethod
     def conflict_with(cls, /, other):
@@ -783,6 +776,39 @@ class _JSONableArray(_VirtualJSONable, _Registry, _registry=WeakSet()):
 
 
 class _JSONableObject(_VirtualJSONable, _Registry, _registry=WeakSet()):
+    """
+    Abstract Base Class for jsonable object
+    """
+
+    __slots__ = ()
+
+    registry: ClassVar[MutableSet[AnyClass]]
+    # virtual subclasses attributes
+    # added by the @jsonable decorator
+    _JTYPE: Union[TypeHint, Tuple[TypeHint, ...]]
+    
+    @staticmethod
+    def process_type(tp: TypeHint) -> Union[TypeHint, Tuple[TypeHint, ...]]:
+        return normalize_json_type(tp)
+    
+    @staticmethod
+    def _make(cls, obj):
+        return cls(obj)
+    
+    def to_json(self) -> JSONObject:
+        raise NotImplementedError("You must implement the 'to_json' method of jsonable object")
+    
+    @classmethod
+    def conflict_with(cls, /, other):
+        """Test if this jsonable could have common serialization with another class"""
+        if not (isinstance(other, type) and issubclass(other, JSONable)):
+            raise TypeError("Can only check conflicts with JSONable classes")
+        if not issubclass(other, _JSONableObject):
+            return False
+        return have_common_value(cls._JTYPE, other._JTYPE)
+
+
+class _JSONableClass(_VirtualJSONable, _Registry, _registry=WeakSet()):
     """Abstract Base Class for JSONable objects"""
 
     __slots__ = ()
@@ -816,7 +842,7 @@ class _JSONableObject(_VirtualJSONable, _Registry, _registry=WeakSet()):
             if value is not MISSING:
                 obj[jattr.name] = (
                     value.to_json(with_defaults=with_defaults)
-                    if isinstance(value, _JSONableObject)
+                    if isinstance(value, _JSONableClass)
                     else value
                 )
         return obj
@@ -834,7 +860,7 @@ class _JSONableObject(_VirtualJSONable, _Registry, _registry=WeakSet()):
         """Test if this JSONable class could have common serialization with another class"""
         if not (isinstance(other, type) and issubclass(other, JSONable)):
             raise TypeError("Can only check conflicts with JSONable classes")
-        if not issubclass(other, _JSONableObject):
+        if not issubclass(other, _JSONableClass):
             return False
         return cls._pheres_conflict_with(other)
 
@@ -865,7 +891,7 @@ class JSONable(ABC):
 
     @classmethod
     def __subclasshook__(cls, /, subclass) -> bool:
-        return issubclass(subclass, (_JSONableValue, _JSONableArray, _JSONableObject))
+        return issubclass(subclass, (_JSONableValue, _JSONableArray, _JSONableClass))
 
     # attributes defined by the @jsonable decorator
     Decoder: SmartDecoder = SmartDecoder
@@ -986,7 +1012,7 @@ class _JsonisedAttribute:
         return deepcopy(self.default)
 
     def to_json(
-        self, /, instance: _JSONableObject, *, with_default: bool = False
+        self, /, instance: _JSONableClass, *, with_default: bool = False
     ) -> JSONObject:
         if self.json_only:
             return self.get_default()
@@ -1043,12 +1069,14 @@ class jsonable:
     """
 
     all_attrs: bool = True
-    virtual_class: type = field(default=_JSONableObject, init=False, repr=False)
-    type_hint: TypeHint = field(default=None, init=False, repr=False)
-
+    virtual_class: type = field(default=_JSONableClass, init=False, repr=False)
+    type_hint: TypeHint = field(default = None, init = False, repr = False)
+    
+    # INTERFACE & BUILDING METHODS
+    
     @classmethod
-    def _jsonable_factory(cls, type_hint, cls_arg=None, /, *args, **kwargs):
-        decorator = cls(*args, **kwargs)[type_hint]
+    def _factory(cls, type_hint, virtual=None, cls_arg=None, /, *args, **kwargs):
+        decorator = cls(*args, **kwargs)._parametrize(type_hint, virtual)
         if cls_arg is not None:
             return decorator(cls_arg)
         return decorator
@@ -1063,28 +1091,54 @@ class jsonable:
             return decorator(cls_arg)
         return decorator
 
-    @classmethod
-    def __class_getitem__(cls, /, type_hint):
-        return functools.partial(cls._jsonable_factory, type_hint)
-
-    def __getitem__(self, type_hint):
+    def _parametrize(self, type_hint, virtual=None):
         if self.type_hint is not None:
             raise TypeError("Cannot parametrize @jsonable twice")
-        obj = replace(self)
-        object.__setattr__(obj, "type_hint", type_hint)
-        if isinstance(type_hint, tuple):
-            object.__setattr__(obj, "virtual_class", _JSONableArray)
+        if virtual is not None:
+            object.__setattr__(self, "virtual_class", virtual)
         else:
-            object.__setattr__(obj, "virtual_class", _JSONableValue)
-        return obj
+            if isinstance(type_hint, tuple):
+                object.__setattr__(self, "virtual_class", _JSONableArray)
+            elif isinstance((orig := get_origin(type_hint)), type):
+                args = get_args(type_hint)
+                if issubclass(orig, (tuple, list)):
+                    type_hint = args[0] if len(args) > 1 and args[1] is Ellipsis else args
+                    object.__setattr__(self, "virtual_class", _JSONableArray)
+                elif issubclass(orig, dict):
+                    if args[0] is not str:
+                        raise TypeHintError(type_hint)
+                    type_hint = args[1]
+                    object.__setattr__(self, "virtual_class", _JSONableObject)
+            else:
+                object.__setattr__(self, "virtual_class", _JSONableValue)
+        object.__setattr__(self, "type_hint", type_hint)
+        return self
+    
+    @classmethod
+    def __class_getitem__(cls, /, type_hint):
+        return functools.partial(cls._factory, type_hint, None)
+
+    @subscriptable
+    def Value(tp): # pylint: disable=no-self-argument
+        return functools.partial(jsonable._factory, tp, _JSONableValue)
+    
+    @subscriptable
+    def Array(tp):  #pylint: disable=no-self-argument
+        return functools.partial(jsonable._factory, tp, _JSONableArray)
+    
+    @subscriptable
+    def Object(tp):  #pylint: disable=no-self-argument
+        return functools.partial(jsonable._factory, tp, _JSONableObject)
 
     def __repr__(self):
-        return "%s%s(%s)" % (
+        return "%s%s%s(%s)" % (
+            "" if self.__module__ == "builtins" else f"{self.__module__}.",
             self.__class__.__qualname__,
             "" if self.type_hint is None else f"[{_type_repr(self.type_hint)}]",
             ", ".join([f"{attr}={getattr(self, attr)!r}" for attr in ("all_attrs",)]),
         )
 
+    # DECORATOR METHODS
     def __call__(self, cls: AnyClass) -> AnyClass:
         if not isinstance(cls, type):
             raise TypeError("Can only decorate classes")
@@ -1149,7 +1203,7 @@ class jsonable:
         try:
             self._register_class_ref(cls)
             try:
-                cls._JTYPES = _JSONableArray.process_type(*self.type_hint)
+                cls._JTYPES = _JSONableArray.process_type(self.type_hint)
                 self._modify_class_inplace(cls)
                 return cls
             except Exception:
@@ -1160,7 +1214,7 @@ class jsonable:
             raise
 
     def _decorate_object_class(self, cls: AnyClass) -> AnyClass:
-        _JSONableObject.register(cls)
+        _JSONableClass.register(cls)
         try:
             self._register_class_ref(cls)
             try:
@@ -1171,7 +1225,7 @@ class jsonable:
                 setattr(
                     cls,
                     "_pheres_conflict_with",
-                    classmethod(_JSONableObject._pheres_conflict_with.__func__),
+                    classmethod(_JSONableClass._pheres_conflict_with.__func__),
                 )
                 self._check_object_conflicts(cls)
                 self._modify_class_inplace(cls)
@@ -1181,7 +1235,7 @@ class jsonable:
                 self._unregister_class_ref(cls)
                 raise
         except Exception:
-            _JSONableObject.discard(cls)
+            _JSONableClass.discard(cls)
             raise
 
     def _get_standard_jattrs(self, /, cls: AnyClass) -> Dict[str, _JsonisedAttribute]:
@@ -1189,7 +1243,7 @@ class jsonable:
         allowed_attributes = set(cls.__annotations__.keys())
         # Do not test self
         for parent in cls.__mro__[1:]:
-            if issubclass(parent, _JSONableObject):
+            if issubclass(parent, _JSONableClass):
                 allowed_attributes |= {jattr.py_name for jattr in parent._ALL_JATTRS}
         # Gather jsonized attributes
         jattrs = {}
@@ -1282,7 +1336,7 @@ class jsonable:
 
     @staticmethod
     def _check_object_conflicts(cls: AnyClass) -> None:
-        for other in _JSONableObject.registry:
+        for other in _JSONableClass.registry:
             if other._pheres_conflict_with(cls):
                 raise JSONableError(
                     f"JSONable class '{cls.__name__}' overlaps with "
@@ -1308,7 +1362,7 @@ class jsonable:
 # Late registration as they depend on JSONable
 def _make_refs_funcs():
     lock = RLock()
-    ref_table = {"JSONType": JSONType, "JSONable": _JSONableObject}
+    ref_table = {"JSONType": JSONType, "JSONable": _JSONableClass}
 
     def _resolve_refs(tp):
         if isinstance(tp, typing.ForwardRef):
@@ -1378,7 +1432,7 @@ def jsonable_hook(obj: dict) -> JSONObject:
     Object hook for the json.load() and json.loads() methods to deserialize JSONable classes
     """
     classes = []
-    for cls in _JSONableObject.registry:
+    for cls in _JSONableClass.registry:
         if all(  # all required arguments are there
             key in obj and typecheck(obj[key], jattr.type_hint)
             for key, jattr in cls._REQ_JATTRS.items()
@@ -1399,7 +1453,7 @@ def jsonable_hook(obj: dict) -> JSONObject:
             f"[!! This is a bug !! Please report] Multiple valid JSONable class found while deserializing {obj}"
         )
     elif len(classes) == 1:
-        return _JSONableObject.make(classes[0], obj)
+        return _JSONableClass.make(classes[0], obj)
     else:
         return obj
 
