@@ -4,14 +4,14 @@ import json
 from typing import Tuple, List, Union, Literal, Dict
 import pytest
 
-#thrid party import
-from pheres import jsonable, JSONable
+# thrid party import
+from pheres import jsonable, JSONable, jattr
 import pheres as ph
-
 
 
 # fix tests being run mutiple times
 from pheres.core import _JSONableObject
+
 _JSONableObject.registry.clear()
 for key in list(ph.register_forward_ref._table.keys()):
     if key not in ("JSONType", "JSONable"):
@@ -245,6 +245,7 @@ class DefaultJSONableTypes(JSONable):
     base_types_d: DefaultBaseTypes = field(default_factory=DefaultBaseTypes)
     param_types_d: DefaultParamTypes = field(default_factory=DefaultParamTypes)
 
+
 def test_default_jsonables():
     obj = DefaultJSONableTypes()
     assert obj.to_json() == {}
@@ -263,15 +264,17 @@ def test_default_jsonables():
             "array_fixed_d": [None, False, 0, 0.0, ""],
             "array_d": [],
             "obj_d": {},
-        }
+        },
     }
-    assert ph.dumps(obj) == r'{}'
+    assert ph.dumps(obj) == r"{}"
     assert obj == DefaultJSONableTypes.Decoder.loads(ph.dumps(obj))
     assert obj == DefaultJSONableTypes.from_json(ph.dumps(obj))
     assert obj == DefaultJSONableTypes.from_json(json.loads(ph.dumps(obj)))
 
     base = DefaultBaseTypes(None, True, 1, 1.0, "string")
-    param = DefaultParamTypes(1, [None, True, 1, 1.0, "string"], [1, 2, 3], {"key": "value"})
+    param = DefaultParamTypes(
+        1, [None, True, 1, 1.0, "string"], [1, 2, 3], {"key": "value"}
+    )
     obj = DefaultJSONableTypes(base, param)
     print(ph.dumps(obj, indent=2))
     assert obj.to_json(with_defaults=True) == {
@@ -302,23 +305,24 @@ def test_default_jsonables():
     assert obj == DefaultJSONableTypes.from_json(json.loads(ph.dumps(obj)))
 
 
-@jsonable[int]
+@jsonable.Value[int]
 class JsonableInt(JSONable):
     def __init__(self, value):
         self.value = value
-    
+
     def to_json(self):
         return self.value
-    
+
     def __eq__(self, other):
         if isinstance(other, JsonableInt):
             return self.value == other.value
         return NotImplemented
 
+
 def test_jsonable_value():
     obj = JsonableInt(1)
     assert obj.to_json() == 1
-    assert ph.dumps(obj) == '1'
+    assert ph.dumps(obj) == "1"
     assert obj == JsonableInt.Decoder.loads(ph.dumps(obj))
     assert obj == JsonableInt.from_json(ph.dumps(obj))
     assert obj == JsonableInt.from_json(json.loads(ph.dumps(obj)))
@@ -327,27 +331,29 @@ def test_jsonable_value():
     with pytest.raises(ph.TypedJSONDecodeError):
         JsonableInt.from_json(1.0)
     with pytest.raises(ph.TypedJSONDecodeError):
-        JsonableInt.from_json(r'null')
+        JsonableInt.from_json(r"null")
     with pytest.raises(ph.TypedJSONDecodeError):
         JsonableInt.from_json(r'"string"')
 
-@jsonable[int, int, int]
+
+@jsonable.Array[int, int, int]
 class JsonableArrayFixed(JSONable):
     def __init__(self, *array):
         self.array = list(array)
-    
+
     def to_json(self):
         return self.array
-    
+
     def __eq__(self, other):
         if isinstance(other, JsonableInt):
             return self.array == other.array
         return NotImplemented
 
+
 def test_jsonable_array():
     obj = JsonableArrayFixed(1, 2, 3)
     assert obj.to_json() == [1, 2, 3]
-    assert ph.dumps(obj) == r'[1, 2, 3]'
+    assert ph.dumps(obj) == r"[1, 2, 3]"
     assert obj == JsonableArrayFixed.Decoder.loads(ph.dumps(obj))
     assert obj == JsonableArrayFixed.from_json(ph.dumps(obj))
     assert obj == JsonableArrayFixed.from_json(json.loads(ph.dumps(obj)))
@@ -362,3 +368,39 @@ def test_jsonable_array():
         JsonableArrayFixed.from_json(r"[1,2,3,4]")
     with pytest.raises(ph.TypedJSONDecodeError):
         JsonableArrayFixed.from_json(r'[1, 2, "string"]')
+
+
+@jsonable.Object[int]
+class JsonableObject(JSONable):
+    def __init__(self, d):
+        self.d = d
+
+    def to_json(self):
+        return self.d
+
+    def __eq__(self, other):
+        if isinstance(other, JsonableObject):
+            return self.d == other.d
+        return NotImplemented
+
+
+def test_jsonable_object():
+    obj = JsonableObject({"one": 1, "two": 2, "three": 3})
+    assert obj.to_json() == {"one": 1, "two": 2, "three": 3}
+    assert ph.dumps(obj) == r'{"one": 1, "two": 2, "three": 3}'
+    assert obj == JsonableObject.Decoder.loads(ph.dumps(obj))
+    assert obj == JsonableObject.from_json(ph.dumps(obj))
+    assert obj == JsonableObject.from_json(json.loads(ph.dumps(obj)))
+
+
+@dataclass
+@jsonable(all_attrs=False)
+class PartialJsonable(JSONable):
+    both: jattr(str)
+    py_only: str = "py_only"
+    json_only: jattr(str, json_only=True) = "json_only"
+
+
+def test_partial():
+    obj = PartialJsonable("both")
+    assert obj.to_json() == {"both": "both", "json_only": "json_only"}
