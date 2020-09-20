@@ -766,6 +766,7 @@ class _VirtualValue(_VirtualJSONableBase, _Registry, _registry=WeakSet()):
     def process_type(
         tp: TypeHint,
     ) -> Union[(*_JSONValueTypes, Type[Union[_JSONValueTypes]])]:
+        tp = type(None) if tp is None else tp
         types = get_args(tp) if get_origin(tp) is Union else (tp,)
         if not all(
             isinstance((invalid := arg), type) and issubclass(arg, _JSONValueTypes)
