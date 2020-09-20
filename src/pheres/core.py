@@ -1384,15 +1384,14 @@ class jsonable:
 
     def __post_init__(self):
         if isinstance(self.after, str):
-            after = (self.after,)
+            after = frozenset((self.after,))
         elif isinstance(self.after, Iterable):
-            after = []
             for dep in self.after:
                 if not isinstance(dep, str):
                     raise TypeError("@jsonable dependencies must be str")
-            after = tuple(after)
+            after = frozenset(self.after)
         else:
-            raise TypeError("@jsonable dependencies must be str of an iterable of str")
+            raise TypeError("@jsonable dependencies must be a str of an iterable of str")
         object.__setattr__(self, "after", after)
 
     def _parametrize(self, type_hint, virtual=None):
@@ -1477,7 +1476,7 @@ class jsonable:
         """Register the delayed classes that can be registered"""
         registered = []
         for delayed_cls, (after, func) in cls._delayed.items():
-            if after & register_forward_ref._table.keys() == after:
+            if (after & register_forward_ref._table.keys()) == after:
                 func(delayed_cls)
                 registered.append(delayed_cls)
         for registered_cls in registered:
