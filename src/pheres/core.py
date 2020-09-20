@@ -518,15 +518,19 @@ def normalize_json_type(tp: TypeHint):
             # from caching the result
             # Allows _Registry.discard() to work
             # when @jsonable recovers from an error
-            if tp in _JSONValueTypes or (
-                isinstance(tp, type)
-                and (
+            if tp in (JSONValue, JSONArray, JSONObject, JSONType):
+                return tp
+            if tp in _JSONValueTypes:
+                return tp
+            if isinstance(tp, type):
+                if (
                     tp
                     in JSONable.registry  # pylint: disable=unsupported-membership-test
                     or tp in jsonable._delayed
-                )
-            ):
-                return tp
+                ):
+                    return tp
+                elif tp in _VirtualClsEnum.value_set:
+                    return tp
             elif (orig := get_origin(tp)) is Literal:
                 if all(isinstance(lit, _JSONLiteralTypes) for lit in get_args(tp)):
                     return tp
@@ -971,6 +975,9 @@ class _VirtualClsEnum(Enum):
     Class: _VirtualClass
 
 
+_VirtualClsEnum.value_set = frozenset(item.value for item in _VirtualClsEnum)
+
+
 class JSONable(ABC):
     """Asbtract Base Class with stub methods for JSONable classes
 
@@ -1392,7 +1399,9 @@ class jsonable:
                     raise TypeError("@jsonable dependencies must be str")
             after = frozenset(self.after)
         else:
-            raise TypeError("@jsonable dependencies must be a str of an iterable of str")
+            raise TypeError(
+                "@jsonable dependencies must be a str of an iterable of str"
+            )
         object.__setattr__(self, "after", after)
 
     def _parametrize(self, type_hint, virtual=None):
@@ -1460,7 +1469,9 @@ class jsonable:
                     _decorate_jsonable_simple, self.virtual_class, cls, self.type_hint
                 )
             elif self.virtual_class is _VirtualClass:
-                decorate = functools.partial(_decorate_jsonable_class, cls, self.all_attrs)
+                decorate = functools.partial(
+                    _decorate_jsonable_class, cls, self.all_attrs
+                )
             else:
                 raise TypeError("Unknown virtual jsonable registry")
             if (
