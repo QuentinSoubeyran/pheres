@@ -545,12 +545,12 @@ def normalize_json_type(tp: TypeHint):
                         )
                     ]
                 return Union[others]  # pylint: disable=unsubscriptable-object
-            elif issubclass(orig, _JSONArrayTypes):
+            elif isinstance(orig, type) and issubclass(orig, _JSONArrayTypes):
                 args = get_args(tp)
                 if orig is list or (len(args) > 1 and args[1] is Ellipsis):
                     return List[normalize_json_type(args[0])]
                 return Tuple[tuple(normalize_json_type(arg) for arg in args)]
-            elif issubclass(orig, _JSONObjectTypes):
+            elif isinstance(orig, type) and issubclass(orig, _JSONObjectTypes):
                 args = get_args(tp)
                 if args[0] is str:
                     return Dict[str, normalize_json_type(args[1])]
