@@ -1455,29 +1455,29 @@ class jsonable:
             unregister_forward_ref, cls.__name__
         ):
             if self.virtual_class in (_VirtualValue, _VirtualArray, _VirtualObject):
-                func = functools.partial(
+                decorate = functools.partial(
                     _decorate_jsonable_simple, self.virtual_class, cls, self.type_hint
                 )
             elif self.virtual_class is _VirtualClass:
-                func = functools.partial(_decorate_jsonable_class, cls, self.all_attrs)
+                decorate = functools.partial(_decorate_jsonable_class, cls, self.all_attrs)
             else:
                 raise TypeError("Unknown virtual jsonable registry")
             if (
                 self.after
                 and self.after & register_forward_ref._table.keys() != self.after
             ):
-                self._delayed[cls] = (self.after, func)
+                self._delayed[cls] = (self.after, decorate)
             else:
-                func()
+                decorate()
         return cls
 
     @classmethod
     def _register_delayed_classes(cls, /) -> None:
         """Register the delayed classes that can be registered"""
         registered = []
-        for delayed_cls, (after, func) in cls._delayed.items():
+        for delayed_cls, (after, decorate) in cls._delayed.items():
             if (after & register_forward_ref._table.keys()) == after:
-                func(delayed_cls)
+                decorate()
                 registered.append(delayed_cls)
         for registered_cls in registered:
             del cls._delayed[registered_cls]
