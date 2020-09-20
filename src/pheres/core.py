@@ -969,10 +969,10 @@ class _VirtualClass(_VirtualJSONableBase, _Registry, _registry=WeakSet()):
 
 
 class _VirtualClsEnum(Enum):
-    Value: _VirtualValue
-    Array: _VirtualArray
-    Object: _VirtualObject
-    Class: _VirtualClass
+    Value = _VirtualValue
+    Array = _VirtualArray
+    Object = _VirtualObject
+    Class = _VirtualClass
 
 
 _VirtualClsEnum.value_set = frozenset(item.value for item in _VirtualClsEnum)
