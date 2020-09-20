@@ -10,9 +10,9 @@ import pheres as ph
 
 
 # fix tests being run mutiple times
-from pheres.core import _JSONableObject
+from pheres.core import _VirtualObject
 
-_JSONableObject.registry.clear()
+_VirtualObject.registry.clear()
 for key in list(ph.register_forward_ref._table.keys()):
     if key not in ("JSONType", "JSONable"):
         del ph.register_forward_ref._table[key]

@@ -58,10 +58,10 @@ from .core import (
     typecheck,
     normalize_json_type,
     # JSONable API
-    _JSONableValue,
-    _JSONableArray,
-    _JSONableObject,
-    _JSONableClass,
+    _VirtualValue,
+    _VirtualArray,
+    _VirtualObject,
+    _VirtualClass,
     SmartDecoder,
 )
 from .utils import FlatKey
@@ -77,10 +77,10 @@ __all__ = ["TypedJSONDecodeError", "TypedJSONDecoder", "deserialize"]
 U = TypeVar("U")
 
 # Type Aliases
-Pos = Union[int, FlatKey]
+Pos = Union[int, FlatKey]  # pylint: disable=unsubscriptable-object
 
-TypeOrig = Optional[TypeHint]
-TypeArgs = Optional[TypeHint]
+TypeOrig = Optional[TypeHint]  # pylint: disable=unsubscriptable-object
+TypeArgs = Optional[TypeHint]  # pylint: disable=unsubscriptable-object
 
 TypeTuple = Tuple[TypeHint, ...]
 OrigTuple = Tuple[TypeOrig, ...]
@@ -177,13 +177,17 @@ class DecodeContext:
     DecodeContext are immutable
     """
 
-    doc: Union[str, JSONObject]
+    doc: Union[str, JSONObject]  # pylint: disable=unsubscriptable-object
     pos: Pos
     types: TypeTuple
     origs: OrigTuple = None
     args: ArgsTuple = None
-    parent_context: Optional["DecodeContext"] = None
-    parent_key: Optional[Union[int, str]] = None
+    parent_context: Optional[  # pylint: disable=unsubscriptable-object
+        "DecodeContext"
+    ] = None
+    parent_key: Optional[  # pylint: disable=unsubscriptable-object
+        Union[int, str]  # pylint: disable=unsubscriptable-object
+    ] = None
 
     @staticmethod
     def process_tp(tp):
@@ -207,7 +211,9 @@ class DecodeContext:
         if msg:
             parts.append(msg)
         else:
-            parts.append(f"Expected type {Union[self.types]}")
+            parts.append(
+                f"Expected type {Union[self.types]}"  # pylint: disable=unsubscriptable-object
+            )
         if value is not MISSING:
             parts.append(f"got {value}")
         parts.append("at")
@@ -239,7 +245,7 @@ class DecodeContext:
                 elif issubclass(orig, list):
                     subtypes.append(arg[0])
                     continue
-            elif isinstance(tp, type) and issubclass(tp, _JSONableArray):
+            elif isinstance(tp, type) and issubclass(tp, _VirtualArray):
                 if isinstance(tp._JTYPE, tuple):
                     subtypes.append(tp._JTYPE[index])
                 else:
@@ -253,9 +259,9 @@ class DecodeContext:
         for tp, orig, arg in zip(self.types, self.origs, self.args):
             if isinstance(orig, type) and issubclass(orig, dict):
                 subtypes.append(arg[1])
-            elif isinstance(tp, type) and issubclass(tp, _JSONableObject):
+            elif isinstance(tp, type) and issubclass(tp, _VirtualObject):
                 subtypes.append(tp._JTYPE)
-            elif isinstance(tp, type) and issubclass(tp, _JSONableClass):
+            elif isinstance(tp, type) and issubclass(tp, _VirtualClass):
                 subtypes.append(tp._ALL_JATTRS[key].type_hint)
             else:
                 raise JSONError(f"Unhandled Object type {tp}")
@@ -265,7 +271,7 @@ class DecodeContext:
     @staticmethod
     def accept_array(tp: TypeHint, orig: TypeOrig, arg: TypeArgs) -> bool:
         return (isinstance(orig, type) and issubclass(orig, _JSONArrayTypes)) or (
-            isinstance(tp, type) and issubclass(tp, _JSONableArray)
+            isinstance(tp, type) and issubclass(tp, _VirtualArray)
         )
 
     @staticmethod
@@ -276,7 +282,7 @@ class DecodeContext:
                     return True
                 elif issubclass(orig, tuple):
                     return len(args) > index
-            elif isinstance(tp, type) and issubclass(tp, _JSONableArray):
+            elif isinstance(tp, type) and issubclass(tp, _VirtualArray):
                 if isinstance(tp._JTYPE, tuple):
                     return len(tp._JTYPE) > index
                 return True
@@ -292,7 +298,7 @@ class DecodeContext:
                     return typecheck(value, args[index])
                 elif issubclass(orig, list):
                     return typecheck(value, args[0])
-            elif isinstance(tp, type) and issubclass(tp, _JSONableArray):
+            elif isinstance(tp, type) and issubclass(tp, _VirtualArray):
                 if isinstance(tp._JTYPE, tuple):
                     return typecheck(value, tp._JTYPE[index])
                 return typecheck(value, tp._JTYPE[0])
@@ -308,7 +314,7 @@ class DecodeContext:
                     return True
                 elif issubclass(orig, tuple):
                     return len(args) == length
-            elif isinstance(tp, type) and issubclass(tp, _JSONableArray):
+            elif isinstance(tp, type) and issubclass(tp, _VirtualArray):
                 if isinstance(tp._JTYPE, tuple):
                     return len(tp._JTYPE) == length
                 return True
@@ -320,7 +326,7 @@ class DecodeContext:
     def accept_object(tp: TypeHint, orig: TypeOrig, arg: TypeArgs) -> bool:
         return (isinstance(orig, type) and issubclass(orig, dict)) or (
             isinstance(tp, type)
-            and (issubclass(tp, _JSONableObject) or issubclass(tp, _JSONableClass))
+            and (issubclass(tp, _VirtualObject) or issubclass(tp, _VirtualClass))
         )
 
     @staticmethod
@@ -328,9 +334,9 @@ class DecodeContext:
         def accept(tp: TypeHint, orig: TypeOrig, args: TypeArgs) -> bool:
             if isinstance(orig, type) and issubclass(orig, dict):
                 return True
-            elif isinstance(tp, type) and issubclass(tp, _JSONableObject):
+            elif isinstance(tp, type) and issubclass(tp, _VirtualObject):
                 return True
-            elif isinstance(tp, type) and issubclass(tp, _JSONableClass):
+            elif isinstance(tp, type) and issubclass(tp, _VirtualClass):
                 return key in tp._ALL_JATTRS
             return False
 
@@ -341,9 +347,9 @@ class DecodeContext:
         def accept(tp: TypeHint, orig: TypeOrig, args: TypeArgs) -> bool:
             if isinstance(orig, type) and issubclass(orig, dict):
                 return typecheck(value, args[1])
-            elif isinstance(tp, type) and issubclass(tp, _JSONableObject):
+            elif isinstance(tp, type) and issubclass(tp, _VirtualObject):
                 return typecheck(value, tp._JTYPE)
-            elif isinstance(tp, type) and issubclass(tp, _JSONableClass):
+            elif isinstance(tp, type) and issubclass(tp, _VirtualClass):
                 return typecheck(value, tp._ALL_JATTRS[key].type_hint)
             raise JSONError(f"Unhandled Object type {tp}")
 
@@ -373,7 +379,7 @@ class DecodeContext:
         parent = self.filtered(
             self.accept_key(key),
             self.err_msg(
-                msg=f"Inferred type {Union[self.types]} has no key '{key}'",
+                msg=f"Inferred type {Union[self.types]} has no key '{key}'",  # pylint: disable=unsubscriptable-object
             ),
             err_pos=key_pos,
         )
@@ -391,7 +397,7 @@ class DecodeContext:
     ) -> Tuple[JSONValue, U, "DecodeContext"]:
         types, classes = [], []
         for tp in self.types:
-            if isinstance(tp, type) and issubclass(tp, _JSONableValue):
+            if isinstance(tp, type) and issubclass(tp, _VirtualValue):
                 if typecheck(value, tp._JTYPE):
                     classes.append(tp)
             elif typecheck(value, tp):
@@ -409,7 +415,7 @@ class DecodeContext:
                     doc=self.doc,
                     pos=self.pos,
                 )
-            value = _JSONableValue.make(classes[0], value)
+            value = _VirtualValue.make(classes[0], value)
         parent = None
         if self.parent_context is not None:
             parent = self.parent_context
@@ -432,16 +438,14 @@ class DecodeContext:
         if not types:
             raise TypedJSONDecodeError(
                 msg=self.err_msg(
-                    msg=f"Inferred type {Union[self.types]}",
+                    msg=f"Inferred type {Union[self.types]}",  # pylint: disable=unsubscriptable-object
                     value=f"{array}, an 'Array' of len {len(array)} which is too short",
                 ),
                 doc=self.doc,
                 pos=self.pos,
             )
         classes = [
-            tp
-            for tp in types
-            if isinstance(tp, type) and issubclass(tp, _JSONableArray)
+            tp for tp in types if isinstance(tp, type) and issubclass(tp, _VirtualArray)
         ]
         parent = self.parent_context
         if classes:
@@ -453,7 +457,7 @@ class DecodeContext:
                     doc=self.doc,
                     pos=self.pos,
                 )
-            array = _JSONableArray.make(classes[0], array)
+            array = _VirtualArray.make(classes[0], array)
             if parent is not None:
                 key = self.parent_key
                 if isinstance(key, int):
@@ -473,7 +477,7 @@ class DecodeContext:
         classes = [
             tp
             for tp in self.types
-            if isinstance(tp, type) and issubclass(tp, (_JSONableObject, _JSONableClass))
+            if isinstance(tp, type) and issubclass(tp, (_VirtualObject, _VirtualClass))
         ]
         classes = [
             cls
@@ -491,10 +495,10 @@ class DecodeContext:
                     pos=self.pos,
                 )
             cls = classes[0]
-            if issubclass(cls, _JSONableObject):
-                obj = _JSONableObject.make(cls, obj)
-            elif issubclass(cls, _JSONableClass):
-                obj = _JSONableClass.make(classes[0], obj)
+            if issubclass(cls, _VirtualObject):
+                obj = _VirtualObject.make(cls, obj)
+            elif issubclass(cls, _VirtualClass):
+                obj = _VirtualClass.make(classes[0], obj)
             if parent is not None:
                 key = self.parent_key
                 if isinstance(key, int):
@@ -596,7 +600,7 @@ def JSONObjectParser(
     ctx: DecodeContext,
     object_hook: Callable,
     object_pairs_hook: Callable,
-    memo: Optional[dict] = None,
+    memo: Optional[dict] = None,  # pylint: disable=unsubscriptable-object
     _w: Callable = WHITESPACE.match,
     _ws: str = WHITESPACE_STR,
 ) -> Tuple[JSONObject, int, DecodeContext]:
@@ -760,7 +764,7 @@ def scan_json(
                 value, ctx = scan_json(value, new_pos, ctx.key_context(key, new_pos))
                 res[key] = value
             res, _, ctx = ctx.typecheck_object(res, None)
-        elif isinstance(obj, _JSONableClass):
+        elif isinstance(obj, _VirtualClass):
             for jattr in obj._ALL_JATTRS:
                 if jattr.json_only:
                     continue

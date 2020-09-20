@@ -4,9 +4,10 @@ Module with various internal miscs
 
 Part of the Pheres package
 """
-
+from contextlib import contextmanager
 import functools
 import inspect
+import json
 from typing import Callable, Dict, Iterable, Optional, TypeVar
 
 __all__ = ["JSONError"]
@@ -63,17 +64,23 @@ class Subscriptable:
         return self._func(arg)
 
 
-class FallbackRegister:
-    def __init__(self, register_func, unregister_func):
-        self.register = register_func
-        self.unregister = unregister_func
+@contextmanager
+def on_error(func, *args, yield_=None, **kwargs):
+    try:
+        yield yield_
+    except Exception:
+        func(*args, **kwargs)
+        raise
 
-    def __enter__(self):
-        self.register()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if exc_type is not None:
-            self.unregister()
+@contextmanager
+def on_success(func, *args, yield_=None, **kwargs):
+    try:
+        yield yield_
+    except Exception:
+        raise
+    else:
+        func(*args, **kwargs)
 
 
 # from https://stackoverflow.com/questions/5189699/how-to-make-a-class-property
@@ -93,11 +100,33 @@ class ClassPropertyDescriptor:
         type_ = type(obj)
         return self.fset.__get__(obj, type_)(value)
 
+    @property
+    def __isabstractmethod__(self):
+        return any(
+            getattr(f, "__isabstractmethod__", False) for f in (self.fget, self.fset)
+        )
+
     def setter(self, func):
         if not isinstance(func, (classmethod, staticmethod)):
             func = classmethod(func)
         self.fset = func
         return self
+
+
+class SmartDecoder(json.JSONDecoder):
+    """
+    JSONDecoder subclass with method to use itself as a decoder
+    """
+
+    @functools.wraps(json.load)
+    @classmethod
+    def load(cls, *args, **kwargs):
+        return json.load(*args, cls=cls, **kwargs)
+
+    @functools.wraps(json.loads)
+    @classmethod
+    def loads(cls, *args, **kwargs):
+        return json.loads(*args, cls=cls, **kwargs)
 
 
 def classproperty(func):
@@ -141,7 +170,7 @@ def find_injection(
     B: Iterable[V],
     match_func: Callable[[U, V], bool],
     validator_func: Callable[[Dict[U, V]], bool] = lambda _: True,
-) -> Optional[Dict[U, V]]:
+) -> Optional[Dict[U, V]]:  # pylint: disable=unsubscriptable-object
     """Assign an element b of B to each element a of A such that test_f(a, b) is True
     and no element of B is used more than once
 
