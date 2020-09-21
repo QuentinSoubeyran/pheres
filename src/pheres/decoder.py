@@ -250,7 +250,7 @@ class DecodeContext:
                 if isinstance(tp._JTYPE, tuple):
                     found = tp._JTYPE[index]
                 else:
-                    found = type._JTYPE
+                    found = tp._JTYPE
             if found is MISSING:
                 raise JSONError(f"Unhandled Array type {tp}")
             elif get_origin(found) is Union:
