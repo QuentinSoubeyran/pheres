@@ -824,7 +824,11 @@ class _VirtualArray(_VirtualJSONableBase, _Registry, _registry=WeakSet()):
     @staticmethod
     def process_type(types) -> Union[TypeHint, Tuple[TypeHint, ...]]:
         # receives a Tuple[] or List[], already in the prefered form
-        return tuple(map(normalize_json_type, get_args(types)))
+        if get_origin(types) is tuple:
+            return tuple(map(normalize_json_type, get_args(types)))
+        else:
+            # List[]
+            return normalize_json_type(get_args(types)[0])
 
     @staticmethod
     def make(cls, array):
@@ -1430,7 +1434,7 @@ class jsonable:
     @Subscriptable
     def Array(tp: Union[tuple, TypeHint]):  # pylint: disable=no-self-argument
         if not isinstance(tp, tuple):
-            tp = List[tp]
+            tp = Tuple[tp]
         elif len(tp) == 2 and tp[1] is Ellipsis:
             tp = List[tp[0]]
         else:
