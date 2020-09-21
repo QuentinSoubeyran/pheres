@@ -1439,6 +1439,8 @@ class jsonable:
 
     @Subscriptable
     def Array(tp):  # pylint: disable=no-self-argument
+        if not isinstance(tp, tuple):
+            tp = (tp, ...)
         return functools.partial(jsonable._factory, tp, _VirtualArray)
 
     @Subscriptable
