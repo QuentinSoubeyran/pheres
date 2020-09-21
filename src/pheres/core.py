@@ -449,8 +449,9 @@ def typecheck(value: JSONType, tp: TypeHint) -> bool:
     if tp in _JSONValueTypes:
         return isinstance(value, tp)
     # JSONable
-    elif isinstance(tp, type) and tp in JSONable.registry:
-        return isinstance(value, tp)
+    elif isinstance(tp, type):
+        if tp in JSONable.registry or tp in _VirtualClsEnum.value_set:
+            return isinstance(value, tp)
     # Literal
     elif (orig := get_origin(tp)) is Literal:
         return value in get_args(tp)
