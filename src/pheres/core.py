@@ -338,7 +338,7 @@ def _is_json(obj: Any, rec_guard: Tuple[Any]) -> bool:
     type_ = type(obj)
     if type_ in _JSONValueTypes:
         return True
-    elif issubclass(type_, JSONable):
+    elif type_ in JSONable.registry:
         return True
     elif type_ in _JSONArrayTypes:
         rec_guard = (*rec_guard, obj)
@@ -449,7 +449,7 @@ def typecheck(value: JSONType, tp: TypeHint) -> bool:
     if tp in _JSONValueTypes:
         return isinstance(value, tp)
     # JSONable
-    elif isinstance(tp, type) and issubclass(tp, JSONable):
+    elif isinstance(tp, type) and tp in JSONable.registry:
         return isinstance(value, tp)
     # Literal
     elif (orig := get_origin(tp)) is Literal:
@@ -799,9 +799,9 @@ class _VirtualValue(_VirtualJSONableBase, _Registry, _registry=WeakSet()):
     @classmethod
     def conflict_with(cls, /, other):
         """Test if this JSONable could have common serialization with another class"""
-        if not (isinstance(other, type) and issubclass(other, JSONable)):
+        if not (isinstance(other, type) and other in JSONable.registry):
             raise TypeError("Can only check conflicts with JSONable classes")
-        if not issubclass(other, _VirtualValue):
+        if other not in _VirtualValue.registry:
             return False
         return have_common_value(cls._JTYPE, other._JTYPE)
 
@@ -853,9 +853,9 @@ class _VirtualArray(_VirtualJSONableBase, _Registry, _registry=WeakSet()):
     @classmethod
     def conflict_with(cls, /, other):
         """Test if this JSONable could have common serialization with another class"""
-        if not (isinstance(other, type) and issubclass(other, JSONable)):
+        if not (isinstance(other, type) and other in JSONable.registry):
             raise TypeError("Can only check conflicts with JSONable classes")
-        if not issubclass(other, _VirtualArray):
+        if other not in _VirtualArray.registry:
             return False
         self_type = (
             Tuple[cls._JTYPE] if isinstance(cls._JTYPE, tuple) else List[cls._JTYPE]
@@ -900,9 +900,9 @@ class _VirtualObject(_VirtualJSONableBase, _Registry, _registry=WeakSet()):
     @classmethod
     def conflict_with(cls, /, other):
         """Test if this jsonable could have common serialization with another class"""
-        if not (isinstance(other, type) and issubclass(other, JSONable)):
+        if not (isinstance(other, type) and other in JSONable.registry):
             raise TypeError("Can only check conflicts with JSONable classes")
-        if not issubclass(other, _VirtualObject):
+        if other not in _VirtualObject.registry:
             return False
         return have_common_value(cls._JTYPE, other._JTYPE)
 
@@ -961,9 +961,9 @@ class _VirtualClass(_VirtualJSONableBase, _Registry, _registry=WeakSet()):
     @classmethod
     def conflict_with(cls, /, other):
         """Test if this JSONable class could have common serialization with another class"""
-        if not (isinstance(other, type) and issubclass(other, JSONable)):
+        if not (isinstance(other, type) and other, JSONable.registry):
             raise TypeError("Can only check conflicts with JSONable classes")
-        if not issubclass(other, _VirtualClass):
+        if other not in _VirtualClass.registry:
             return False
         return cls._pheres_conflict_with(other)
 
