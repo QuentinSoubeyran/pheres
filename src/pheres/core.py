@@ -974,6 +974,8 @@ class _VirtualClsEnum(Enum):
 
 
 _VirtualClsEnum.value_set = frozenset(item.value for item in _VirtualClsEnum)
+for cls in _VirtualClsEnum.value_set:
+    register_forward_ref._table[cls.__name__] = cls
 
 
 class JSONable(ABC):
