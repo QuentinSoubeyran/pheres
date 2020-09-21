@@ -177,6 +177,8 @@ class DecodeContext:
     DecodeContext are immutable
     """
 
+    # __slots__ = ("doc", "pos", "types", "origs", "args", "parent_context", "parent_key")
+
     doc: Union[str, JSONObject]  # pylint: disable=unsubscriptable-object
     pos: Pos
     types: TypeTuple
@@ -238,33 +240,40 @@ class DecodeContext:
     def get_array_subtypes(self, /, index: int) -> TypeTuple:
         subtypes = []
         for tp, orig, arg in zip(self.types, self.origs, self.args):
+            tp = MISSING
             if isinstance(orig, type):
                 if issubclass(orig, tuple):
-                    subtypes.append(arg[index])
-                    continue
+                    tp = arg[index]
                 elif issubclass(orig, list):
-                    subtypes.append(arg[0])
-                    continue
+                    tp = arg[0]
             elif isinstance(tp, type) and issubclass(tp, _VirtualArray):
                 if isinstance(tp._JTYPE, tuple):
-                    subtypes.append(tp._JTYPE[index])
+                    tp = tp._JTYPE[index]
                 else:
-                    subtypes.append(type._JTYPE)
-                continue
-            raise JSONError(f"Unhandled Array type {tp}")
+                    tp = type._JTYPE
+            if tp is MISSING:
+                raise JSONError(f"Unhandled Array type {tp}")
+            elif get_origin(tp) is Union:
+                subtypes.extend(get_args(tp))
+            else:
+                subtypes.append(tp)
         return tuple(subtypes)
 
     def get_object_subtypes(self, /, key: str) -> TypeTuple:
         subtypes = []
         for tp, orig, arg in zip(self.types, self.origs, self.args):
             if isinstance(orig, type) and issubclass(orig, dict):
-                subtypes.append(arg[1])
+                tp = arg[1]
             elif isinstance(tp, type) and issubclass(tp, _VirtualObject):
-                subtypes.append(tp._JTYPE)
+                tp = tp._JTYPE
             elif isinstance(tp, type) and issubclass(tp, _VirtualClass):
-                subtypes.append(tp._ALL_JATTRS[key].type_hint)
+                tp = tp._ALL_JATTRS[key].type_hint
             else:
                 raise JSONError(f"Unhandled Object type {tp}")
+            if get_origin(tp) is Union:
+                subtypes.extend(get_args(tp))
+            else:
+                subtypes.append(tp)
         return tuple(subtypes)
 
     # FILTERS AND FILTER FACTORIES
