@@ -953,9 +953,9 @@ class _VirtualClass(_VirtualJSONableBase, _Registry, _registry=WeakSet()):
     @classmethod
     def _pheres_conflict_with(cls, /, other):
         return (
-            not issubclass(cls, other)
-            and _is_jattr_subset(cls._REQ_JATTRS, other._ALL_JATTRS)
+            _is_jattr_subset(cls._REQ_JATTRS, other._ALL_JATTRS)
             and _is_jattr_subset(other._REQ_JATTRS, cls._ALL_JATTRS)
+            and not issubclass(cls, other)
         )
 
     @classmethod
@@ -990,9 +990,7 @@ class JSONable(ABC):
 
     @classmethod
     def __subclasshook__(cls, /, subclass) -> bool:
-        return issubclass(
-            subclass, (_VirtualValue, _VirtualArray, _VirtualObject, _VirtualClass)
-        )
+        return subclass in cls.registry
 
     # attributes defined by the @jsonable decorator
     Decoder: ClassVar[SmartDecoder] = SmartDecoder
