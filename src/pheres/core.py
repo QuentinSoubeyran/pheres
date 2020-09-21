@@ -1190,8 +1190,10 @@ def _get_standard_jattrs(
     allowed_attributes = set(cls.__annotations__.keys())
     # Do not test self
     for parent in cls.__mro__[1:]:
-        if issubclass(parent, _VirtualClass):
+        if parent in  _VirtualClass.registry:
             allowed_attributes |= {jattr.py_name for jattr in parent._ALL_JATTRS}
+        elif parent in jsonable._delayed:
+            raise JSONableError("Cannot register JSONable class before its JSONable parent classes")
     # Gather jsonized attributes
     jattrs = {}
     for py_name, tp in typing.get_type_hints(
