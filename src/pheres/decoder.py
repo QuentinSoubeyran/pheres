@@ -310,7 +310,7 @@ class DecodeContext:
             elif isinstance(tp, type) and issubclass(tp, _VirtualArray):
                 if isinstance(tp._JTYPE, tuple):
                     return typecheck(value, tp._JTYPE[index])
-                return typecheck(value, tp._JTYPE[0])
+                return typecheck(value, tp._JTYPE)
             raise JSONError(f"Unhandled Array type {tp}")
 
         return accept
