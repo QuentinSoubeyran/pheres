@@ -240,23 +240,23 @@ class DecodeContext:
     def get_array_subtypes(self, /, index: int) -> TypeTuple:
         subtypes = []
         for tp, orig, arg in zip(self.types, self.origs, self.args):
-            tp = MISSING
+            found = MISSING
             if isinstance(orig, type):
                 if issubclass(orig, tuple):
-                    tp = arg[index]
+                    found = arg[index]
                 elif issubclass(orig, list):
-                    tp = arg[0]
+                    found = arg[0]
             elif isinstance(tp, type) and issubclass(tp, _VirtualArray):
                 if isinstance(tp._JTYPE, tuple):
-                    tp = tp._JTYPE[index]
+                    found = tp._JTYPE[index]
                 else:
-                    tp = type._JTYPE
-            if tp is MISSING:
+                    found = type._JTYPE
+            if found is MISSING:
                 raise JSONError(f"Unhandled Array type {tp}")
-            elif get_origin(tp) is Union:
-                subtypes.extend(get_args(tp))
+            elif get_origin(found) is Union:
+                subtypes.extend(get_args(found))
             else:
-                subtypes.append(tp)
+                subtypes.append(found)
         return tuple(subtypes)
 
     def get_object_subtypes(self, /, key: str) -> TypeTuple:

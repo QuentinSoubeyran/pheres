@@ -823,15 +823,8 @@ class _VirtualArray(_VirtualJSONableBase, _Registry, _registry=WeakSet()):
 
     @staticmethod
     def process_type(types) -> Union[TypeHint, Tuple[TypeHint, ...]]:
-        if not isinstance(types, tuple):
-            # Assume list or tuple, should be filtered by @jsonable
-            types = get_args(types)
-        if len(types) == 2 and types[1] is Ellipsis:
-            # Variable length array
-            return normalize_json_type(types[0])
-        else:
-            # fixed size array
-            return tuple(map(normalize_json_type, types))
+        # receives a Tuple[] or List[], already in the prefered form
+        return tuple(map(normalize_json_type, get_args(types)))
 
     @staticmethod
     def make(cls, array):
@@ -882,7 +875,8 @@ class _VirtualObject(_VirtualJSONableBase, _Registry, _registry=WeakSet()):
 
     @staticmethod
     def process_type(tp: TypeHint) -> TypeHint:
-        return normalize_json_type(tp)
+        # Receives a Dict[str, T]
+        return normalize_json_type(get_args(tp)[1])
 
     @staticmethod
     def make(cls, obj):
@@ -1407,25 +1401,21 @@ class jsonable:
     def _parametrize(self, type_hint, virtual=None):
         if self.type_hint is not None:
             raise TypeError("Cannot parametrize @jsonable twice")
-        if virtual is not None:
-            object.__setattr__(self, "virtual_class", virtual)
-        else:
+        if virtual is None:
             if isinstance(type_hint, tuple):
-                object.__setattr__(self, "virtual_class", _VirtualArray)
+                if len(type_hint) == 2 and type_hint[1] is Ellipsis:
+                    type_hint = List[type_hint[0]]
+                else:
+                    type_hint = Tuple[type_hint]
+                virtual = _VirtualArray
             elif isinstance((orig := get_origin(type_hint)), type):
-                args = get_args(type_hint)
-                if issubclass(orig, (tuple, list)):
-                    type_hint = (
-                        args[0] if len(args) > 1 and args[1] is Ellipsis else args
-                    )
-                    object.__setattr__(self, "virtual_class", _VirtualArray)
+                if issubclass(orig, (list, tuple)):
+                    virtual = _VirtualArray
                 elif issubclass(orig, dict):
-                    if args[0] is not str:
-                        raise TypeHintError(type_hint)
-                    type_hint = args[1]
-                    object.__setattr__(self, "virtual_class", _VirtualObject)
+                    virtual = _VirtualObject
             else:
-                object.__setattr__(self, "virtual_class", _VirtualValue)
+                virtual = _VirtualValue
+        object.__setattr__(self, "virtual_class", virtual)
         object.__setattr__(self, "type_hint", type_hint)
         return self
 
@@ -1435,17 +1425,21 @@ class jsonable:
 
     @Subscriptable
     def Value(tp):  # pylint: disable=no-self-argument
-        return functools.partial(jsonable._factory, tp, _VirtualValue)
+        return functools.partial(jsonable._factory, Union[tp], _VirtualValue)
 
     @Subscriptable
-    def Array(tp):  # pylint: disable=no-self-argument
+    def Array(tp: Union[tuple, TypeHint]):  # pylint: disable=no-self-argument
         if not isinstance(tp, tuple):
-            tp = (tp, ...)
+            tp = List[tp]
+        elif len(tp) == 2 and tp[1] is Ellipsis:
+            tp = List[tp[0]]
+        else:
+            tp = Tuple[tp]
         return functools.partial(jsonable._factory, tp, _VirtualArray)
 
     @Subscriptable
     def Object(tp):  # pylint: disable=no-self-argument
-        return functools.partial(jsonable._factory, tp, _VirtualObject)
+        return functools.partial(jsonable._factory, Dict[str, tp], _VirtualObject)
 
     def __repr__(self):
         return "%s%s%s(%s)" % (

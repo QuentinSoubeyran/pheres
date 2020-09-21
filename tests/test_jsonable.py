@@ -351,6 +351,7 @@ class JsonableArrayFixed(JSONable):
 
 
 def test_jsonable_array():
+    print(JsonableArrayFixed._JTYPE)
     obj = JsonableArrayFixed(1, 2, 3)
     assert obj.to_json() == [1, 2, 3]
     assert ph.dumps(obj) == r"[1, 2, 3]"
