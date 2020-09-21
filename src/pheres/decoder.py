@@ -371,7 +371,7 @@ class DecodeContext:
     def index_context(self, /, index: int, pos: Pos) -> "DecodeContext":
         parent = self.filtered(
             self.accept_min_length(index),
-            self.err_msg(msg=f"'Array' of length >={index+1}"),
+            self.err_msg(value=f"'Array' of length >={index+1}"),
         )
         return DecodeContext(
             doc=self.doc,
