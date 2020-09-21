@@ -108,7 +108,7 @@ JSONValue = Union[  # pylint: disable=unsubscriptable-object
     None, bool, int, float, str, "_VirtualValue"
 ]
 JSONArray = Union[  # pylint: disable=unsubscriptable-object
-    Tuple["JSONType", ...], List["JSONType"], "_VirtualArray"
+    List["JSONType"], "_VirtualArray"
 ]
 JSONObject = Union[  # pylint: disable=unsubscriptable-object
     Dict[str, "JSONType"], "_VirtualObject", "_VirtualClass"
