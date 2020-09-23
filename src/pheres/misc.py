@@ -1,202 +1,263 @@
 # -*- coding: utf-8 -*-
 """
-Module with various internal miscs
+module with utilities for using and transforming JSON
 
 Part of the Pheres package
 """
-from contextlib import contextmanager
-import functools
-import inspect
-import json
-from typing import Callable, Dict, Iterable, Optional, TypeVar
+# stdlib import
+from collections.abc import Iterable
+from typing import Dict, List, Tuple, Union
 
-__all__ = ["JSONError"]
+# Local import
+from .core import (
+    JSONArray,
+    JSONError,
+    JSONObject,
+    JSONType,
+    JSONTypeError,
+    JSONValue,
+    typeof,
+)
+from .utils import AutoFormatMixin, JSONError
 
-U = TypeVar("U")
-V = TypeVar("V")
+__all__ = [
+    # Errors
+    "JSONKeyError",
+    # Types
+    "FlatKey",
+    "FlatJSON",
+    # Processing utilities
+    "flatten",
+    "expand",
+    "compact",
+    "get",
+    "has",
+    "set",
+]
+
+# Types used in his module
+FlatKey = Tuple[Union[int, str], ...]  # pylint: disable=unsubscriptable-object
+FlatJSON = Dict[FlatKey, JSONValue]
 
 
-class AutoFormatMixin(Exception):
-    """Mixin class for exception to auto-format the error message
+class JSONKeyError(AutoFormatMixin, JSONError):
+    """Raised when a JSON array/object doesn't have the specified key
 
-    Automatically wraps the __init__ method of subclass to call
-    str.format() on the 'message' argument (if any), passing the dictionary of
-    other arguments to __init__
+    Attributes:
+        obj -- object with the missing key
+        key -- key that is missing
+        message -- explanation of the error
     """
 
-    @staticmethod
-    def _init_wrapper(init_method):
-        init_sig = inspect.signature(init_method)
-
-        @functools.wraps(init_method)
-        def wrapped_init(*args, **kwargs):
-            bound_args = init_sig.bind(*args, **kwargs)
-            bound_args.apply_defaults()
-            if "message" in bound_args.arguments:
-                msg = bound_args.arguments.pop("message")
-                bound_args.arguments["message"] = msg.format(**bound_args.arguments)
-            return init_method(*bound_args.args, **bound_args.kwargs)
-
-        wrapped_init.__signature__ = init_sig
-        return wrapped_init
-
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        cls.__init__ = AutoFormatMixin._init_wrapper(cls.__init__)
+    def __init__(self, obj, key, message="{obj} has no key '{key}'"):
+        super().__init__(self, message)
+        self.obj = obj
+        self.key = key
+        self.message = message
 
 
-class JSONError(Exception):
-    f"""Base exception for the pheres module
-
-    Raised as-is in case of bug. Only subclasses are normaly raised
+def _flatten(flat_json: FlatJSON, keys: FlatKey, obj: JSONType) -> FlatJSON:
     """
-
-
-class Subscriptable:
-    """Decorator to make a subscriptable object from a function"""
-
-    __slots__ = ("_func",)
-
-    def __init__(self, func):
-        self._func = func
-
-    def __getitem__(self, arg):
-        return self._func(arg)
-
-
-@contextmanager
-def on_error(func, *args, yield_=None, **kwargs):
-    try:
-        yield yield_
-    except Exception:
-        func(*args, **kwargs)
-        raise
-
-
-@contextmanager
-def on_success(func, *args, yield_=None, **kwargs):
-    try:
-        yield yield_
-    except Exception:
-        raise
+    Helper function to flatten a json object
+    """
+    jtype = typeof(obj)
+    if jtype is JSONValue:
+        flat_json[keys] = obj
+    elif jtype is JSONArray:
+        for index, value in enumerate(obj):
+            _flatten(flat_json, (*keys, index), value)
+    elif jtype is JSONObject:
+        for key, value in obj.itesm():
+            _flatten(flat_json, (*keys, key), value)
     else:
-        func(*args, **kwargs)
-
-
-# from https://stackoverflow.com/questions/5189699/how-to-make-a-class-property
-class ClassPropertyDescriptor:
-    def __init__(self, fget, fset=None):
-        self.fget = fget
-        self.fset = fset
-
-    def __get__(self, obj, cls=None):
-        if cls is None:
-            cls = type(obj)
-        return self.fget.__get__(obj, cls)()
-
-    def __set__(self, obj, value):
-        if not self.fset:
-            raise AttributeError("can't set attribute")
-        type_ = type(obj)
-        return self.fset.__get__(obj, type_)(value)
-
-    @property
-    def __isabstractmethod__(self):
-        return any(
-            getattr(f, "__isabstractmethod__", False) for f in (self.fget, self.fset)
+        raise JSONError(
+            f"[!! This is a bug !! Please report] Unhandled json type {jtype} in flatten()"
         )
-
-    def setter(self, func):
-        if not isinstance(func, (classmethod, staticmethod)):
-            func = classmethod(func)
-        self.fset = func
-        return self
+    return flat_json
 
 
-class SmartDecoder(json.JSONDecoder):
+def flatten(obj: JSONObject) -> FlatJSON:
     """
-    JSONDecoder subclass with method to use itself as a decoder
-    """
+    Flattens a JSON object to a dict with a single level of mapping. Key become tuples that store the
+    path from the top-level object down to the value. Object keys are stored as str, Array index as int
 
-    @functools.wraps(json.load)
-    @classmethod
-    def load(cls, *args, **kwargs):
-        return json.load(*args, cls=cls, **kwargs)
-
-    @functools.wraps(json.loads)
-    @classmethod
-    def loads(cls, *args, **kwargs):
-        return json.loads(*args, cls=cls, **kwargs)
-
-
-def classproperty(func):
-    if not isinstance(func, (classmethod, staticmethod)):
-        func = classmethod(func)
-
-    return ClassPropertyDescriptor(func)
-
-
-def split(function, iterable):
-    """split an iterable based on the boolean value of the function
-
-    return two tuples"""
-    falsy, truthy = [], []
-    functools.reduce(
-        lambda appends, next: appends[bool(function(next))](next) or appends,
-        iterable,
-        (falsy.append, truthy.append),
-    )
-    return tuple(falsy), tuple(truthy)
-
-
-def _test_injection(matches, unassigned, availables, acc):
-    """internal helper for find_injection"""
-    if len(unassigned) == 0:
-        return acc
-    elem, *unassigned = unassigned
-    for match in matches[elem] & availables:
-        if (
-            result := _test_injection(
-                matches, unassigned, availables - {match}, {**{elem: match}, **acc}
-            )
-        ) is not None:
-            return result
-    # No match worked, or no match availabe anymore
-    return None
-
-
-def find_injection(
-    A: Iterable[U],
-    B: Iterable[V],
-    match_func: Callable[[U, V], bool],
-    validator_func: Callable[[Dict[U, V]], bool] = lambda _: True,
-) -> Optional[Dict[U, V]]:  # pylint: disable=unsubscriptable-object
-    """Assign an element b of B to each element a of A such that test_f(a, b) is True
-    and no element of B is used more than once
-
-    Arguments:
-        A -- iterable of element to match from. All element in A will be matched
-        B -- iterable if element to match to. Some elements may not be matched
-        match_func -- callable returning if an element from A can be matched with an element from B
-        validator_func -- (Optional) function validating the found(s) matching. If it return False,
-            the found matching is abandonned and another one is tried
+    Arguments
+        obj -- json object to flatten
 
     Returns
-        The first matching found from A to B, such that all pairs satisfy match_func and the matching
-        satisfy validator_func
-
-        return None if no such matching exists
+        A dict mapping tuples of index and key to the final value
     """
-    A = list(A)
-    B = list(B)
-    # Quick test
-    if len(A) > len(B) or len(A) == 0:
-        return None
-    # Find possible matches
-    matches = {
-        i: {j for j, b in enumerate(B) if match_func(a, b)} for i, a in enumerate(A)
-    }
-    injection = _test_injection(matches, list(range(len(A))), set(range(len(B))), {})
-    if injection is not None:
-        return {A[a_index]: B[b_index] for a_index, b_index in injection.items()}
-    return None
+    return _flatten({}, tuple(), obj)
+
+
+def _expand(flat_json: FlatJSON, array_as_dict: bool, sort: bool, pre_keys: FlatKey):
+    """
+    Helper function for expand
+    """
+    # Group value by the upper-most key
+    groups = {}
+    for keys, value in flat_json.items():
+        if keys[1:]:
+            groups.setdefault(keys[0], {})[keys[1:]] = value
+        elif keys[0] in groups:
+            raise ValueError(
+                f"Flat key {pre_keys + keys} has mixed json type: JSONValue and other"
+            )
+        else:
+            groups[keys[0]] = value
+    # Check that the type of the key is consistent
+    if all(isinstance(key, str) for key in groups):
+        type_ = dict
+    elif all(isinstance(key, int) for key in groups):
+        type_ = list
+    else:
+        raise ValueError(
+            f"Flat key {pre_keys} has mixed json type: JSONArray and JSONObject"
+        )
+    # Expand sub-values
+    for key, value in groups.items():
+        if isinstance(value, dict):
+            groups[key] = _expand(value, array_as_dict, sort, (*pre_keys, key))
+    # Convert & sort
+    if array_as_dict or type_ is dict:
+        if sort:
+            return dict(sorted(groups.items()))
+        return groups
+    pairs = sorted(groups.items)
+    for i, (index, value) in enumerate(pairs):
+        if i != index:
+            raise ValueError(
+                f"Flat key {pre_keys} has invalid index: expected {i}, got {index}"
+            )
+    return [value for _, value in pairs]
+
+
+def expand(
+    flat_json: FlatJSON, *, array_as_dict: bool = False, sort: bool = True
+) -> JSONObject:
+    """
+    Expand a flat JSON back into a JSON object. This is the inverse operation of flatten().
+    If there are duplicated values under the same key, a random one is kept
+
+    Arguments
+        flat_json -- flat json to expand
+        array_as_dict -- represent arrays as dict[int, JSONValue] instead of list
+        sort -- sort JSONObject by keys
+
+    Returns
+        A JSON object that is the expanded representation of the flat_json
+
+    Raises
+        ValueError -- the flat_json is invalid
+    """
+    return _expand(flat_json, array_as_dict, sort, tuple())
+
+
+def compact(obj: JSONObject, *, sep="/") -> JSONObject:
+    """
+    Returns a new dict-only json that is a copy of `json_obj` where keys with only one element are
+    merged with their parent key
+
+    Arguments
+        obj -- json object object to compact
+        sep -- separator to use for merging keys
+
+    Returns
+        A compact, dict-only, representation of json_obj
+    """
+    ret = {}
+    for k, v in obj.items():
+        if typeof(v) is JSONArray:
+            v = {str(i): elem for i, elem in enumerate(v)}
+        if typeof(v) is JSONObject:
+            v = compact(v, sep=sep)
+            if len(v) == 1:
+                kp, v = next(iter(v.items()))
+                ret[f"{k!s}{sep}{kp!s}"] = v
+                continue
+        ret[k] = v
+    return ret
+
+
+def get(
+    obj: Union[JSONArray, JSONObject],  # pylint: disable=unsubscriptable-object
+    key: Union[int, str, FlatKey],  # pylint: disable=unsubscriptable-object
+    default=Ellipsis,
+) -> JSONType:
+    """Retrieve a value on a JSON array or object. Return Default if provided and the key is missing
+
+    Arguments
+        obj -- JSON array or object to retrive the value from
+        key -- key to index
+        default -- optional value to return if key is missing
+
+    Raises
+        JSONKeyError if the key is missing and 'default' is not provided
+    """
+    if isinstance(key, Iterable) and not isinstance(key, str):
+        key = tuple(key)
+    else:
+        key = (key,)
+    try:
+        for k in key[:-1]:
+            obj = obj[k]
+        return obj[key[-1]]
+    except (IndexError, KeyError):
+        if default is not Ellipsis:
+            return default
+        raise JSONKeyError(obj, key) from None
+
+
+def has(
+    obj: Union[JSONArray, JSONObject],  # pylint: disable=unsubscriptable-object
+    key: Union[int, str, FlatKey],  # pylint: disable=unsubscriptable-object
+):
+    """Test if a JSON has the provided key
+
+    Implemented by calling get(obj, key) and catching JSONKeyError
+    """
+    try:
+        get(obj, key)
+        return True
+    except JSONKeyError:
+        return False
+
+
+def set(
+    obj: Union[JSONArray, JSONObject],  # pylint: disable=unsubscriptable-object
+    key: Union[int, str, FlatKey],  # pylint: disable=unsubscriptable-object
+    value: JSONObject,
+):
+    """Sets the value of the key in the JSON
+
+    Possibly creates the full path at once
+
+    Raises
+        IndexError -- when setting a value in a array past its length. Adding an element at
+            the end is supported
+    """
+    if isinstance(key, Iterable) and not isinstance(key, str):
+        key = tuple(key)
+    else:
+        key = (key,)
+    k = key[0]
+    for next_key in key[1:]:
+        if isinstance(next_key, int):
+            next_obj = []
+        elif isinstance(next_key, str):
+            next_obj = {}
+        else:
+            raise JSONTypeError(
+                next_key,
+                message=f"JSON key must have type int or str, not {type(next_key)}",
+            )
+        if isinstance(obj, list) and k == len(obj):
+            obj.append(next_obj)
+        else:
+            obj[k] = next_obj
+        obj = next_obj
+        k = next_key
+    if isinstance(obj, list) and k == len(obj):
+        obj.append(value)
+    else:
+        obj[k] = value

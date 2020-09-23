@@ -5,14 +5,14 @@ from typing import Tuple, List, Union, Literal, Dict
 import pytest
 
 # thrid party import
-from pheres import jsonable, JSONable, jattr
+from pheres import jsonable, JSONableDummy, jattr
 import pheres as ph
 
 
 # fix tests being run mutiple times
-from pheres.core import _VirtualObject
+from pheres.core import JSONableObject
 
-_VirtualObject.registry.clear()
+JSONableObject.registry.clear()
 for key in list(ph.register_forward_ref._table.keys()):
     if key not in ("JSONType", "JSONable"):
         del ph.register_forward_ref._table[key]
@@ -20,7 +20,7 @@ for key in list(ph.register_forward_ref._table.keys()):
 
 @dataclass
 @jsonable
-class BaseTypes(JSONable):
+class BaseTypes(JSONableDummy):
     null: None
     boolean: bool
     integer: int
@@ -49,7 +49,7 @@ def test_base_types():
 
 @dataclass
 @jsonable
-class ParamTypes(JSONable):
+class ParamTypes(JSONableDummy):
     literal: Literal[0, 1]
     array_fixed: Tuple[None, bool, int, float, str]
     array: List[int]
@@ -75,7 +75,7 @@ def test_param_types():
 
 @dataclass
 @jsonable
-class DefaultBaseTypes(JSONable):
+class DefaultBaseTypes(JSONableDummy):
     type_: Literal["dbt"]
     null_d: None = None
     boolean_d: bool = False
@@ -128,7 +128,7 @@ def test_default_bases():
 
 # Test without dataclass
 @jsonable
-class _DefaultParamTypes(JSONable):
+class _DefaultParamTypes(JSONableDummy):
     type_: Literal["_dbt"]
     _literal_d: Literal[0, 1] = 0
     _array_fixed_d: Tuple[None, bool, int, float, str] = lambda: [
@@ -150,7 +150,7 @@ class _DefaultParamTypes(JSONable):
 
 @dataclass
 @jsonable
-class DefaultParamTypes(JSONable):
+class DefaultParamTypes(JSONableDummy):
     type_: Literal["dpt"]
     literal_d: Literal[0, 1] = 0
     array_fixed_d: Tuple[None, bool, int, float, str] = field(
@@ -204,7 +204,7 @@ def test_default_param():
 
 @dataclass
 @jsonable
-class JSONableTypes(JSONable):
+class JSONableTypes(JSONableDummy):
     base_types: BaseTypes
     param_types: ParamTypes
 
@@ -241,7 +241,7 @@ def test_jsonables():
 
 @dataclass
 @jsonable
-class DefaultJSONableTypes(JSONable):
+class DefaultJSONableTypes(JSONableDummy):
     base_types_d: DefaultBaseTypes = field(default_factory=DefaultBaseTypes)
     param_types_d: DefaultParamTypes = field(default_factory=DefaultParamTypes)
 
@@ -306,7 +306,7 @@ def test_default_jsonables():
 
 
 @jsonable.Value[int]
-class JsonableInt(JSONable):
+class JsonableInt(JSONableDummy):
     def __init__(self, value):
         self.value = value
 
@@ -337,7 +337,7 @@ def test_jsonable_value():
 
 
 @jsonable.Array[int, int, int]
-class JsonableArrayFixed(JSONable):
+class JsonableArrayFixed(JSONableDummy):
     def __init__(self, *array):
         self.array = list(array)
 
@@ -345,13 +345,12 @@ class JsonableArrayFixed(JSONable):
         return self.array
 
     def __eq__(self, other):
-        if isinstance(other, JsonableInt):
+        if isinstance(other, JsonableArrayFixed):
             return self.array == other.array
         return NotImplemented
 
 
 def test_jsonable_array():
-    print(JsonableArrayFixed._JTYPE)
     obj = JsonableArrayFixed(1, 2, 3)
     assert obj.to_json() == [1, 2, 3]
     assert ph.dumps(obj) == r"[1, 2, 3]"
@@ -372,7 +371,7 @@ def test_jsonable_array():
 
 
 @jsonable.Object[int]
-class JsonableObject(JSONable):
+class JsonableObject(JSONableDummy):
     def __init__(self, d):
         self.d = d
 
@@ -396,7 +395,7 @@ def test_jsonable_object():
 
 @dataclass
 @jsonable(all_attrs=False)
-class PartialJsonable(JSONable):
+class PartialJsonable(JSONableDummy):
     both: jattr(str)
     py_only: str = "py_only"
     json_only: jattr(str, json_only=True) = "json_only"
