@@ -1,124 +1,95 @@
-# -*- coding: utf-8 -*-
 """
-Module with various internal miscs
-
-Part of the Pheres package
+Various internal utilities for Pheres
 """
 import functools
 import inspect
-import json
+import typing
 from contextlib import contextmanager
-from typing import Callable, Dict, Iterable, Optional, TypeVar
+from typing import Iterable, List, Tuple, Type, TypeVar, Union
 
-__all__ = ["JSONError"]
+# Type Aliases
+AnyClass = TypeVar("AnyClass", bound=type)
+TypeHint = Union[  # pylint: disable=unsubscriptable-object
+    type, type(Union), type(Type), type(List)
+]
 
-U = TypeVar("U")
-V = TypeVar("V")
 
-
-class AutoFormatMixin(Exception):
-    """Mixin class for exception to auto-format the error message
-
-    Automatically wraps the __init__ method of subclass to call
-    str.format() on the 'message' argument (if any), passing the dictionary of
-    other arguments to __init__
+class Virtual:
+    """
+    Mixin class to make a class non-heritable and non-instanciable
     """
 
-    @staticmethod
-    def _init_wrapper(init_method):
-        init_sig = inspect.signature(init_method)
+    __slots__ = ("__weakref__",)
 
-        @functools.wraps(init_method)
-        def wrapped_init(*args, **kwargs):
-            bound_args = init_sig.bind(*args, **kwargs)
-            bound_args.apply_defaults()
-            if "message" in bound_args.arguments:
-                msg = bound_args.arguments.pop("message")
-                bound_args.arguments["message"] = msg.format(**bound_args.arguments)
-            return init_method(*bound_args.args, **bound_args.kwargs)
+    def __init__(self, *args, **kwargs):
+        raise TypeError("Cannot instanciate virtual class")
 
-        wrapped_init.__signature__ = init_sig
-        return wrapped_init
-
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        cls.__init__ = AutoFormatMixin._init_wrapper(cls.__init__)
+    def __init_subclass__(cls, *args, **kwargs):
+        if Virtual not in cls.__bases__:
+            raise TypeError("Cannot subclass virtual class")
+        super().__init_subclass__(*args, **kwargs)
 
 
-class JSONError(Exception):
-    f"""Base exception for the pheres module
-
-    Raised as-is in case of bug. Only subclasses are normaly raised
+def autoformat(
+    cls,
+    /,
+    params: Union[str, Iterable[str]] = (  # pylint: disable=unsubscriptable-object
+        "message",
+        "msg",
+    ),
+):
     """
+    Class decorator to autoformat string arguments in it's init method
 
+    Modify the class __init__ method in place by wrapping it. The wrapped class
+    will call the format() method of arguments specified in `params` that exist
+    in the original signature, passing all other arguments are dictionary
 
-class Subscriptable:
-    """Decorator to make a subscriptable object from a function"""
+    Arguments
+        params -- names of the arguments to autoformats
 
-    __slots__ = ("_func",)
+    Usage
+        @autoformat
+        class MyException(Exception):
+            def __init__(self, elem, msg="{elem} is invalid"):
+                super().__init__(msg)
+                self.msg = msg
+                self.elem = elem
 
-    def __init__(self, func):
-        self._func = func
-
-    def __getitem__(self, arg):
-        return self._func(arg)
-
-
-# from https://stackoverflow.com/questions/5189699/how-to-make-a-class-property
-class ClassPropertyDescriptor:
-    def __init__(self, fget, fset=None):
-        self.fget = fget
-        self.fset = fset
-
-    def __get__(self, obj, cls=None):
-        if cls is None:
-            cls = type(obj)
-        return self.fget.__get__(obj, cls)()
-
-    def __set__(self, obj, value):
-        if not self.fset:
-            raise AttributeError("can't set attribute")
-        type_ = type(obj)
-        return self.fset.__get__(obj, type_)(value)
-
-    @property
-    def __isabstractmethod__(self):
-        return any(
-            getattr(f, "__isabstractmethod__", False) for f in (self.fget, self.fset)
-        )
-
-    def setter(self, func):
-        if not isinstance(func, (classmethod, staticmethod)):
-            func = classmethod(func)
-        self.fset = func
-        return self
-
-
-def classproperty(func):
-    if not isinstance(func, (classmethod, staticmethod)):
-        func = classmethod(func)
-
-    return ClassPropertyDescriptor(func)
-
-
-class SmartDecoder(json.JSONDecoder):
+        assert MyException(8).msg == "8 is invalid"
     """
-    JSONDecoder subclass with method to use itself as a decoder
-    """
+    if isinstance(params, str):
+        params = (params,)
+    init = cls.__init__
+    signature = inspect.signature(init)
+    params = signature.parameters & set(params)
 
-    @functools.wraps(json.load)
-    @classmethod
-    def load(cls, *args, **kwargs):
-        return json.load(*args, cls=cls, **kwargs)
+    @functools.wraps(init)
+    def __init__(*args, **kwargs):
+        bounds = signature.bind(*args, **kwargs)
+        bounds.apply_defaults()
+        pre_formatted = {
+            name: bounds.arguments.pop(name)
+            for name in params
+            if name in bounds.arguments
+        }
+        formatted = {
+            name: string.format(**bounds.arguments) for name, string in pre_formatted
+        }
+        for name, arg in formatted:
+            bounds.arguments[name] = arg
+        return init(*bounds.args, **bounds.kwargs)
 
-    @functools.wraps(json.loads)
-    @classmethod
-    def loads(cls, *args, **kwargs):
-        return json.loads(*args, cls=cls, **kwargs)
+    __init__.__signature__ = init.__signature__
+    cls.__init__ = __init__
+    return cls
 
 
 @contextmanager
 def on_error(func, *args, yield_=None, **kwargs):
+    """
+    Context manager that calls a function if the managed code doesn't raise
+    """
     try:
         yield yield_
     except Exception:
@@ -128,6 +99,9 @@ def on_error(func, *args, yield_=None, **kwargs):
 
 @contextmanager
 def on_success(func, *args, yield_=None, **kwargs):
+    """
+    Context manager that calls a function if the managed code raises an Exception
+    """
     try:
         yield yield_
     except Exception:
@@ -136,89 +110,44 @@ def on_success(func, *args, yield_=None, **kwargs):
         func(*args, **kwargs)
 
 
-def slotted_dataclass(dataclass, **defaults):
+def split(func, iterable):
+    """split an iterable based on the truth value of the function for element
+
+    Arguments
+        func -- a callable to apply to each element in the iterable
+        iterable -- an iterable of element to split
+
+    Returns
+        falsy, truthy - two tuple, the first with element e of the itrable where
+        func(e) return false, the second with element of the iterable that are True
     """
-    Allows to use __slots__ on a dataclass with defaults
-
-    Arguments:
-        dataclass: the dataclass decorator to use
-        **defaults: key-value pair of attributes with their defaults
-    """
-
-    def decorator(cls):
-        descriptors = {}
-        for attribute, default in defaults.items():
-            descriptors[attribute] = getattr(cls, attribute)
-            setattr(cls, attribute, default)
-        cls = dataclass(cls)
-        for attribute in defaults:
-            setattr(cls, attribute, descriptors[attribute])
-        return cls
-
-    return decorator
-
-
-def split(function, iterable):
-    """split an iterable based on the boolean value of the function
-
-    return two tuples"""
     falsy, truthy = [], []
-    functools.reduce(
-        lambda appends, next: appends[bool(function(next))](next) or appends,
-        iterable,
-        (falsy.append, truthy.append),
-    )
+    it = iter(iterable)
+    for e in it:
+        if func(e):
+            truthy.append(e)
+        else:
+            falsy.append(e)
     return tuple(falsy), tuple(truthy)
 
 
-def _test_injection(matches, unassigned, availables, acc):
-    """internal helper for find_injection"""
-    if len(unassigned) == 0:
-        return acc
-    elem, *unassigned = unassigned
-    for match in matches[elem] & availables:
-        if (
-            result := _test_injection(
-                matches, unassigned, availables - {match}, {**{elem: match}, **acc}
-            )
-        ) is not None:
-            return result
-    # No match worked, or no match availabe anymore
-    return None
+def get_outer_frame():
+    return inspect.currentframe().f_back.f_back
 
 
-def find_injection(
-    A: Iterable[U],
-    B: Iterable[V],
-    match_func: Callable[[U, V], bool],
-    validator_func: Callable[[Dict[U, V]], bool] = lambda _: True,
-) -> Optional[Dict[U, V]]:  # pylint: disable=unsubscriptable-object
-    """Assign an element b of B to each element a of A such that test_f(a, b) is True
-    and no element of B is used more than once
-
-    Arguments:
-        A -- iterable of element to match from. All element in A will be matched
-        B -- iterable if element to match to. Some elements may not be matched
-        match_func -- callable returning if an element from A can be matched with an element from B
-        validator_func -- (Optional) function validating the found(s) matching. If it return False,
-            the found matching is abandonned and another one is tried
+def get_outer_namespaces() -> Tuple:
+    """
+    Get the globals and locals from the context that called the function
+    calling this utility
 
     Returns
-        The first matching found from A to B, such that all pairs satisfy match_func and the matching
-        satisfy validator_func
-
-        return None if no such matching exists
+        globals, locals
     """
-    A = list(A)
-    B = list(B)
-    # Quick test
-    if len(A) > len(B) or len(A) == 0:
-        return None
-    # Find possible matches
-    matches = {
-        i: {j for j, b in enumerate(B) if match_func(a, b)} for i, a in enumerate(A)
-    }
-    injection = _test_injection(matches, list(range(len(A))), set(range(len(B))), {})
-    if injection is not None:
-        return {A[a_index]: B[b_index] for a_index, b_index in injection.items()}
-    return None
+    frame = inspect.currentframe().f_back.f_back
+    return frame.f_globals, frame.f_locals
+
+
+def get_args(tp, *, globalns=None, localns=None) -> Tuple:
+    if globalns is not None or localns is not None:
+        return typing.get_args(typing._eval_type(tp, globalns, localns))
+    return typing.get_args(tp)

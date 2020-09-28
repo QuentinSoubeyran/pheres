@@ -46,9 +46,9 @@ from .utils import (
     SmartDecoder,
     Subscriptable,
     classproperty,
-    slotted_dataclass,
     on_error,
     on_success,
+    slotted_dataclass,
     split,
 )
 
@@ -1371,7 +1371,7 @@ def _decorate_jsonable_class(cls: AnyClass, all_attrs: bool = True) -> None:
     all_attrs=True,
     after=(),
     type_hint=field(init=False, repr=False),
-    virtual_class=field(init=False, repr=False)
+    virtual_class=field(init=False, repr=False),
 )
 class jsonable:
     """
@@ -1404,12 +1404,12 @@ class jsonable:
         Dict[type, Tuple[Set, Callable]]
     ] = {}
 
-    __slots__ = ('__weakref__', "all_attrs", "after", "virtual_class", "type_hint")
+    __slots__ = ("__weakref__", "all_attrs", "after", "virtual_class", "type_hint")
 
     all_attrs: bool
     after: Union[str, Iterable[str]]  # pylint: disable=unsubscriptable-object
     type_hint: TypeHint
-    virtual_class : _JSONableEnum
+    virtual_class: _JSONableEnum
 
     @classmethod
     def _factory(cls, type_hint, virtual=None, cls_arg=None, /, *args, **kwargs):
