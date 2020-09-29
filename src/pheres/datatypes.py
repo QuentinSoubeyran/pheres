@@ -1,9 +1,11 @@
 """
 module for internal data storing classes
 """
+import enum
 import inspect
 from types import ModuleType
 from typing import (
+    Callable,
     ClassVar,
     Dict,
     FrozenSet,
@@ -24,6 +26,24 @@ from .utils import AnyClass, TypeHint
 PHERES_ATTR = "__pheres_data__"
 
 set_attr = object.__setattr__
+
+__all__ = [
+    "JsonableEnum",
+    "JsonAttr",
+    "ValueData",
+    "ArrayData",
+    "DictData",
+    "ObjectData",
+    "DelayedData",
+    "DelayedJsonableHandler",
+]
+
+
+class JsonableEnum(enum.Enum):
+    VALUE = enum.auto()
+    ARRAY = enum.auto()
+    DICT = enum.auto()
+    OBJECT = enum.auto()
 
 
 @attrs
@@ -90,8 +110,18 @@ class ObjectData:
     Stores pheres data for jsonable objects
     """
 
-    attrs: Tuple[JsonAttr]
-    req_attrs: Tuple[JsonAttr] = attrib(init=False)
+    attrs: Dict[str, JsonAttr]
+    req_attrs: Dict[str, JsonAttr] = attrib(init=False)
+
+
+@attrs(frozen=True)
+class DelayedData:
+    """
+    Stores the data for delayed jsonable objects
+    """
+
+    func: Callable[[type], type]
+    kind: JsonableEnum
 
 
 class DelayedJsonableHandler:
@@ -105,6 +135,11 @@ class DelayedJsonableHandler:
         deps = frozenset(deps)
         name = jsonable.__name__
         cls.dependencies.setdefault(module, {})[name] = deps
+
+    @classmethod
+    def _contains(cls, /, jsonable: AnyClass):
+        module = inspect.getmodule(jsonable)
+        return jsonable.__name__ in cls.dependencies.get(module, {})
 
     @classmethod
     def decorate(cls):

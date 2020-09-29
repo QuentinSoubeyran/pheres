@@ -23,6 +23,54 @@ from .utils import (
     split,
 )
 
+__all__ = [
+    # Constants
+    "MISSING",
+    # Types
+    "JsonableValue",
+    "JsonableArray",
+    "JsonableDict",
+    "JsonableObject",
+    "JSONValue",
+    "JSONArray",
+    "JSONObject",
+    "JSONType",
+    # Type hints utis
+    "normalize_hint",
+    "is_json_type",
+    "find_collision",
+    # Typed JSON utils
+    ## json
+    "is_number",
+    "is_value",
+    "is_array",
+    "is_object",
+    "is_json",
+    ## jsonable values
+    "is_jsonable_value",
+    "is_jvalue_class",
+    "is_jvalue_instance",
+    ## jsonable arrays
+    "is_jsonable_array",
+    "is_jarray_class",
+    "is_jarray_instance",
+    ## jsonable dict
+    "is_jsonable_dict",
+    "is_jdict_class",
+    "is_jdict_instance",
+    ## jsonable object
+    "is_jsonable_object",
+    "is_jobject_class",
+    "is_jobject_instance",
+    ## jsonable any
+    "is_jsonable",
+    "is_jsonable_class",
+    "is_jsonable_instance",
+    # typechecking
+    "typeof",
+    "typecheck",
+]
+
 # Constants
 MISSING = object()  # sentinel
 
@@ -92,7 +140,64 @@ JSONType = Union[  # pylint: disable=unsubscriptable-object
 
 
 @functools.lru_cache
-def normalize_hint(tp: TypeHint, *, globalns=None, localns=None):
+def _normalize_hint(globalns, localns, tp: TypeHint):
+    """
+    Internal implementation of normalize_hint
+    """
+    _get_args = functools.partial(get_args, localns=localns, globalns=globalns)
+    _normalize_hint = functools.partial(_normalize_hint, globalns, localns)
+
+    with normalize_hint._lock:
+        # Recursive guard
+        if tp in normalize_hint._guard:
+            return tp
+        old_guard = normalize_hint._guard
+        try:
+            normalize_hint._guard = normalize_hint._guard | {tp}
+            # Base types
+            if isinstance(tp, type):
+                if tp in (JsonableValue, JsonableArray, JsonableDict, JsonableObject):
+                    return tp
+                elif is_jsonable_class(tp):
+                    return tp
+                elif tp in _JSONValueTypes:
+                    return tp
+            # Literals
+            elif (orig := get_origin(tp)) is Literal:
+                if all(isinstance(lit, _JSONLiteralTypes) for lit in _get_args(tp)):
+                    return tp
+            # Unions
+            elif orig is Union:
+                others, lits = split(
+                    lambda tp: get_origin(tp) is Literal,
+                    (_normalize_hint(tp) for tp in _get_args(tp)),
+                )
+                if lits:
+                    lits = sum(map(get_args, lits), ())
+                    return Union[  # pylint: disable=unsubscriptable-object
+                        (
+                            Literal[lits],  # pylint: disable=unsubscriptable-object
+                            *others,
+                        )
+                    ]
+                return Union[others]  # pylint: disable=unsubscriptable-object
+            # Arrays
+            elif isinstance(orig, type) and issubclass(orig, _JSONArrayTypes):
+                args = _get_args(tp)
+                if orig is list or (len(args) == 2 and args[1] is Ellipsis):
+                    return List[_normalize_hint(args[0])]
+                return Tuple[tuple(_normalize_hint(arg) for arg in args)]
+            # Objects
+            elif isinstance(orig, type) and issubclass(orig, _JSONObjectTypes):
+                args = _get_args(tp)
+                if args[0] is str:
+                    return Dict[str, _normalize_hint(args[1])]
+            raise TypeHintError(tp)  # handles all case that didn't return
+        finally:
+            normalize_hint._guard = old_guard
+
+
+def normalize_hint(tp: TypeHint):
     """Normalize a JSON type hint
 
     Arguments
@@ -104,73 +209,15 @@ def normalize_hint(tp: TypeHint, *, globalns=None, localns=None):
     Raises
         TypeHintError when tp or an inner type is not a valid JSON type
     """
-    if globalns is None and localns is None:
-        globalns, localns = get_outer_namespaces()
-
-    with normalize_hint._lock:
-        if tp in normalize_hint._guard:
-            return tp
-        old_guard = normalize_hint._guard
-        try:
-            normalize_hint._guard = normalize_hint._guard | {tp}
-            if isinstance(tp, type):
-                if tp in (JsonableValue, JsonableArray, JsonableDict, JsonableObject):
-                    return tp
-                elif is_jsonable_class(tp):
-                    return tp
-                elif tp in _JSONValueTypes:
-                    return tp
-            elif (orig := get_origin(tp)) is Literal:
-                if all(
-                    isinstance(lit, _JSONLiteralTypes)
-                    for lit in get_args(tp, globalns=globalns, localns=localns)
-                ):
-                    return tp
-            elif orig is Union:
-                others, lits = split(
-                    lambda tp: get_origin(tp) is Literal,
-                    (
-                        normalize_hint(tp, globalns=globalns, localns=localns)
-                        for tp in get_args(tp, globalns=globalns, localns=localns)
-                    ),
-                )
-                if lits:
-                    lits = sum(map(get_args, lits), ())
-                    return Union[  # pylint: disable=unsubscriptable-object
-                        (
-                            Literal[lits],  # pylint: disable=unsubscriptable-object
-                            *others,
-                        )
-                    ]
-                return Union[others]  # pylint: disable=unsubscriptable-object
-            elif isinstance(orig, type) and issubclass(orig, _JSONArrayTypes):
-                args = get_args(tp, globalns=globalns, localns=localns)
-                if orig is list or (len(args) > 1 and args[1] is Ellipsis):
-                    return List[
-                        normalize_hint(args[0], globalns=globalns, localns=localns)
-                    ]
-                return Tuple[
-                    tuple(
-                        normalize_hint(arg, globalns=globalns, localns=localns)
-                        for arg in args
-                    )
-                ]
-            elif isinstance(orig, type) and issubclass(orig, _JSONObjectTypes):
-                args = get_args(tp, globalns=globalns, localns=localns)
-                if args[0] is str:
-                    return Dict[
-                        str, normalize_hint(args[1], globalns=globalns, localns=localns)
-                    ]
-            raise TypeHintError(tp)  # handles all case that didn't return
-        finally:
-            normalize_hint._guard = old_guard
+    globalns, localns = get_outer_namespaces()
+    return _normalize_hint(globalns, localns, tp)
 
 
 normalize_hint._lock = RLock()
 normalize_hint._guard = frozenset()
 
 
-def is_json_type_hint(type_hint: TypeHint, *, globalns=None, localns=None) -> bool:
+def is_json_type(type_hint: TypeHint) -> bool:
     """Check that the type_hint is valid for JSON
 
     Supports JSONable subclasses. Implemented by calling
@@ -182,10 +229,9 @@ def is_json_type_hint(type_hint: TypeHint, *, globalns=None, localns=None) -> bo
     Return
         True if the type hint is valid for JSON, false otherwise
     """
-    if globalns is None and localns is None:
-        globalns, localns = get_outer_namespaces()
+    globalns, localns = get_outer_namespaces()
     try:
-        normalize_hint(type_hint, globalns=globalns, localns=localns)
+        _normalize_hint(globalns, localns, type_hint)
         return True
     except TypeHintError:
         return False
@@ -288,8 +334,19 @@ def find_collision(ltp: TypeHint, rtp: TypeHint) -> bool:
         return {} if rorig is dict else MISSING
     elif is_jobject_class(ltp) and is_jobject_class(rtp):
         ldata, rdata = getattr(ltp, PHERES_ATTR), getattr(rtp, PHERES_ATTR)
-        # TODO
-        raise NotImplementedError
+        obj = {}
+        for req_attrs, attr_dict in (
+            (ldata.req_attrs.values(), rdata.attrs),
+            (rdata.req_attrs.values(), ldata.attrs),
+        ):
+            for attr in req_attrs:
+                if attr.name not in attr_dict:
+                    return MISSING
+                collision = find_collision(attr.type, attr_dict[attr.name].type)
+                if collision is MISSING:
+                    return MISSING
+                obj[attr.name] = collision
+        return obj
     return MISSING
 
 
@@ -357,6 +414,36 @@ def is_object(obj: Any) -> bool:
         return typeof(obj) is JSONObject
     except JSONValueError:
         return False
+
+
+def _is_json(obj: Any, rec_guard: Tuple[Any]) -> bool:
+    """internal helper to check if object is valid JSON
+
+    Has a guard to prevent infinite recursion"""
+
+    if obj in rec_guard:
+        raise CycleError(obj, rec_guard[rec_guard.index(obj) :])
+    if isinstance(obj, _JSONValueTypes) or is_jsonable_instance(obj):
+        return True
+    elif isinstance(obj, _JSONArrayTypes):
+        rec_guard = (*rec_guard, obj)
+        return all(_is_json(elem, rec_guard) for elem in obj)
+    elif isinstance(obj, _JSONObjectTypes):
+        rec_guard = (*rec_guard, obj)
+        return all(
+            type(key) is str and _is_json(val, rec_guard) for key, val in obj.items()
+        )
+    return False
+
+
+def is_json(obj: Any) -> bool:
+    """Check if a python object is valid JSON
+
+    Raises CycleError if the value has circular references
+    Only tuples and lists are accepted for JSON arrays
+    Dictionary *must* have string as keys
+    """
+    return _is_json(obj, ())
 
 
 def is_jsonable_value(obj: Any) -> bool:
@@ -456,36 +543,6 @@ def is_jsonable_class(cls: Any) -> bool:
 def is_jsonable_instance(obj: Any) -> bool:
     """Return True if obj is a jsonable instance"""
     return hasattr(type(obj), PHERES_ATTR)
-
-
-def _is_json(obj: Any, rec_guard: Tuple[Any]) -> bool:
-    """internal helper to check if object is valid JSON
-
-    Has a guard to prevent infinite recursion"""
-
-    if obj in rec_guard:
-        raise CycleError(obj, rec_guard[rec_guard.index(obj) :])
-    if isinstance(obj, _JSONValueTypes) or is_jsonable_instance(obj):
-        return True
-    elif isinstance(obj, _JSONArrayTypes):
-        rec_guard = (*rec_guard, obj)
-        return all(_is_json(elem, rec_guard) for elem in obj)
-    elif isinstance(obj, _JSONObjectTypes):
-        rec_guard = (*rec_guard, obj)
-        return all(
-            type(key) is str and _is_json(val, rec_guard) for key, val in obj.items()
-        )
-    return False
-
-
-def is_json(obj: Any) -> bool:
-    """Check if a python object is valid JSON
-
-    Raises CycleError if the value has circular references
-    Only tuples and lists are accepted for JSON arrays
-    Dictionary *must* have string as keys
-    """
-    return _is_json(obj, ())
 
 
 def typeof(obj: JSONType) -> TypeHint:

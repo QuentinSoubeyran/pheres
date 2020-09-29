@@ -3,6 +3,7 @@ Various internal utilities for Pheres
 """
 import functools
 import inspect
+import types
 import typing
 from contextlib import contextmanager
 from typing import Iterable, List, Tuple, Type, TypeVar, Union
@@ -30,6 +31,27 @@ class Virtual:
         super().__init_subclass__(*args, **kwargs)
 
 
+class Subscriptable:
+    """
+    Decorator to make a subscriptable instance from a __getitem__ function
+
+    Usage:
+        @Subscriptable
+        def my_subscriptable(key):
+            return key
+
+    assert my_subscriptable[8] == 8
+    """
+
+    __slots__ = ("_func",)
+
+    def __init__(self, func):
+        self._func = func
+
+    def __getitem__(self, arg):
+        return self._func(arg)
+
+
 def autoformat(
     cls,
     /,
@@ -39,16 +61,17 @@ def autoformat(
     ),
 ):
     """
-    Class decorator to autoformat string arguments in it's init method
+    Class decorator to autoformat string arguments in the __init__ method
 
     Modify the class __init__ method in place by wrapping it. The wrapped class
     will call the format() method of arguments specified in `params` that exist
-    in the original signature, passing all other arguments are dictionary
+    in the original signature, passing all other arguments are dictionary to
+    str.format()
 
-    Arguments
+    Arguments:
         params -- names of the arguments to autoformats
 
-    Usage
+    Usage:
         @autoformat
         class MyException(Exception):
             def __init__(self, elem, msg="{elem} is invalid"):
@@ -151,3 +174,19 @@ def get_args(tp, *, globalns=None, localns=None) -> Tuple:
     if globalns is not None or localns is not None:
         return typing.get_args(typing._eval_type(tp, globalns, localns))
     return typing.get_args(tp)
+
+
+# Adapted version of typing._type_repr
+def type_repr(tp):
+    """Return the repr() of objects, special casing types and tuples"""
+    if isinstance(tp, tuple):
+        return ", ".join(map(type_repr, tp))
+    if isinstance(tp, type):
+        if tp.__module__ == "builtins":
+            return tp.__qualname__
+        return f"{tp.__module__}.{tp.__qualname__}"
+    if tp is Ellipsis:
+        return "..."
+    if isinstance(tp, types.FunctionType):
+        return tp.__name__
+    return repr(tp)

@@ -1,20 +1,56 @@
 """
 Module for the jsonable interface
 """
+import dataclasses
+import functools
 from enum import Enum, auto
-from typing import Callable, ClassVar, Dict, Iterable, Set, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    Iterable,
+    List,
+    Set,
+    Tuple,
+    Union,
+    get_origin,
+)
 
-from attr import attrib
+import attr
 from attr import dataclass as attrs
 
-from .utils import AnyClass, TypeHint
+from .datatypes import (
+    PHERES_ATTR,
+    ArrayData,
+    DelayedData,
+    DelayedJsonableHandler,
+    DictData,
+    JsonableEnum,
+    ObjectData,
+    ValueData,
+)
+from .exceptions import JsonableError
+from .typing import is_jsonable_class
+from .utils import AnyClass, Subscriptable, TypeHint, type_repr
 
+__all__ = [
+    "jsonable",
+]
 
-class JsonableEnum(Enum):
-    VALUE: auto()
-    ARRAY: auto()
-    OBJECT: auto()
-    CLASS: auto()
+_decorator_table = {
+    JsonableEnum.VALUE: None,
+    JsonableEnum.ARRAY: None,
+    JsonableEnum.DICT: None,
+    JsonableEnum.OBJECT: None,
+}
+
+_kwargs_table = {
+    JsonableEnum.VALUE: ("type_hint",),
+    JsonableEnum.ARRAY: ("type_hint",),
+    JsonableEnum.DICT: ("type_hint",),
+    JsonableEnum.OBJECT: ("auto_attrs",),
+}
 
 
 @attrs(frozen=True)
@@ -45,14 +81,27 @@ class jsonable:
         @jsonable[int, int]         # fixed length array
     """
 
-    all_attrs: bool = True
+    INIT_ARGS: ClassVar[Iterable[str]] = (  # pylint: disable=unsubscriptable-object
+        "all_attrs",
+        "after",
+    )
+
+    auto_attrs: bool = True
     after: Union[str, Iterable[str]] = ()  # pylint: disable=unsubscriptable-object
-    type_hint: TypeHint = attrib(init=False)
-    kind: JsonableEnum = JsonableEnum.CLASS
+    type_hint: TypeHint = attr.ib(init=False, default=None)
+    kind: JsonableEnum = attr.ib(init=False, default=JsonableEnum.OBJECT)
 
     @classmethod
-    def _factory(cls, type_hint, virtual=None, cls_arg=None, /, *args, **kwargs):
-        decorator = cls(*args, **kwargs)._parametrize(type_hint, virtual)
+    def _factory(
+        cls,
+        type_hint: TypeHint,
+        kind: JsonableEnum = None,
+        cls_arg: type = None,
+        /,
+        *args,
+        **kwargs,
+    ):
+        decorator = cls(*args, **kwargs)._parametrize(type_hint, kind=kind)
         if cls_arg is not None:
             return decorator(cls_arg)
         return decorator
@@ -63,13 +112,11 @@ class jsonable:
             # __init__ hasn't been called automatically
             cls.__init__(decorator, *args, **kwargs)
             # __init__ is skipped if the return value of __new__
-            # is not an instance of the class
+            # is not an instance of the class, so this is safe
             return decorator(cls_arg)
         return decorator
 
-    def __post_init__(self):
-        object.__setattr__(self, "type_hint", None)
-        object.__setattr__(self, "virtual_class", JSONableClass)
+    def __attrs_post_init__(self):
         if isinstance(self.after, str):
             after = frozenset((self.after,))
         elif isinstance(self.after, Iterable):
@@ -81,27 +128,28 @@ class jsonable:
             raise TypeError(
                 "@jsonable dependencies must be a str of an iterable of str"
             )
-        object.__setattr__(self, "after", after)
+        self.__dict__["after"] = after
 
-    def _parametrize(self, type_hint, virtual=None):
+    def _parametrize(self, type_hint: TypeHint, *, kind: JsonableEnum = None):
         if self.type_hint is not None:
             raise TypeError("Cannot parametrize @jsonable twice")
-        if virtual is None:
+        if kind is None:
+            # Guess the kind from the provided type-hint
             if isinstance(type_hint, tuple):
                 if len(type_hint) == 2 and type_hint[1] is Ellipsis:
                     type_hint = List[type_hint[0]]
                 else:
                     type_hint = Tuple[type_hint]
-                virtual = JSONableArray
+                kind = JsonableEnum.ARRAY
             elif isinstance((orig := get_origin(type_hint)), type):
                 if issubclass(orig, (list, tuple)):
-                    virtual = JSONableArray
+                    kind = JsonableEnum.ARRAY
                 elif issubclass(orig, dict):
-                    virtual = JSONableObject
+                    kind = JsonableEnum.DICT
             else:
-                virtual = JSONableValue
-        object.__setattr__(self, "virtual_class", virtual)
-        object.__setattr__(self, "type_hint", type_hint)
+                kind = JsonableEnum.VALUE
+        self.__dict__["kind"] = kind
+        self.__dict__["type_hint"] = type_hint
         return self
 
     @classmethod
@@ -110,10 +158,11 @@ class jsonable:
 
     @Subscriptable
     def Value(tp):  # pylint: disable=no-self-argument
+        tp = Union[tp]  # pylint: disable=unsubscriptable-object
         return functools.partial(
             jsonable._factory,
-            Union[tp],  # pylint: disable=unsubscriptable-object
-            JSONableValue,
+            tp,
+            kind=JsonableEnum.VALUE,
         )
 
     @Subscriptable
@@ -126,46 +175,45 @@ class jsonable:
             tp = List[tp[0]]  # pylint: disable=unsubscriptable-object
         else:
             tp = Tuple[tp]
-        return functools.partial(jsonable._factory, tp, JSONableArray)
+        return functools.partial(jsonable._factory, tp, kind=JsonableEnum.ARRAY)
 
     @Subscriptable
-    def Object(tp):  # pylint: disable=no-self-argument
-        return functools.partial(jsonable._factory, Dict[str, tp], JSONableObject)
+    def Dict(tp):  # pylint: disable=no-self-argument
+        tp = Dict[str, Union[tp]]  # pylint: disable=unsubscriptable-object
+        return functools.partial(jsonable._factory, tp, kind=JsonableEnum.DICT)
 
     def __repr__(self):
         return "%s%s%s(%s)" % (
             "" if self.__module__ == "builtins" else f"{self.__module__}.",
             self.__class__.__qualname__,
-            "" if self.type_hint is None else f"[{_type_repr(self.type_hint)}]",
-            ", ".join([f"{attr}={getattr(self, attr)!r}" for attr in ("all_attrs",)]),
+            "" if self.type_hint is None else f"[{type_repr(self.type_hint)}]",
+            ", ".join(
+                [f"{attr}={getattr(self, attr)!r}" for attr in jsonable.INIT_ARGS]
+            ),
         )
 
     def __call__(self, cls: AnyClass) -> AnyClass:
         if not isinstance(cls, type):
             raise TypeError("Can only decorate classes")
-        # already decorated
-        # Avoid call to issubclass to prevent ABCMeta from caching
-        if cls in self.virtual_class.registry or cls in self._delayed:
+        if attr.has(cls):
+            raise JsonableError(
+                "@jsonable must be the inner-most decorator when used with @attr.s"
+            )
+        if dataclasses.is_dataclass(cls):
+            raise JsonableError(
+                "@jsonable must be the inner-most decorator when used with @dataclass"
+            )
+        if is_jsonable_class(cls) or DelayedJsonableHandler._contains(cls):
+            # dont' decorate or delay twice
             return cls
-        _register_class_ref(cls)
-        with on_success(self._register_delayed_classes), on_error(
-            unregister_forward_ref, cls.__name__
-        ):
-            if self.virtual_class in (JSONableValue, JSONableArray, JSONableObject):
-                decorate = functools.partial(
-                    _decorate_jsonable_simple, self.virtual_class, cls, self.type_hint
-                )
-            elif self.virtual_class is JSONableClass:
-                decorate = functools.partial(
-                    _decorate_jsonable_class, cls, self.all_attrs
-                )
-            else:
-                raise TypeError("Unknown virtual jsonable registry")
-            if (
-                self.after
-                and self.after & register_forward_ref._table.keys() != self.after
-            ):
-                self._delayed[cls] = (self.after, decorate)
-            else:
-                decorate()
-        return cls
+        decorator = _decorator_table[self.kind]
+        kwargs = {getattr(self, kwarg) for kwarg in _kwargs_table[self.kind]}
+        if self.after:
+            setattr(
+                cls,
+                PHERES_ATTR,
+                DelayedData(functools.partial(decorator, **kwargs), self.kind),
+            )
+            return cls
+        else:
+            return decorator(cls, **kwargs)

@@ -101,3 +101,21 @@ class CycleError(_CycleError, PheresError):
     obj: Any
     cycle: Tuple[Any]
     msg: str = "{obj} contains the cycle {cycle}"
+
+
+###################
+# JSONABLE ERRORS #
+###################
+
+
+@exception
+class JsonableError(PheresError):
+    """
+    Raised on problems with @jsonable when no better sub-exception
+    exists
+
+    Attributes
+        msg -- explanation of the error
+    """
+
+    msg: str
