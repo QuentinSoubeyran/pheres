@@ -2,30 +2,36 @@
 module for internal data storing classes
 """
 import enum
+import functools
 import inspect
-from types import ModuleType
+from copy import deepcopy
 from typing import (
+    Any,
     Callable,
     ClassVar,
     Dict,
     FrozenSet,
     Iterable,
     List,
+    Literal,
     Tuple,
     Union,
-    get_args,
     get_origin,
 )
 
-from attr import attrib
+from attr import Factory, attrib
 from attr import dataclass as attrs
 
-from .exceptions import PheresInternalError
-from .utils import AnyClass, TypeHint
+from .exceptions import (
+    JsonAttrError,
+    JsonAttrTypeError,
+    JsonAttrValueError,
+    PheresInternalError,
+)
+from .utils import AnyClass, TypeHint, get_args, get_class_namespaces, with_post_init
 
 PHERES_ATTR = "__pheres_data__"
-
-set_attr = object.__setattr__
+MISSING = object()
 
 __all__ = [
     "JsonableEnum",
@@ -35,7 +41,6 @@ __all__ = [
     "DictData",
     "ObjectData",
     "DelayedData",
-    "DelayedJsonableHandler",
 ]
 
 
@@ -44,18 +49,6 @@ class JsonableEnum(enum.Enum):
     ARRAY = enum.auto()
     DICT = enum.auto()
     OBJECT = enum.auto()
-
-
-@attrs
-class JsonAttr:
-    """
-    Stores information for a json attribute
-    """
-
-    name: str
-    py_name: str
-    type: TypeHint
-    required: bool = attrib(init=False)
 
 
 @attrs(frozen=True)
@@ -68,7 +61,7 @@ class ValueData:
     type_hint: TypeHint = attrib(init=False)
 
     def __attrs_post_init__(self):
-        set_attr(self, "type_hint", self.type)
+        self.__dict__["type_hint"] = self.type
 
 
 @attrs(frozen=True)
@@ -78,17 +71,17 @@ class ArrayData:
     """
 
     types: Tuple[TypeHint]
-    fixed: bool = attrib(init=False)
-    type_hint: TypeHint = attrib(init=False)
+    is_fixed: bool = attrib(init=False, default=MISSING)
+    type_hint: TypeHint = attrib(init=False, default=MISSING)
 
     def __attrs_post_init__(self):
         if len(self.types == 2) and self.types[1] is Ellipsis:
-            set_attr(self, "fixed", False)
-            set_attr(self, "type_hint", List[self.types[0]])
-            set_attr(self, "types", self.types[:1])
+            self.__dict__["is_fixed"] = False
+            self.__dict__["type_hint"] = List[self.types[0]]
+            self.__dict__["types"] = self.types[:1]
         else:
-            set_attr(self, "fixed", True)
-            set_attr(self, "type_hint", Tuple[self.types])
+            self.__dict__["is_fixed"] = True
+            self.__dict__["type_hint"] = Tuple[self.types]
 
 
 @attrs(frozen=True)
@@ -101,7 +94,66 @@ class DictData:
     type_hint: TypeHint = attrib(init=False)
 
     def __attrs_post_init__(self):
-        set_attr(self, "type_hint", Dict[str, self.type])
+        self.__dict__["type_hint"] = Dict[str, self.type]
+
+
+@attrs
+class JsonAttr:
+    """
+    Stores information for a json attribute
+    """
+
+    module: str
+    cls_name: str
+    name: str
+    py_name: str
+    type: TypeHint
+    default: Any = attrib(default=MISSING)
+    is_json_only: bool = attrib(default=MISSING)
+
+    def __post_init__(self):
+        from .typing import is_json, typecheck
+
+        if self.default is not MISSING:
+            value = self.default() if callable(self.default) else self.default
+            if not is_json((value := self.default())):
+                raise JsonAttrValueError(value)
+            if not typecheck(value, self.type):
+                raise JsonAttrTypeError(self.type, value)
+
+        if self.is_json_only is MISSING:
+            globalns, localns = get_class_namespaces(self.cls)
+            if (
+                get_origin(self.type) is Literal
+                and len(
+                    (args := get_args(self.type, globalns=globalns, localns=localns))
+                )
+                == 1
+            ):
+                arg = args[0]
+                default = self.default() if callable(self.default) else self.default
+                if default is not MISSING and default != arg:
+                    raise JsonAttrError(
+                        f"Incoherent Literal and default for json-only attribute: {arg} != {default}"
+                    )
+                self.__dict__["is_json_only"] = True
+                if default is MISSING:
+                    self.__dict__["default"] = arg
+            else:
+                self.__dict__["is_json_only"] = False
+
+    @functools.cached_property
+    def required(self):
+        return self.default is MISSING or self.is_json_only
+
+    @property
+    def cls(self):
+        return self.module[self.cls_name]
+
+    def get_default(self):
+        if callable(self.default):
+            return self.default()
+        return deepcopy(self.default)
 
 
 @attrs(frozen=True)
@@ -113,6 +165,11 @@ class ObjectData:
     attrs: Dict[str, JsonAttr]
     req_attrs: Dict[str, JsonAttr] = attrib(init=False)
 
+    def __attrs_post_init__(self):
+        self.__dict__["req_attrs"] = {
+            name: attr for name, attr in self.attrs.items() if not attr.required
+        }
+
 
 @attrs(frozen=True)
 class DelayedData:
@@ -122,26 +179,3 @@ class DelayedData:
 
     func: Callable[[type], type]
     kind: JsonableEnum
-
-
-class DelayedJsonableHandler:
-    dependencies: ClassVar[  # pylint: disable=unsubscriptable-object
-        Dict[ModuleType, Dict[str, FrozenSet[str]]]
-    ] = {}
-
-    @classmethod
-    def _add(cls, /, jsonable: AnyClass, deps: Iterable[str]) -> None:
-        module = inspect.getmodule(jsonable)
-        deps = frozenset(deps)
-        name = jsonable.__name__
-        cls.dependencies.setdefault(module, {})[name] = deps
-
-    @classmethod
-    def _contains(cls, /, jsonable: AnyClass):
-        module = inspect.getmodule(jsonable)
-        return jsonable.__name__ in cls.dependencies.get(module, {})
-
-    @classmethod
-    def decorate(cls):
-        # todo
-        raise NotImplementedError("TODO")

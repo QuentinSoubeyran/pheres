@@ -11,7 +11,7 @@ from abc import ABC
 from threading import RLock
 from typing import Any, Dict, List, Literal, Tuple, Type, TypeVar, Union, get_origin
 
-from .datatypes import PHERES_ATTR, ArrayData, DictData, ObjectData, ValueData
+from .datatypes import MISSING, PHERES_ATTR, ArrayData, DictData, ObjectData, ValueData
 from .exceptions import CycleError, JSONValueError, PheresInternalError, TypeHintError
 from .utils import (
     AnyClass,
@@ -70,9 +70,6 @@ __all__ = [
     "typeof",
     "typecheck",
 ]
-
-# Constants
-MISSING = object()  # sentinel
 
 _JSONLiteralTypes = (bool, int, str)
 _JSONValueTypes = (type(None), bool, int, float, str)

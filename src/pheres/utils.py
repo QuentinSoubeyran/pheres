@@ -3,6 +3,7 @@ Various internal utilities for Pheres
 """
 import functools
 import inspect
+import json
 import types
 import typing
 from contextlib import contextmanager
@@ -13,6 +14,7 @@ AnyClass = TypeVar("AnyClass", bound=type)
 TypeHint = Union[  # pylint: disable=unsubscriptable-object
     type, type(Union), type(Type), type(List)
 ]
+TypeT = TypeVar("TypeT", *typing.get_args(TypeHint))
 
 
 class Virtual:
@@ -50,6 +52,59 @@ class Subscriptable:
 
     def __getitem__(self, arg):
         return self._func(arg)
+
+
+class UsableDecoder(json.JSONDecoder):
+    """
+    JSONDecoder subclass with method to use itself as a decoder
+    """
+
+    @functools.wraps(json.load)
+    @classmethod
+    def load(cls, *args, **kwargs):
+        return json.load(*args, cls=cls, **kwargs)
+
+    @functools.wraps(json.loads)
+    @classmethod
+    def loads(cls, *args, **kwargs):
+        return json.loads(*args, cls=cls, **kwargs)
+
+
+# from https://stackoverflow.com/questions/5189699/how-to-make-a-class-property
+class ClassPropertyDescriptor:
+    def __init__(self, fget, fset=None):
+        self.fget = fget
+        self.fset = fset
+
+    def __get__(self, obj, cls=None):
+        if cls is None:
+            cls = type(obj)
+        return self.fget.__get__(obj, cls)()
+
+    def __set__(self, obj, value):
+        if not self.fset:
+            raise AttributeError("can't set attribute")
+        type_ = type(obj)
+        return self.fset.__get__(obj, type_)(value)
+
+    @property
+    def __isabstractmethod__(self):
+        return any(
+            getattr(f, "__isabstractmethod__", False) for f in (self.fget, self.fset)
+        )
+
+    def setter(self, func):
+        if not isinstance(func, (classmethod, staticmethod)):
+            func = classmethod(func)
+        self.fset = func
+        return self
+
+
+def classproperty(func):
+    if not isinstance(func, (classmethod, staticmethod)):
+        func = classmethod(func)
+
+    return ClassPropertyDescriptor(func)
 
 
 def autoformat(
@@ -108,6 +163,80 @@ def autoformat(
     return cls
 
 
+def with_post_init(cls):
+    """
+    Class decorator to automatically support __post_init__() on classes
+
+    This is useful for @attr.s decorated classes, because __attr_post_init__() doesn't
+    support additional arguments.
+
+    This decorators detects the arguments of the class __post_init__() method and wraps
+    the class __init__() method in a method that accept the additional arguments, calls
+    __init__() and then __post_init__() and passes its arguments.
+    """
+    if not isinstance(cls, type):
+        raise TypeError("Can only decorate classes")
+    if not hasattr(cls, "__post_init__"):
+        raise TypeError("The class must have a __post_init__() method")
+    init = cls.__init__
+    init_params = inspect.signature(init).parameters
+    post_params = inspect.signature(cls.__post_init__).parameters
+    pos_params = []
+    pos_key_params = []
+    key_params = []
+    var_pos = False
+    var_key = False
+    for params in (init_params, post_params):
+        for param in params:
+            if param.kind is inspect.Parameter.POSITIONAL_ONLY:
+                pos_params.append(param)
+            elif param.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD:
+                pos_key_params.append(param)
+            elif param.kind is inspect.Parameter.VAR_POSITIONAL:
+                if var_pos:
+                    raise TypeError(
+                        "Cannot have *args in both __init__() and __post_init__()"
+                    )
+                var_pos = True
+                pos_key_params.append(param)
+            elif param.kind is inspect.Parameter.KEYWORD_ONLY:
+                key_params.append(param)
+            elif param.kind is inspect.Parameter.VAR_KEYWORD:
+                if var_key:
+                    raise TypeError(
+                        "Cannot have **kwargs in bot __init__() and __post_init__()"
+                    )
+                var_key = True
+                key_params.append(param)
+    if pos_params:
+        pos_params.append("/")
+    if key_params and not var_pos:
+        key_params.insert(0, "*")
+    merged_params = pos_params + pos_key_params + key_params
+    params_str = []
+    for params in (merged_params, init_params, post_params):
+        strings = []
+        for param in params:
+            if isinstance(param, str):
+                strings.append(param)
+                continue
+            s = param.name
+            if param.annotation is not inspect.Parameter.empty:
+                s += f": {param.annotation}"
+            if param.default is not inspect.Parameter.empty:
+                s += f" = {param.default}"
+        params_str.append(", ".join(str))
+    init_src = (
+        "def __init__(self, {}): -> None\n  init(self, {})\n  self.__post_init__({})"
+    )
+    factory_src = f"def __make_init__(init):\n {init_src}\n return __init__"
+    factory_src.format(*params_str)
+    ns = {}
+    exec(factory_src, inspect.getmodule(cls), ns)
+    cls.__init__ = ns["__make_init__"](init)
+    return cls
+
+
 @contextmanager
 def on_error(func, *args, yield_=None, **kwargs):
     """
@@ -154,6 +283,16 @@ def split(func, iterable):
     return tuple(falsy), tuple(truthy)
 
 
+def sync_filter(func, *iterables):
+    """
+    Filter multiple iterable at once, selecting values at index i
+    such that func(iterables[0][i], iterables[1][i], ...) is True
+    """
+    return tuple(zip(*tuple(i for i in zip(*iterables) if func(*i)))) or ((),) * len(
+        iterables
+    )
+
+
 def get_outer_frame():
     return inspect.currentframe().f_back.f_back
 
@@ -190,3 +329,14 @@ def type_repr(tp):
     if isinstance(tp, types.FunctionType):
         return tp.__name__
     return repr(tp)
+
+
+def get_class_namespaces(cls):
+    return inspect.getmodule(cls), cls.__dict__ | {cls.__name__: cls}
+
+
+def get_updated_class(cls):
+    module = inspect.getmodule(cls)
+    if module is not None:
+        return getattr(module, cls.__name__)
+    return cls
