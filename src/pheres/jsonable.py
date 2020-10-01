@@ -40,6 +40,7 @@ from .datatypes import (
 from .decoder import TypedJSONDecoder, deserialize
 from .exceptions import JsonableError, JsonAttrError
 from .typing import (
+    JSONType,
     _normalize_hint,
     is_jobject_class,
     is_jobject_instance,
@@ -51,6 +52,7 @@ from .utils import (
     Subscriptable,
     TypeHint,
     TypeT,
+    UsableDecoder,
     classproperty,
     get_args,
     get_class_namespaces,
@@ -59,6 +61,8 @@ from .utils import (
 )
 
 __all__ = [
+    "DelayedJsonableHandler",
+    "JsonableDummy",
     "JsonMark",
     "Marked",
     "marked",
@@ -66,7 +70,7 @@ __all__ = [
 ]
 
 
-class _DelayedJsonableHandler:
+class DelayedJsonableHandler:
     dependencies: ClassVar[  # pylint: disable=unsubscriptable-object
         Dict[ModuleType, Dict[str, FrozenSet[str]]]
     ] = {}
@@ -85,8 +89,40 @@ class _DelayedJsonableHandler:
 
     @classmethod
     def decorate_delayed(cls):
-        # todo
-        raise NotImplementedError("TODO")
+        done = {}
+        for module, deps in cls.dependencies.items():
+            for cls_name, after in deps.items():
+                if all(hasattr(module, a) for a in after):
+                    kls = getattr(module, cls_name)
+                    data: DelayedData = getattr(kls, PHERES_ATTR)
+                    setattr(module, cls_name, data.func(kls))
+                    done.setdefault(module, []).append(cls_name)
+        for module, cls_list in done.items():
+            for cls_name in cls_list:
+                del cls.dependencies[module][cls_name]
+        cls.dependencies = {k: v for k, v in cls.dependencies.items() if v}
+
+
+class JsonableDummy:
+    """
+    Base Class providing dummy members for those added by @jsonable
+
+    Allows type checkers and linters to detect said attributes
+    """
+
+    # attributes defined by the @jsonable decorator
+    Decoder: ClassVar[UsableDecoder] = UsableDecoder
+
+    @classmethod
+    def from_json(cls: AnyClass, /, obj: Any) -> AnyClass:
+        """
+        Converts a JSON file, string or object to an instance of that class
+        """
+        raise NotImplementedError
+
+    def to_json(self: AnyClass) -> JSONType:
+        """Converts an instance of that class to a JSON object"""
+        raise NotImplementedError
 
 
 def _get_decoder(cls):
@@ -138,11 +174,6 @@ def _decorate_value(cls: AnyClass, *, type_hint: TypeHint) -> AnyClass:
     return cls
 
 
-def _make_value(cls: AnyClass, value):
-    cls = get_updated_class(cls)
-    return cls(value)
-
-
 ###################
 # JSONABLE ARRAYS #
 ###################
@@ -172,11 +203,6 @@ def _decorate_array(cls: AnyClass, *, type_hint: TypeHint) -> AnyClass:
     return cls
 
 
-def _make_array(cls, array):
-    cls = get_updated_class(cls)
-    return cls(*array)
-
-
 #################
 # JSONABLE DICT #
 #################
@@ -204,11 +230,6 @@ def _decorate_dict(cls: AnyClass, *, type_hint: TypeHint) -> AnyClass:
         if not name in cls.__dict__:
             setattr(cls, name, member)
     return cls
-
-
-def _make_dict(cls, dct):
-    cls = get_updated_class(cls)
-    return cls(dct)
 
 
 ####################
@@ -258,7 +279,7 @@ def _get_jattrs(cls: type, auto_attrs: bool = True) -> Dict[str, JsonAttr]:
             attr_names |= {
                 jattr.py_name for jattr in getattr(parent, PHERES_ATTR).attrs.values()
             }
-        elif _DelayedJsonableHandler._contains(parent):
+        elif DelayedJsonableHandler._contains(parent):
             raise JsonableError(
                 f"Cannot register jsonable object {cls.__name__} before its parent class {parent.__name__}"
             )
@@ -319,6 +340,17 @@ def _get_jattrs(cls: type, auto_attrs: bool = True) -> Dict[str, JsonAttr]:
     return jattrs
 
 
+def _cleanup_object_class(cls):
+    data: ObjectData = getattr(cls, PHERES_ATTR)
+    annotations = cls.__dict__.get("__annotations__", {})
+    for jattr in data.attrs.values():
+        if jattr.is_json_only:
+            if hasattr(cls, jattr.py_name):
+                delattr(cls, jattr.py_name)
+            if jattr.py_name in annotations:
+                del annotations[jattr.py_name]
+
+
 def _object_to_json(self, *, with_defaults: bool = False):
     """
     Serialize the instance to a JSON python object
@@ -343,28 +375,15 @@ def _decorate_object(cls: AnyClass, *, auto_attrs: bool) -> AnyClass:
     attrs = _get_jattrs(cls, auto_attrs=auto_attrs)
     data = ObjectData(attrs)
     setattr(cls, PHERES_ATTR, data)
+    _cleanup_object_class(cls)
     for name, member in (
-        ("Decoder", TypedJSONDecoder[cls]),
+        ("Decoder", classproperty(_get_decoder)),
         ("from_json", classmethod(_from_json)),
         ("to_json", _object_to_json),
     ):
         if name not in cls.__dict__:
             setattr(cls, name, member)
     return cls
-
-
-def _make_object(cls, obj):
-    cls = get_updated_class(cls)
-    data: ObjectData = getattr(cls, PHERES_ATTR)
-    return cls(
-        **{
-            jattr.py_name: (
-                obj[jattr.name] if jattr.name in obj else jattr.get_default()
-            )
-            for jattr in data.attrs.values()
-            if not jattr.json_only
-        }
-    )
 
 
 ######################
@@ -487,7 +506,7 @@ class jsonable:
 
     @classmethod
     def __class_getitem__(cls, /, type_hint):
-        return functools.partial(cls._factory, type_hint, None)
+        return functools.partial(cls._factory, type_hint)
 
     @Subscriptable
     def Value(tp):  # pylint: disable=no-self-argument
@@ -495,7 +514,7 @@ class jsonable:
         return functools.partial(
             jsonable._factory,
             tp,
-            kind=JsonableEnum.VALUE,
+            JsonableEnum.VALUE,
         )
 
     @Subscriptable
@@ -508,12 +527,12 @@ class jsonable:
             tp = List[tp[0]]  # pylint: disable=unsubscriptable-object
         else:
             tp = Tuple[tp]
-        return functools.partial(jsonable._factory, tp, kind=JsonableEnum.ARRAY)
+        return functools.partial(jsonable._factory, tp, JsonableEnum.ARRAY)
 
     @Subscriptable
     def Dict(tp):  # pylint: disable=no-self-argument
         tp = Dict[str, Union[tp]]  # pylint: disable=unsubscriptable-object
-        return functools.partial(jsonable._factory, tp, kind=JsonableEnum.DICT)
+        return functools.partial(jsonable._factory, tp, JsonableEnum.DICT)
 
     def __repr__(self):
         return "%s%s%s(%s)" % (
@@ -540,16 +559,18 @@ class jsonable:
             # dont' decorate or delay twice
             return cls
         decorator = _decorator_table[self.kind]
-        kwargs = {getattr(self, kwarg) for kwarg in _kwargs_table[self.kind]}
+        kwargs = {kwarg: getattr(self, kwarg) for kwarg in _kwargs_table[self.kind]}
         if self.after:
             setattr(
                 cls,
                 PHERES_ATTR,
                 DelayedData(functools.partial(decorator, **kwargs), self.kind),
             )
-            return cls
+            DelayedJsonableHandler._add(cls, self.after)
         else:
-            return decorator(cls, **kwargs)
+            cls = decorator(cls, **kwargs)
+        DelayedJsonableHandler.decorate_delayed()
+        return cls
 
 
 #################

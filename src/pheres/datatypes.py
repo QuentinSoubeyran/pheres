@@ -5,6 +5,7 @@ import enum
 import functools
 import inspect
 from copy import deepcopy
+from types import ModuleType
 from typing import (
     Any,
     Callable,
@@ -75,7 +76,7 @@ class ArrayData:
     type_hint: TypeHint = attrib(init=False, default=MISSING)
 
     def __attrs_post_init__(self):
-        if len(self.types == 2) and self.types[1] is Ellipsis:
+        if len(self.types) == 2 and self.types[1] is Ellipsis:
             self.__dict__["is_fixed"] = False
             self.__dict__["type_hint"] = List[self.types[0]]
             self.__dict__["types"] = self.types[:1]
@@ -103,7 +104,7 @@ class JsonAttr:
     Stores information for a json attribute
     """
 
-    module: str
+    module: ModuleType
     cls_name: str
     name: str
     py_name: str
@@ -111,7 +112,7 @@ class JsonAttr:
     default: Any = attrib(default=MISSING)
     is_json_only: bool = attrib(default=MISSING)
 
-    def __post_init__(self):
+    def __attrs_post_init__(self):
         from .typing import is_json, typecheck
 
         if self.default is not MISSING:
@@ -148,7 +149,7 @@ class JsonAttr:
 
     @property
     def cls(self):
-        return self.module[self.cls_name]
+        return getattr(self.module, self.cls_name)
 
     def get_default(self):
         if callable(self.default):

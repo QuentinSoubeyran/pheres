@@ -136,13 +136,13 @@ JSONType = Union[  # pylint: disable=unsubscriptable-object
 ########################
 
 
-@functools.lru_cache
+# @functools.lru_cache
 def _normalize_hint(globalns, localns, tp: TypeHint):
     """
     Internal implementation of normalize_hint
     """
     _get_args = functools.partial(get_args, localns=localns, globalns=globalns)
-    _normalize_hint = functools.partial(_normalize_hint, globalns, localns)
+    _normal = functools.partial(_normalize_hint, globalns, localns)
 
     with normalize_hint._lock:
         # Recursive guard
@@ -167,7 +167,7 @@ def _normalize_hint(globalns, localns, tp: TypeHint):
             elif orig is Union:
                 others, lits = split(
                     lambda tp: get_origin(tp) is Literal,
-                    (_normalize_hint(tp) for tp in _get_args(tp)),
+                    (_normal(tp) for tp in _get_args(tp)),
                 )
                 if lits:
                     lits = sum(map(get_args, lits), ())
@@ -182,13 +182,13 @@ def _normalize_hint(globalns, localns, tp: TypeHint):
             elif isinstance(orig, type) and issubclass(orig, _JSONArrayTypes):
                 args = _get_args(tp)
                 if orig is list or (len(args) == 2 and args[1] is Ellipsis):
-                    return List[_normalize_hint(args[0])]
-                return Tuple[tuple(_normalize_hint(arg) for arg in args)]
+                    return List[_normal(args[0])]
+                return Tuple[tuple(_normal(arg) for arg in args)]
             # Objects
             elif isinstance(orig, type) and issubclass(orig, _JSONObjectTypes):
                 args = _get_args(tp)
                 if args[0] is str:
-                    return Dict[str, _normalize_hint(args[1])]
+                    return Dict[str, _normal(args[1])]
             raise TypeHintError(tp)  # handles all case that didn't return
         finally:
             normalize_hint._guard = old_guard

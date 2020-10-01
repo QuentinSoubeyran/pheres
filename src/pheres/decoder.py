@@ -41,9 +41,16 @@ from attr import attrib
 from attr import dataclass as attrs
 from attr import evolve
 
-from .datatypes import MISSING, PHERES_ATTR, ArrayData, DictData, ObjectData, ValueData
+from .datatypes import (
+    MISSING,
+    PHERES_ATTR,
+    AnyClass,
+    ArrayData,
+    DictData,
+    ObjectData,
+    ValueData,
+)
 from .exceptions import PheresInternalError, TypedJSONDecodeError
-from .jsonable import _make_array, _make_dict, _make_object, _make_value
 from .misc import FlatKey
 from .typing import (
     JSONArray,
@@ -68,6 +75,7 @@ from .utils import (
     get_args,
     get_class_namespaces,
     get_outer_namespaces,
+    get_updated_class,
     sync_filter,
 )
 
@@ -88,6 +96,38 @@ ArgsTuple = Tuple[TypeArgs, ...]
 
 TypeCache = Tuple[TypeTuple, OrigTuple, ArgsTuple]
 TypeFilter = Callable[[TypeHint, TypeOrig, TypeArgs], bool]
+
+
+##################
+# MODULE HELPERS #
+##################
+def _make_value(cls: AnyClass, value):
+    cls = get_updated_class(cls)
+    return cls(value)
+
+
+def _make_array(cls: AnyClass, array):
+    cls = get_updated_class(cls)
+    return cls(*array)
+
+
+def _make_dict(cls: AnyClass, dct):
+    cls = get_updated_class(cls)
+    return cls(dct)
+
+
+def _make_object(cls: AnyClass, obj):
+    cls = get_updated_class(cls)
+    data: ObjectData = getattr(cls, PHERES_ATTR)
+    return cls(
+        **{
+            jattr.py_name: (
+                obj[jattr.name] if jattr.name in obj else jattr.get_default()
+            )
+            for jattr in data.attrs.values()
+            if not jattr.json_only
+        }
+    )
 
 
 @attrs(frozen=True)
@@ -804,10 +844,12 @@ class TypedJSONDecoder(ABC, UsableDecoder):
         Jsonable subclasses are supported
         """
         if is_jsonable_class(tp):
-            globalns, localns = get_class_namespaces(tp)
+            globalns, localns = get_class_namespaces(get_updated_class(tp))
+            tp = _normalize_hint(globalns, localns, tp)
+            globalns, localns = None, None
         else:
             globalns, localns = get_outer_namespaces()
-        tp = _normalize_hint(globalns, localns, tp)
+            tp = _normalize_hint(globalns, localns, tp)
         return cls._class_getitem_cache(globalns, localns, tp)
 
     def __init__(self, *args, **kwargs):
@@ -819,6 +861,9 @@ class TypedJSONDecoder(ABC, UsableDecoder):
 
     @functools.wraps(JSONDecoder.raw_decode)
     def raw_decode(self, s, idx=0):
+        globalns, localns = self.globalns, self.localns  # pylint: disable=no-member
+        if is_jsonable_class(self.type_hint):
+            globalns, localns = get_class_namespaces(get_updated_class(self.type_hint))
         try:
             obj, end, _ = self.scan_once(
                 s,
@@ -826,10 +871,10 @@ class TypedJSONDecoder(ABC, UsableDecoder):
                 ctx=DecodeContext(
                     doc=s,
                     pos=idx,
-                    globalns=self.globalns,
-                    localns=self.localns,
+                    globalns=globalns,
+                    localns=localns,
                     types=DecodeContext.process_tp(
-                        self.type_hint, globalns=self.globalns, localns=self.localns
+                        self.type_hint, globalns=globalns, localns=localns
                     ),
                 ),
             )

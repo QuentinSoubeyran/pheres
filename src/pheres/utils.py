@@ -140,7 +140,7 @@ def autoformat(
         params = (params,)
     init = cls.__init__
     signature = inspect.signature(init)
-    params = signature.parameters & set(params)
+    params = signature.parameters.keys() & set(params)
 
     @functools.wraps(init)
     def __init__(*args, **kwargs):
@@ -158,7 +158,7 @@ def autoformat(
             bounds.arguments[name] = arg
         return init(*bounds.args, **bounds.kwargs)
 
-    __init__.__signature__ = init.__signature__
+    # __init__.__signature__ = signature
     cls.__init__ = __init__
     return cls
 
