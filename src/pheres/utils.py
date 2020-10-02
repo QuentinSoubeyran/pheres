@@ -152,9 +152,10 @@ def autoformat(
             if name in bounds.arguments
         }
         formatted = {
-            name: string.format(**bounds.arguments) for name, string in pre_formatted
+            name: string.format(**bounds.arguments)
+            for name, string in pre_formatted.items()
         }
-        for name, arg in formatted:
+        for name, arg in formatted.items():
             bounds.arguments[name] = arg
         return init(*bounds.args, **bounds.kwargs)
 
@@ -163,77 +164,85 @@ def autoformat(
     return cls
 
 
-def with_post_init(cls):
+class Variable(str):
+    def __repr__(self):
+        return self
+
+    def __str__(self):
+        return self
+
+
+def _sig_to_def(sig: inspect.Signature):
+    return str(sig).split("->", 1)[0].strip()[1:-1]
+
+
+def _sig_to_call(sig: inspect.Signature):
+    l = []
+    for p in sig.parameters.values():
+        if p.kind is inspect.Parameter.KEYWORD_ONLY:
+            l.append(f"{p.name}={p.name}")
+        else:
+            l.append(p.name)
+    return ", ".join(l)
+
+
+def post_init(cls):
     """
     Class decorator to automatically support __post_init__() on classes
 
     This is useful for @attr.s decorated classes, because __attr_post_init__() doesn't
     support additional arguments.
 
-    This decorators detects the arguments of the class __post_init__() method and wraps
-    the class __init__() method in a method that accept the additional arguments, calls
-    __init__() and then __post_init__() and passes its arguments.
+    This decorators wraps the class __init__ in a new function that accept merged arguments,
+    and dispatch them to __init__ and then __post_init__()
     """
     if not isinstance(cls, type):
         raise TypeError("Can only decorate classes")
     if not hasattr(cls, "__post_init__"):
         raise TypeError("The class must have a __post_init__() method")
-    init = cls.__init__
-    init_params = inspect.signature(init).parameters
-    post_params = inspect.signature(cls.__post_init__).parameters
-    pos_params = []
-    pos_key_params = []
-    key_params = []
-    var_pos = False
-    var_key = False
-    for params in (init_params, post_params):
-        for param in params:
-            if param.kind is inspect.Parameter.POSITIONAL_ONLY:
-                pos_params.append(param)
-            elif param.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD:
-                pos_key_params.append(param)
-            elif param.kind is inspect.Parameter.VAR_POSITIONAL:
-                if var_pos:
-                    raise TypeError(
-                        "Cannot have *args in both __init__() and __post_init__()"
-                    )
-                var_pos = True
-                pos_key_params.append(param)
-            elif param.kind is inspect.Parameter.KEYWORD_ONLY:
-                key_params.append(param)
-            elif param.kind is inspect.Parameter.VAR_KEYWORD:
-                if var_key:
-                    raise TypeError(
-                        "Cannot have **kwargs in bot __init__() and __post_init__()"
-                    )
-                var_key = True
-                key_params.append(param)
-    if pos_params:
-        pos_params.append("/")
-    if key_params and not var_pos:
-        key_params.insert(0, "*")
-    merged_params = pos_params + pos_key_params + key_params
-    params_str = []
-    for params in (merged_params, init_params, post_params):
-        strings = []
-        for param in params:
-            if isinstance(param, str):
-                strings.append(param)
-                continue
-            s = param.name
-            if param.annotation is not inspect.Parameter.empty:
-                s += f": {param.annotation}"
-            if param.default is not inspect.Parameter.empty:
-                s += f" = {param.default}"
-        params_str.append(", ".join(str))
-    init_src = (
-        "def __init__(self, {}): -> None\n  init(self, {})\n  self.__post_init__({})"
+    # Ignore the first argument which is the "self" argument
+    init_sig = inspect.Signature(
+        parameters=list(inspect.signature(cls.__init__).parameters.values())[1:]
     )
-    factory_src = f"def __make_init__(init):\n {init_src}\n return __init__"
-    factory_src.format(*params_str)
-    ns = {}
-    exec(factory_src, inspect.getmodule(cls), ns)
-    cls.__init__ = ns["__make_init__"](init)
+    post_sig = inspect.Signature(
+        parameters=list(inspect.signature(cls.__post_init__).parameters.values())[1:]
+    )
+    params = list(init_sig.parameters.values()) + list(post_sig.parameters.values())
+    params = sorted(params, key=lambda param: param.kind)
+    localns = {
+        f"__type_{p.name}": p.annotation
+        for p in params
+        if p.annotation is not inspect.Parameter.empty
+    } | {
+        f"__default_{p.name}": p.default
+        for p in params
+        if p.default is not inspect.Parameter.empty
+    }
+    for i, p in enumerate(params):
+        if p.default is not inspect.Parameter.empty:
+            p = p.replace(default=Variable(f"__default_{p.name}"))
+        if p.annotation is not inspect.Parameter.empty:
+            p = p.replace(annotation=f"__type_{p.name}")
+        params[i] = p
+    try:
+        new_sig = inspect.Signature(params)
+    except Exception as err:
+        raise TypeError("Incompatible __init__ and __post_init__") from err
+    globalns = inspect.getmodule(cls).__dict__
+    localns = cls.__dict__ | localns
+    local_vars = ", ".join(localns.keys())
+    init_src = (
+        f"def __init__(self, {_sig_to_def(new_sig)}) -> None:\n"
+        f"  __original_init(self, {_sig_to_call(init_sig)})\n"
+        f"  self.__post_init__({_sig_to_call(post_sig)})"
+    )
+    factory_src = (
+        f"def __make_init__(__original_init, {local_vars}):\n"
+        f" {init_src}\n"
+        " return __init__"
+    )
+    exec(factory_src, globalns, (ns := {}))
+    cls.__init__ = ns["__make_init__"](cls.__init__, **localns)
     return cls
 
 
@@ -332,7 +341,7 @@ def type_repr(tp):
 
 
 def get_class_namespaces(cls):
-    return inspect.getmodule(cls), cls.__dict__ | {cls.__name__: cls}
+    return inspect.getmodule(cls).__dict__, cls.__dict__ | {cls.__name__: cls}
 
 
 def get_updated_class(cls):

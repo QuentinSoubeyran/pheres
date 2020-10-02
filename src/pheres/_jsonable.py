@@ -67,6 +67,8 @@ __all__ = [
     "Marked",
     "marked",
     "jsonable",
+    "dump",
+    "dumps",
 ]
 
 
@@ -287,7 +289,6 @@ def _get_jattrs(cls: type, auto_attrs: bool = True) -> Dict[str, JsonAttr]:
     jattrs = {}
     globalns, localns = get_class_namespaces(cls)
     _get_args = functools.partial(get_args, localns=localns, globalns=globalns)
-    module = inspect.getmodule(cls)
     for py_name, tp in get_type_hints(
         cls, localns={cls.__name__: cls}, include_extras=True
     ).items():
@@ -329,13 +330,14 @@ def _get_jattrs(cls: type, auto_attrs: bool = True) -> Dict[str, JsonAttr]:
                 default = MISSING
         # Create JsonAttr
         jattrs[name] = JsonAttr(
-            module=module,
+            module=inspect.getmodule(cls),
             cls_name=cls.__name__,
             name=name,
             py_name=py_name,
             type=_normalize_hint(globalns, localns, tp),
             default=default,
             is_json_only=is_json_only,
+            cls=cls,
         )
     return jattrs
 
@@ -357,7 +359,7 @@ def _object_to_json(self, *, with_defaults: bool = False):
     """
     obj = {}
     data: ObjectData = getattr(type(self), PHERES_ATTR)
-    for jattr in data.req_attrs.values():
+    for jattr in data.attrs.values():
         default = jattr.get_default()
         if jattr.is_json_only:
             obj[jattr.name] = default

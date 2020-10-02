@@ -125,7 +125,7 @@ def _make_object(cls: AnyClass, obj):
                 obj[jattr.name] if jattr.name in obj else jattr.get_default()
             )
             for jattr in data.attrs.values()
-            if not jattr.json_only
+            if not jattr.is_json_only
         }
     )
 
@@ -157,7 +157,7 @@ class DecodeContext:
             return get_args(tp)
         return (tp,)
 
-    def __post_init__(self, /):
+    def __attrs_post_init__(self, /):
         # cache types origins and arguments for performance
         if self.get_args is None:
             self.__dict__["get_args"] = functools.partial(

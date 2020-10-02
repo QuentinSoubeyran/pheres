@@ -436,9 +436,11 @@ def _is_json(obj: Any, rec_guard: Tuple[Any]) -> bool:
 def is_json(obj: Any) -> bool:
     """Check if a python object is valid JSON
 
-    Raises CycleError if the value has circular references
     Only tuples and lists are accepted for JSON arrays
     Dictionary *must* have string as keys
+
+    Raises
+        CycleError if the value has circular references
     """
     return _is_json(obj, ())
 
@@ -592,9 +594,11 @@ def typecheck(value: JSONType, tp: TypeHint) -> bool:
     Raises
         TypeHintError if the type hint could not be handled
     """
-    # Jsonables
+    # Jsonables & Values
     if isinstance(tp, type):
-        if tp is JsonableValue:
+        if tp in _JSONValueTypes:
+            return isinstance(value, tp)
+        elif tp is JsonableValue:
             return is_jvalue_instance(value)
         elif tp is JsonableArray:
             return is_jarray_instance(value)
@@ -610,9 +614,6 @@ def typecheck(value: JSONType, tp: TypeHint) -> bool:
     # Union
     elif orig is Union:
         return any(typecheck(value, arg) for arg in get_args(tp))
-    # Values
-    elif tp in _JSONValueTypes:
-        return isinstance(value, tp)
     # Arrays
     elif orig in _JSONArrayTypes:
         if not isinstance(value, _JSONArrayTypes):

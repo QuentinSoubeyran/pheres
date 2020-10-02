@@ -44,6 +44,11 @@ class PheresError(Exception):
     Base exception in pheres
     """
 
+    msg: str
+
+    def __str__(self):
+        return self.msg
+
 
 ####################
 # TYPE HINT ERRORS #

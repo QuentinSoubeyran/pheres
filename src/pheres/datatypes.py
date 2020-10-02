@@ -29,7 +29,7 @@ from .exceptions import (
     JsonAttrValueError,
     PheresInternalError,
 )
-from .utils import AnyClass, TypeHint, get_args, get_class_namespaces, with_post_init
+from .utils import AnyClass, TypeHint, get_args, get_class_namespaces, post_init
 
 PHERES_ATTR = "__pheres_data__"
 MISSING = object()
@@ -98,6 +98,7 @@ class DictData:
         self.__dict__["type_hint"] = Dict[str, self.type]
 
 
+@post_init
 @attrs
 class JsonAttr:
     """
@@ -112,18 +113,21 @@ class JsonAttr:
     default: Any = attrib(default=MISSING)
     is_json_only: bool = attrib(default=MISSING)
 
-    def __attrs_post_init__(self):
+    def __post_init__(self, *, cls=None):
         from .typing import is_json, typecheck
+
+        if cls is None:
+            raise ValueError("Missing parent class")
 
         if self.default is not MISSING:
             value = self.default() if callable(self.default) else self.default
-            if not is_json((value := self.default())):
+            if not is_json(value):
                 raise JsonAttrValueError(value)
             if not typecheck(value, self.type):
                 raise JsonAttrTypeError(self.type, value)
 
         if self.is_json_only is MISSING:
-            globalns, localns = get_class_namespaces(self.cls)
+            globalns, localns = get_class_namespaces(cls)
             if (
                 get_origin(self.type) is Literal
                 and len(

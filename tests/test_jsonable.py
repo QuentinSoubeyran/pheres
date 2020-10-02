@@ -20,6 +20,7 @@ class BaseTypes(JsonableDummy):
 
 
 def test_base_types():
+    assert BaseTypes.to_json is ph._jsonable._object_to_json
     for jattr in BaseTypes.__pheres_data__.attrs.values():
         print(jattr)
     obj = BaseTypes(None, True, 1, 1.0, "string")
