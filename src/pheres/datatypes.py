@@ -148,7 +148,7 @@ class JsonAttr:
                 self.__dict__["is_json_only"] = False
 
     @functools.cached_property
-    def required(self):
+    def is_required(self):
         return self.default is MISSING or self.is_json_only
 
     @property
@@ -172,7 +172,7 @@ class ObjectData:
 
     def __attrs_post_init__(self):
         self.__dict__["req_attrs"] = {
-            name: attr for name, attr in self.attrs.items() if not attr.required
+            name: attr for name, attr in self.attrs.items() if attr.is_required
         }
 
 
