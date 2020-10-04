@@ -226,6 +226,8 @@ def post_init(cls):
     )
     params = list(init_sig.parameters.values()) + list(post_sig.parameters.values())
     params = sorted(params, key=lambda param: param.kind)
+    # Default values and types annotation handling is inspired by
+    # the `dataclasses` builtin module
     localns = {
         f"__type_{p.name}": p.annotation
         for p in params
