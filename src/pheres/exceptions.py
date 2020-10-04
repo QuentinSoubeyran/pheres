@@ -1,5 +1,5 @@
 """
-Pheres module for all exceptions
+modules containing all exceptions used in `pheres`
 """
 import functools
 import json
@@ -34,14 +34,16 @@ class PheresInternalError(BaseException):
     """
     Raised when pheres encounters an internal error
 
-    Attributes
-        msg -- explanation of the error
+    If you see this exception, please make a bug report
+
+    Attributes:
+        msg: explanation of the error
     """
 
 
 class PheresError(Exception):
     """
-    Base exception in pheres
+    Base exception in pheres for all other exceptions
     """
 
     msg: str
@@ -62,8 +64,8 @@ class TypeHintError(PheresError, TypeError):
     Raised for invalid JSON type hints
 
     Attributes:
-        type -- invalid type hint
-        msg -- explanation of the error
+        type: invalid type hint
+        msg: explanation of the error
     """
 
     type: TypeHint
@@ -82,9 +84,9 @@ class JSONTypeError(PheresError, TypeError):
     Raised when a value doesn't have the excepted type
 
     Attributes:
-        type -- expected type
-        value -- invalid value
-        msg -- explanation of the error
+        type: expected type
+        value: invalid value
+        msg: explanation of the error
     """
 
     type: TypeHint
@@ -99,8 +101,8 @@ class JSONValueError(PheresError, ValueError):
     Raised when an invalid json value is encountered
 
     Attributes
-        value -- invalid value
-        msg -- explanation of the error
+        value: invalid value
+        msg: explanation of the error
     """
 
     value: Any
@@ -114,9 +116,9 @@ class CycleError(PheresError, graphlib.CycleError):
     Raised when a value has cycles in it
 
     Attributes:
-        obj -- object with a cycle
-        cycle -- detected cycle
-        msg -- explanation of the error
+        obj: object containing the cycle
+        cycle: detected cycle
+        msg: explanation of the error
     """
 
     obj: Any
@@ -136,7 +138,7 @@ class JsonableError(PheresError):
     exists
 
     Attributes
-        msg -- explanation of the error
+        msg: explanation of the error
     """
 
     msg: str
@@ -150,9 +152,9 @@ class JsonAttrError(JsonableError):
     sub-exception exists
 
     Attributes
-        cls -- name of the class that raised the error
-        attr -- name of the attribute that raised the error
-        msg -- explanation of the error
+        cls: name of the class that raised the error
+        attr: name of the attribute that raised the error
+        msg: explanation of the error
     """
 
     cls: str
@@ -168,10 +170,10 @@ class JsonAttrValueError(JSONValueError, JsonAttrError):
     Raised when the default value of a json attribute is not a valid json
 
     Attributes
-        cls -- name of the class that raised the error
-        attr -- name of the attribute that raised the error
-        value -- invalid value
-        msg -- explanation of the error
+        cls: name of the class that raised the error
+        attr: name of the attribute that raised the error
+        value: invalid value
+        msg: explanation of the error
     """
 
     msg: str = "Invalid JSON value '{value}' in class '{cls}' at attribute '{attr}'"
@@ -184,9 +186,9 @@ class JsonAttrTypeError(JSONTypeError, JsonAttrError):
     Raised when the default value of a json attribute doesn't have the correct type
 
     Attributes:
-        type -- expected type
-        value -- invalid value
-        msg -- explanation of the error
+        type: expected type
+        value: invalid value
+        msg: explanation of the error
     """
 
     msg: str = "{value} doesn't have type {type} in class '{cls}' at attribute '{attr}'"
@@ -198,12 +200,12 @@ class JsonAttrTypeError(JSONTypeError, JsonAttrError):
 
 
 @exception
-class DecodeError:
+class DecodeError(PheresError):
     """
     Raised on decoding problem in Pheres when no better exception exists
 
     Attributes:
-        msg -- explanation of the error
+        msg: explanation of the error
     """
 
     msg: str
@@ -212,6 +214,14 @@ class DecodeError:
 class TypedJSONDecodeError(json.JSONDecodeError, DecodeError):
     """
     Raised when the decoded type is not the expected one
+
+    Attributes:
+        doc (Union[str, JSONType]): JSON document that contains the error
+        pos (Union[int, Tuple[str, ...]]): position of the error in 'doc'
+            can be either an string index, or a list of keys in the json
+        lineno (Optional[int]): line number of pos
+        colno (Optional[int]): column number of pos
+        msg: explanation of the error
     """
 
     def __init__(self, msg, doc, pos):

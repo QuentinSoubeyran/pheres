@@ -1,0 +1,13 @@
+# Formatting
+## Black hasn't published a version that can format python3.9 code
+## so we use the source for new
+git+https://github.com/psf/black
+isort>=5.4.2
+
+# Testing
+pytest>=6.0.1
+hypothesis>=5.37.0
+
+# Documentation
+sphinx==3.2.1
+sphinx-rtd-theme

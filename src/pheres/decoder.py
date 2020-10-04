@@ -79,7 +79,7 @@ from .utils import (
     sync_filter,
 )
 
-__all__ = ["TypedJSONDecodeError", "TypedJSONDecoder", "deserialize"]
+__all__ = ["TypedJSONDecoder", "deserialize"]
 
 # Type Variable
 U = TypeVar("U")

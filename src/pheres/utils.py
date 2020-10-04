@@ -7,12 +7,29 @@ import json
 import types
 import typing
 from contextlib import contextmanager
-from typing import Iterable, List, Tuple, Type, TypeVar, Union
+from typing import (
+    Annotated,
+    Any,
+    Callable,
+    Generic,
+    Iterable,
+    List,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 # Type Aliases
 AnyClass = TypeVar("AnyClass", bound=type)
 TypeHint = Union[  # pylint: disable=unsubscriptable-object
-    type, type(Union), type(Type), type(List)
+    type,
+    Type[Any],
+    Type[TypeVar],
+    type(Generic),
+    Type[Annotated],
+    Type[Tuple],
+    Type[Callable],
 ]
 TypeT = TypeVar("TypeT", *typing.get_args(TypeHint))
 
@@ -24,7 +41,7 @@ class Virtual:
 
     __slots__ = ("__weakref__",)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         raise TypeError("Cannot instanciate virtual class")
 
     def __init_subclass__(cls, *args, **kwargs):

@@ -82,6 +82,10 @@ _JSONObjectTypes = (dict,)
 
 
 class JsonableValue(ABC, Virtual):
+    """
+    Virtual class to represent a :ref:`jsonable value` in type hints
+    """
+
     __slots__ = ("__weakref__",)
 
     @classmethod
@@ -90,6 +94,10 @@ class JsonableValue(ABC, Virtual):
 
 
 class JsonableArray(ABC, Virtual):
+    """
+    Virtual class to represent a :ref:`jsonable array` in type hints
+    """
+
     __slots__ = ("__weakref__",)
 
     @classmethod
@@ -98,6 +106,10 @@ class JsonableArray(ABC, Virtual):
 
 
 class JsonableDict(ABC, Virtual):
+    """
+    Virtual class to represent a :ref:`jsonable dict` in type hints
+    """
+
     __slots__ = ("__weakref__",)
 
     @classmethod
@@ -106,6 +118,10 @@ class JsonableDict(ABC, Virtual):
 
 
 class JsonableObject(ABC, Virtual):
+    """
+    Virtual class to represent a :ref:`jsonable object` in type hints
+    """
+
     __slots__ = ("__weakref__",)
 
     @classmethod
