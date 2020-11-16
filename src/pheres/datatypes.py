@@ -1,6 +1,10 @@
 """
-module for internal data storing classes
+Module containing internal classes used for storing internal data
+
+Exposed classes offer a bit of introspection that can be useful
 """
+from __future__ import annotations
+
 import enum
 import functools
 import inspect
@@ -10,12 +14,8 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Dict,
-    FrozenSet,
     Iterable,
-    List,
     Literal,
-    Tuple,
     Union,
     get_origin,
 )
@@ -32,10 +32,16 @@ from .exceptions import (
 from .utils import AnyClass, TypeHint, get_args, get_class_namespaces, post_init
 
 PHERES_ATTR = "__pheres_data__"
-MISSING = object()
+
+class _MISSING:
+    def __repr__(self):
+        return "MISSING"
+
+MISSING = _MISSING()
+"""Sentinel object used when `None` cannot be used"""
 
 __all__ = [
-    "JsonableEnum",
+    "MISSING",
     "JsonAttr",
     "ValueData",
     "ArrayData",
@@ -46,6 +52,19 @@ __all__ = [
 
 
 class JsonableEnum(enum.Enum):
+    """
+    Enumeration of the different kind of jsonable
+
+    The actual values are an implementation detail and should
+    not be used. Refer to `Enum` for how to use enumeration in
+    python.
+
+    Attributes:
+        VALUE: for jsonable values
+        ARRAY: for jsonable arrays
+        DICT: for jsonable dicts
+        OBJECT: for jsonable objects
+    """
     VALUE = enum.auto()
     ARRAY = enum.auto()
     DICT = enum.auto()
@@ -55,7 +74,9 @@ class JsonableEnum(enum.Enum):
 @attrs(frozen=True)
 class ValueData:
     """
-    Stores pheres data for jsonable values
+    Opaque type storing pheres data for jsonable values
+
+    Exposed for used with `issubclass`
     """
 
     type: TypeHint
@@ -68,34 +89,38 @@ class ValueData:
 @attrs(frozen=True)
 class ArrayData:
     """
-    Stores pheres data for jsonable arrays
+    Opaque type storing pheres data for jsonable arrays
+
+    Exposed for used with `issubclass`
     """
 
-    types: Tuple[TypeHint]
+    types: tuple[TypeHint]
     is_fixed: bool = attrib(init=False, default=MISSING)
     type_hint: TypeHint = attrib(init=False, default=MISSING)
 
     def __attrs_post_init__(self):
         if len(self.types) == 2 and self.types[1] is Ellipsis:
             self.__dict__["is_fixed"] = False
-            self.__dict__["type_hint"] = List[self.types[0]]
+            self.__dict__["type_hint"] = list[self.types[0]]
             self.__dict__["types"] = self.types[:1]
         else:
             self.__dict__["is_fixed"] = True
-            self.__dict__["type_hint"] = Tuple[self.types]
+            self.__dict__["type_hint"] = tuple[self.types]
 
 
 @attrs(frozen=True)
 class DictData:
     """
-    Stores pheres data for jsonable dicts
+    Opaque type storing pheres data for jsonable dicts
+
+    Exposed for used with `issubclass`
     """
 
     type: TypeHint
     type_hint: TypeHint = attrib(init=False)
 
     def __attrs_post_init__(self):
-        self.__dict__["type_hint"] = Dict[str, self.type]
+        self.__dict__["type_hint"] = dict[str, self.type]
 
 
 @post_init
@@ -103,6 +128,13 @@ class DictData:
 class JsonAttr:
     """
     Stores information for a json attribute
+
+    Attributes:
+        name: name of this attribute in JSON
+        py_name: name of this attribute in python
+        type: type of this attribute
+        is_json_only: if this attribute should be only
+          present in JSON
     """
 
     module: ModuleType
@@ -149,6 +181,9 @@ class JsonAttr:
 
     @functools.cached_property
     def is_required(self):
+        """
+        Returns True if this attribute is mandatory in JSON
+        """
         return self.default is MISSING or self.is_json_only
 
     @property
@@ -156,19 +191,25 @@ class JsonAttr:
         return getattr(self.module, self.cls_name)
 
     def get_default(self):
+        """
+        Returns the default value of this attribute
+
+        The returned value is a copy and is safe to use and modify
+        """
         if callable(self.default):
             return self.default()
         return deepcopy(self.default)
 
-
 @attrs(frozen=True)
 class ObjectData:
     """
-    Stores pheres data for jsonable objects
+    Opaque type storing pheres data for jsonable objects
+
+    Exposed for used with `issubclass`
     """
 
-    attrs: Dict[str, JsonAttr]
-    req_attrs: Dict[str, JsonAttr] = attrib(init=False)
+    attrs: dict[str, JsonAttr]
+    req_attrs: dict[str, JsonAttr] = attrib(init=False)
 
     def __attrs_post_init__(self):
         self.__dict__["req_attrs"] = {
@@ -179,7 +220,13 @@ class ObjectData:
 @attrs(frozen=True)
 class DelayedData:
     """
-    Stores the data for delayed jsonable objects
+    Opaque type storing pheres data for jsonable that have been delayed
+
+    Exposed for used with `issubclass`
+
+    Attributes:
+        kind: What type of jsonable the class will be once decorated
+         (This has not happened yet !)
     """
 
     func: Callable[[type], type]

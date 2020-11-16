@@ -1,9 +1,14 @@
+"""Module containing all the exceptions used in `pheres`
+
+All exception are subclasses of `PheresError`, except for `PheresInternalError`.
+This is intended, as `PheresInternalError` is only raised in case of bugs and
+should not be catched. Please make a bug report if you ever encounter `PheresInternalError` 
 """
-modules containing all exceptions used in `pheres`
-"""
+from __future__ import annotations
+
 import functools
 import json
-from typing import Any, Tuple
+from typing import Any, Union
 
 import graphlib
 from attr import attrib
@@ -100,7 +105,7 @@ class JSONValueError(PheresError, ValueError):
     """
     Raised when an invalid json value is encountered
 
-    Attributes
+    Attributes:
         value: invalid value
         msg: explanation of the error
     """
@@ -122,8 +127,25 @@ class CycleError(PheresError, graphlib.CycleError):
     """
 
     obj: Any
-    cycle: Tuple[Any]
+    cycle: tuple[Any]
     msg: str = "{obj} contains the cycle {cycle}"
+
+
+@autoformat
+@exception
+class JSONKeyError(PheresError, KeyError):
+    """
+    Raised on KeyError on a JSON object
+
+    Attributes:
+        obj: object with missing key
+        key: missing key
+        msg: explanation of the error
+    """
+
+    obj: Any
+    key: Union[int, str, tuple[Union[int, str], ...]]
+    msg: str = "{obj} has no key '{key}'"
 
 
 ###################
@@ -134,10 +156,10 @@ class CycleError(PheresError, graphlib.CycleError):
 @exception
 class JsonableError(PheresError):
     """
-    Raised on problems with @jsonable when no better sub-exception
+    Raised on problems with `@jsonable <jsonable>` when no better sub-exception
     exists
 
-    Attributes
+    Attributes:
         msg: explanation of the error
     """
 
@@ -148,10 +170,10 @@ class JsonableError(PheresError):
 @exception
 class JsonAttrError(JsonableError):
     """
-    Raised on problems with @jsonable due to JsonAttr when no better
-    sub-exception exists
+    Raised on problems with `@jsonable <jsonable>` due to `JsonAttr`
+    when no better sub-exception exists
 
-    Attributes
+    Attributes:
         cls: name of the class that raised the error
         attr: name of the attribute that raised the error
         msg: explanation of the error
@@ -169,7 +191,7 @@ class JsonAttrValueError(JSONValueError, JsonAttrError):
     """
     Raised when the default value of a json attribute is not a valid json
 
-    Attributes
+    Attributes:
         cls: name of the class that raised the error
         attr: name of the attribute that raised the error
         value: invalid value

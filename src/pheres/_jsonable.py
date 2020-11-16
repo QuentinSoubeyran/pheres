@@ -1,6 +1,8 @@
 """
 Module for the jsonable interface
 """
+from __future__ import annotations
+
 import dataclasses
 import functools
 import inspect
@@ -245,16 +247,16 @@ class JsonMark:
     Annotation for JSONized arguments type that provides more control
     on the JSONized attribute behavior. All arguments are optional.
 
-    Arguments
-        key -- Set the name of the key in JSON for that attribute.
-            Defaults to: the name of the attribute in python
+    Arguments:
+        key: Set the name of the key in JSON for that attribute.
+          Defaults to: the name of the attribute in python
 
-        json_only -- Make the attribute only present in JSON. The attribute
-            must have a default value or be a Literal of a single value. The
-            attribute is removed from the class' annotations at runtime
-            Defaults to:
-             * True for Literals of a single value
-             * False for all other types
+    json_only: Make the attribute only present in JSON. The attribute
+      must have a default value or be a Literal of a single value. The
+      attribute is removed from the class' annotations at runtime
+      Defaults to:
+      -- True for Literals of a single value
+      -- False for all other types
     """
 
     key: str = None
@@ -266,10 +268,17 @@ Marked = Annotated[TypeT, JsonMark()]
 
 def marked(tp: TypeHint, /, **kwargs) -> TypeHint:
     """
-    Shortcut for Annotated[T, JSONAttr(**kwargs)]
+    Shortcut for ``Annotated[T, JSONAttr(**kwargs)]``
 
     See JSONAttr for a list of supported keyword arguments. Not compatible
     with type checkers due to being runtime
+
+    Args:
+        tp: Type hint to mark
+        **kwargs: additional info to pass to `JsonMark`
+
+    See also:
+        `JsonMark`
     """
     return Annotated[tp, JsonMark(**kwargs)]
 

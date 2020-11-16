@@ -11,6 +11,7 @@
 # All Rights Reserved
 #
 # The PSL authorize such derivative work (see PYTHON-LICENSE file)
+from __future__ import annotations
 
 import functools
 import json
