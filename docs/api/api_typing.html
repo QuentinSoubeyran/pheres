@@ -29,7 +29,6 @@
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/language_data.js"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -161,7 +160,7 @@
 <p>Module for typing and typechecking JSON</p>
 <p>This module offers functions for introspecting the JSON types of
 python object representing JSON, including those created with
-<a class="reference internal" href="api_jsonable.html#pheres._jsonable.jsonable" title="pheres._jsonable.jsonable"><code class="xref any py py-class docutils literal notranslate"><span class="pre">&#64;jsonable</span></code></a>, as well as typechecking JSON values against
+<cite>&#64;jsonable &lt;jsonable&gt;</cite>, as well as typechecking JSON values against
 type hints.</p>
 <dl class="py class">
 <dt id="pheres.typing.JsonableValue">
@@ -169,7 +168,7 @@ type hints.</p>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.utils.Virtual</span></code></p>
 <p>Virtual class to represent a jsonable value in type hints.</p>
 <p>While this <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a> does implements <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABCMeta.__subclasshook__" title="(in Python v3.9)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__subclasshook__()</span></code></a>,
-it should not be used with <a class="reference external" href="https://docs.python.org/3/library/functions.html#issubclass" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">issubclass</span></code></a>. Use the <a class="reference internal" href="#pheres.typing.is_jsonable_value" title="pheres.typing.is_jsonable_value"><code class="xref any py py-func docutils literal notranslate"><span class="pre">is_jsonable_value</span></code></a> function
+it should not be used with <cite>issubclass</cite>. Use the <cite>is_jsonable_value</cite> function
 instead</p>
 </dd></dl>
 
@@ -179,7 +178,7 @@ instead</p>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.utils.Virtual</span></code></p>
 <p>Virtual class to represent a jsonable array in type hints.</p>
 <p>While this <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a> does implements <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABCMeta.__subclasshook__" title="(in Python v3.9)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__subclasshook__()</span></code></a>,
-it should not be used with <a class="reference external" href="https://docs.python.org/3/library/functions.html#issubclass" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">issubclass</span></code></a>. Use the <a class="reference internal" href="#pheres.typing.is_jsonable_array" title="pheres.typing.is_jsonable_array"><code class="xref any py py-func docutils literal notranslate"><span class="pre">is_jsonable_array</span></code></a> function
+it should not be used with <cite>issubclass</cite>. Use the <cite>is_jsonable_array</cite> function
 instead</p>
 </dd></dl>
 
@@ -189,7 +188,7 @@ instead</p>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.utils.Virtual</span></code></p>
 <p>Virtual class to represent a jsonable dict in type hints.</p>
 <p>While this <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a> does implements <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABCMeta.__subclasshook__" title="(in Python v3.9)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__subclasshook__()</span></code></a>,
-it should not be used with <a class="reference external" href="https://docs.python.org/3/library/functions.html#issubclass" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">issubclass</span></code></a>. Use the <a class="reference internal" href="#pheres.typing.is_jsonable_dict" title="pheres.typing.is_jsonable_dict"><code class="xref any py py-func docutils literal notranslate"><span class="pre">is_jsonable_dict</span></code></a> function
+it should not be used with <cite>issubclass</cite>. Use the <cite>is_jsonable_dict</cite> function
 instead</p>
 </dd></dl>
 
@@ -199,7 +198,7 @@ instead</p>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.utils.Virtual</span></code></p>
 <p>Virtual class to represent a jsonable object in type hints.</p>
 <p>While this <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a> does implements <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABCMeta.__subclasshook__" title="(in Python v3.9)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__subclasshook__()</span></code></a>,
-it should not be used with <a class="reference external" href="https://docs.python.org/3/library/functions.html#issubclass" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">issubclass</span></code></a>. Use the <a class="reference internal" href="#pheres.typing.is_jsonable_object" title="pheres.typing.is_jsonable_object"><code class="xref any py py-func docutils literal notranslate"><span class="pre">is_jsonable_object</span></code></a> function
+it should not be used with <cite>issubclass</cite>. Use the <cite>is_jsonable_object</cite> function
 instead</p>
 </dd></dl>
 
@@ -259,7 +258,7 @@ normalize_json_type() and catching TypeHintError</p>
 <dd class="field-odd"><p><strong>type_hint</strong> – type hint to test</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>True if the type hint is valid for JSON, false otherwise</p>
+<dd class="field-even"><p><cite>True</cite> if the type hint is valid for JSON, false otherwise</p>
 </dd>
 </dl>
 </dd></dl>
@@ -278,7 +277,7 @@ normalize_json_type() and catching TypeHintError</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>value, such that <code class="docutils literal notranslate"><span class="pre">typecheck(value,</span> <span class="pre">ltp)</span> <span class="pre">and</span> <span class="pre">typecheck(value,</span> <span class="pre">rtp)</span></code>
-or <a class="reference internal" href="api_datatypes.html#pheres.datatypes.MISSING" title="pheres.datatypes.MISSING"><code class="xref any py py-data docutils literal notranslate"><span class="pre">MISSING</span></code></a> if no such value exists</p>
+or <cite>MISSING</cite> if no such value exists</p>
 </dd>
 </dl>
 </dd></dl>
@@ -292,7 +291,7 @@ or <a class="reference internal" href="api_datatypes.html#pheres.datatypes.MISSI
 <dd class="field-odd"><p><strong>obj</strong> – object to test the type of</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>True if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a json number, False otherwise</p>
+<dd class="field-even"><p><cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a json number, <cite>False</cite> otherwise</p>
 </dd>
 </dl>
 </dd></dl>
@@ -306,7 +305,7 @@ or <a class="reference internal" href="api_datatypes.html#pheres.datatypes.MISSI
 <dd class="field-odd"><p><strong>obj</strong> – object to test the type of</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>True if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a json value, False otherwise</p>
+<dd class="field-even"><p><cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a json value, <cite>False</cite> otherwise</p>
 </dd>
 </dl>
 </dd></dl>
@@ -320,7 +319,7 @@ or <a class="reference internal" href="api_datatypes.html#pheres.datatypes.MISSI
 <dd class="field-odd"><p><strong>obj</strong> – object to test the type of</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>True if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a json array, False otherwise</p>
+<dd class="field-even"><p><cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a json array, <cite>False</cite> otherwise</p>
 </dd>
 </dl>
 </dd></dl>
@@ -334,7 +333,7 @@ or <a class="reference internal" href="api_datatypes.html#pheres.datatypes.MISSI
 <dd class="field-odd"><p><strong>obj</strong> – object to test the type of</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a json Object, <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">False</span></code></a> otherwise</p>
+<dd class="field-even"><p><cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a json Object, <cite>False</cite> otherwise</p>
 </dd>
 </dl>
 </dd></dl>
@@ -350,7 +349,7 @@ Dictionary <em>must</em> have string as keys</p>
 <dd class="field-odd"><p><strong>obj</strong> – object to test</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>True if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a valid json, False otherwise</p>
+<dd class="field-even"><p><cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a valid json, <cite>False</cite> otherwise</p>
 </dd>
 <dt class="field-odd">Raises</dt>
 <dd class="field-odd"><p><a class="reference internal" href="api_exceptions.html#pheres.exceptions.CycleError" title="pheres.exceptions.CycleError"><strong>CycleError</strong></a> – the value has circular references</p>
@@ -361,92 +360,92 @@ Dictionary <em>must</em> have string as keys</p>
 <dl class="py function">
 <dt id="pheres.typing.is_jsonable_value">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">is_jsonable_value</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.is_jsonable_value" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable value</p>
+<dd><p>Return <cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable value</p>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres.typing.is_jvalue_class">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">is_jvalue_class</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cls</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.is_jvalue_class" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">cls</span></code> is a jsonable value class</p>
+<dd><p>Return <cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">cls</span></code> is a jsonable value class</p>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres.typing.is_jvalue_instance">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">is_jvalue_instance</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.is_jvalue_instance" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">obj</span></code> a jsonable value instance</p>
+<dd><p>Return <cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> a jsonable value instance</p>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres.typing.is_jsonable_array">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">is_jsonable_array</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.is_jsonable_array" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable array</p>
+<dd><p>Return <cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable array</p>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres.typing.is_jarray_class">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">is_jarray_class</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cls</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.is_jarray_class" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">cls</span></code> if a jsonable array class</p>
+<dd><p>Return <cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">cls</span></code> if a jsonable array class</p>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres.typing.is_jarray_instance">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">is_jarray_instance</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.is_jarray_instance" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable array instance</p>
+<dd><p>Return <cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable array instance</p>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres.typing.is_jsonable_dict">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">is_jsonable_dict</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.is_jsonable_dict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable dict</p>
+<dd><p>Return <cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable dict</p>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres.typing.is_jdict_class">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">is_jdict_class</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cls</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.is_jdict_class" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">cls</span></code> is a jsonable dict class</p>
+<dd><p>Return <cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">cls</span></code> is a jsonable dict class</p>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres.typing.is_jdict_instance">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">is_jdict_instance</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.is_jdict_instance" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable dict instance</p>
+<dd><p>Return <cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable dict instance</p>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres.typing.is_jsonable_object">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">is_jsonable_object</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.is_jsonable_object" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable object</p>
+<dd><p>Return <cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable object</p>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres.typing.is_jobject_class">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">is_jobject_class</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cls</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.is_jobject_class" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">cls</span></code> is a jsonable object class</p>
+<dd><p>Return <cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">cls</span></code> is a jsonable object class</p>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres.typing.is_jobject_instance">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">is_jobject_instance</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.is_jobject_instance" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable object instance</p>
+<dd><p>Return <cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable object instance</p>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres.typing.is_jsonable">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">is_jsonable</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.is_jsonable" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable value or an instance of a jsonable
+<dd><p>Return <cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable value or an instance of a jsonable
 value</p>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres.typing.is_jsonable_class">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">is_jsonable_class</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cls</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.is_jsonable_class" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">cls</span></code> is a jsonable class</p>
+<dd><p>Return <cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">cls</span></code> is a jsonable class</p>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres.typing.is_jsonable_instance">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">is_jsonable_instance</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.is_jsonable_instance" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable instance</p>
+<dd><p>Return <cite>True</cite> if <code class="docutils literal notranslate"><span class="pre">obj</span></code> is a jsonable instance</p>
 </dd></dl>
 
 <dl class="py function">
@@ -460,7 +459,7 @@ and only checks the container type.</p>
 <dd class="field-odd"><p><strong>obj</strong> – object to get the type of</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><a class="reference internal" href="#pheres.typing.JSONValue" title="pheres.typing.JSONValue"><code class="xref any py py-data docutils literal notranslate"><span class="pre">JSONValue</span></code></a>, <a class="reference internal" href="#pheres.typing.JSONArray" title="pheres.typing.JSONArray"><code class="xref any py py-data docutils literal notranslate"><span class="pre">JSONArray</span></code></a> or J`SONObject` based on the type of the passed object</p>
+<dd class="field-even"><p><cite>JSONValue</cite>, <cite>JSONArray</cite> or J`SONObject` based on the type of the passed object</p>
 </dd>
 <dt class="field-odd">Raises</dt>
 <dd class="field-odd"><p><a class="reference internal" href="api_exceptions.html#pheres.exceptions.JSONValueError" title="pheres.exceptions.JSONValueError"><strong>JSONValueError</strong></a> – the passed object is not a valid JSON</p>
@@ -468,7 +467,7 @@ and only checks the container type.</p>
 </dl>
 <div class="admonition attention">
 <p class="admonition-title">Attention</p>
-<p>The returned value is a type hint, equality testing must be done with <a class="reference external" href="https://docs.python.org/3/reference/expressions.html#is" title="(in Python v3.9)"><code class="docutils literal notranslate"><span class="pre">Identity</span> <span class="pre">comparisons</span></code></a>:</p>
+<p>The returned value is a type hint, equality testing must be done with <cite>is</cite>:</p>
 <p><code class="docutils literal notranslate"><span class="pre">typeof({})</span> <span class="pre">==</span> <span class="pre">JSONObject</span> <span class="pre">#</span> <span class="pre">undefined</span></code></p>
 <p><code class="docutils literal notranslate"><span class="pre">typeof({})</span> <span class="pre">is</span> <span class="pre">JSONObject</span> <span class="pre">#</span> <span class="pre">True</span></code></p>
 </div>
@@ -478,7 +477,7 @@ and only checks the container type.</p>
 <dt id="pheres.typing.typecheck">
 <code class="sig-prename descclassname">pheres.typing.</code><code class="sig-name descname">typecheck</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#pheres.typing.JSONType" title="pheres.typing.JSONType">JSONType</a></span></em>, <em class="sig-param"><span class="n">tp</span><span class="p">:</span> <span class="n">TypeHint</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a><a class="headerlink" href="#pheres.typing.typecheck" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test if a JSON value matches a JSON type hint</p>
-<p>The type hint must be normalized (see <a class="reference internal" href="#pheres.typing.normalize_hint" title="pheres.typing.normalize_hint"><code class="xref any py py-func docutils literal notranslate"><span class="pre">normalize_hint</span></code></a>). Otherwise,
+<p>The type hint must be normalized (see <cite>normalize_hint</cite>). Otherwise,
 this function may fail or return a wrong result</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -488,7 +487,7 @@ this function may fail or return a wrong result</p>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a> if the value is valid for the type hint, <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">False</span></code></a> otherwise</p>
+<dd class="field-even"><p><cite>True</cite> if the value is valid for the type hint, <cite>False</cite> otherwise</p>
 </dd>
 <dt class="field-odd">Raises</dt>
 <dd class="field-odd"><p><a class="reference internal" href="api_exceptions.html#pheres.exceptions.TypeHintError" title="pheres.exceptions.TypeHintError"><strong>TypeHintError</strong></a> – the type hint could not be handled</p>

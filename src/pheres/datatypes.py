@@ -8,17 +8,10 @@ from __future__ import annotations
 import enum
 import functools
 import inspect
+import json
 from copy import deepcopy
 from types import ModuleType
-from typing import (
-    Any,
-    Callable,
-    ClassVar,
-    Iterable,
-    Literal,
-    Union,
-    get_origin,
-)
+from typing import Any, Callable, ClassVar, Iterable, Literal, Union, get_origin
 
 from attr import Factory, attrib
 from attr import dataclass as attrs
@@ -33,9 +26,11 @@ from .utils import AnyClass, TypeHint, get_args, get_class_namespaces, post_init
 
 PHERES_ATTR = "__pheres_data__"
 
+
 class _MISSING:
     def __repr__(self):
         return "MISSING"
+
 
 MISSING = _MISSING()
 """Sentinel object used when `None` cannot be used"""
@@ -48,6 +43,7 @@ __all__ = [
     "DictData",
     "ObjectData",
     "DelayedData",
+    "UsableDecoder",
 ]
 
 
@@ -65,6 +61,7 @@ class JsonableEnum(enum.Enum):
         DICT: for jsonable dicts
         OBJECT: for jsonable objects
     """
+
     VALUE = enum.auto()
     ARRAY = enum.auto()
     DICT = enum.auto()
@@ -200,6 +197,7 @@ class JsonAttr:
             return self.default()
         return deepcopy(self.default)
 
+
 @attrs(frozen=True)
 class ObjectData:
     """
@@ -231,3 +229,24 @@ class DelayedData:
 
     func: Callable[[type], type]
     kind: JsonableEnum
+
+
+class UsableDecoder(json.JSONDecoder):
+    """
+    `json.JSONDecoder` subclass with wrapper methods ``load()`` and
+    ``loads()`` using itself for the decoder class
+    """
+
+    @classmethod
+    def load(cls, *args, **kwargs):
+        """
+        Thin wrapper around `json.load` that use this class as the default ``cls`` argument
+        """
+        return json.load(*args, cls=cls, **kwargs)
+
+    @classmethod
+    def loads(cls, *args, **kwargs):
+        """
+        Thin wrapper around `json.loads` that use this class as the default ``cls`` argument
+        """
+        return json.loads(*args, cls=cls, **kwargs)

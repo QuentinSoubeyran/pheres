@@ -29,7 +29,6 @@
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/language_data.js"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -161,78 +160,48 @@
 <dl class="py class">
 <dt id="pheres.decoder.TypedJSONDecoder">
 <em class="property">class </em><code class="sig-prename descclassname">pheres.decoder.</code><code class="sig-name descname">TypedJSONDecoder</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.decoder.TypedJSONDecoder" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.utils.UsableDecoder</span></code></p>
-<p>JSONDecoder subclass to typed JSON decoding</p>
-<p>The type to decode must be provided my indexing this class by
-a tye hint, like in the ‘typing’ module. The type hint must be
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></a>, <a class="reference internal" href="api_datatypes.html#pheres.datatypes.UsableDecoder" title="pheres.datatypes.UsableDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.datatypes.UsableDecoder</span></code></a></p>
+<p><cite>json.JSONDecoder</cite> subclass for typed JSON decoding</p>
+<p>The type to decode must be provided by indexing this class with the
+type as key (like in the ‘typing’ module). The type hint must be
 valid in a JSON context.</p>
-<p>Jsonable subclasses are supported, as this is the whole point
+<p>jsonables are supported, as this is the whole point
 of that class</p>
-<p>Example:</p>
-<p># type check that all values are int
-json.load(…, cls=JSONableDecoder[Dict[str, int]])</p>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># type check that all values are str or int</span>
+<span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">JSONableDecoder</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]])</span>
+<span class="c1"># The class exposed a `load` method</span>
+<span class="n">JSONableDecoder</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
 <dl class="py method">
-<dt id="pheres.decoder.TypedJSONDecoder.type_hint">
-<em class="property">abstract property </em><code class="sig-name descname">type_hint</code><a class="headerlink" href="#pheres.decoder.TypedJSONDecoder.type_hint" title="Permalink to this definition">¶</a></dt>
-<dd><p>Type hint that this decoder decodes</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="pheres.decoder.TypedJSONDecoder.raw_decode">
-<code class="sig-name descname">raw_decode</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">s</span></em>, <em class="sig-param"><span class="n">idx</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.decoder.TypedJSONDecoder.raw_decode" title="Permalink to this definition">¶</a></dt>
-<dd><p>Decode a JSON document from <code class="docutils literal notranslate"><span class="pre">s</span></code> (a <code class="docutils literal notranslate"><span class="pre">str</span></code> beginning with
-a JSON document) and return a 2-tuple of the Python
-representation and the index in <code class="docutils literal notranslate"><span class="pre">s</span></code> where the document ended.</p>
-<p>This can be used to decode a JSON document from a string that may
-have extraneous data at the end.</p>
+<dt id="pheres.decoder.TypedJSONDecoder.__class_getitem__">
+<em class="property">classmethod </em><code class="sig-name descname">__class_getitem__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tp</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.decoder.TypedJSONDecoder.__class_getitem__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parametrize the TypedJSONDecoder to decode the provided type hint</p>
+<p>Jsonable subclasses are supported</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>tp</strong> – type hint to parametrize a TypedJSONDecoder for</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A special subclass of TypedJSONDecoder for use with
+<cite>json.load</cite></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt id="pheres.decoder.TypedJSONDecoder.load">
-<em class="property">classmethod </em><code class="sig-name descname">load</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">cls</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">object_hook</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parse_float</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parse_int</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parse_constant</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">object_pairs_hook</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kw</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.decoder.TypedJSONDecoder.load" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deserialize <code class="docutils literal notranslate"><span class="pre">fp</span></code> (a <code class="docutils literal notranslate"><span class="pre">.read()</span></code>-supporting file-like object containing
-a JSON document) to a Python object.</p>
-<p><code class="docutils literal notranslate"><span class="pre">object_hook</span></code> is an optional function that will be called with the
-result of any object literal decode (a <code class="docutils literal notranslate"><span class="pre">dict</span></code>). The return value of
-<code class="docutils literal notranslate"><span class="pre">object_hook</span></code> will be used instead of the <code class="docutils literal notranslate"><span class="pre">dict</span></code>. This feature
-can be used to implement custom decoders (e.g. JSON-RPC class hinting).</p>
-<p><code class="docutils literal notranslate"><span class="pre">object_pairs_hook</span></code> is an optional function that will be called with the
-result of any object literal decoded with an ordered list of pairs.  The
-return value of <code class="docutils literal notranslate"><span class="pre">object_pairs_hook</span></code> will be used instead of the <code class="docutils literal notranslate"><span class="pre">dict</span></code>.
-This feature can be used to implement custom decoders.  If <code class="docutils literal notranslate"><span class="pre">object_hook</span></code>
-is also defined, the <code class="docutils literal notranslate"><span class="pre">object_pairs_hook</span></code> takes priority.</p>
-<p>To use a custom <code class="docutils literal notranslate"><span class="pre">JSONDecoder</span></code> subclass, specify it with the <code class="docutils literal notranslate"><span class="pre">cls</span></code>
-kwarg; otherwise <code class="docutils literal notranslate"><span class="pre">JSONDecoder</span></code> is used.</p>
+<em class="property">classmethod </em><code class="sig-name descname">load</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.decoder.TypedJSONDecoder.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thin wrapper around <cite>json.load</cite> that use this class as the <code class="docutils literal notranslate"><span class="pre">cls</span></code> argument</p>
+<p>The TypedJSONDecoder must be parametrized</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="pheres.decoder.TypedJSONDecoder.loads">
-<em class="property">classmethod </em><code class="sig-name descname">loads</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">cls</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">object_hook</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parse_float</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parse_int</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parse_constant</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">object_pairs_hook</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kw</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.decoder.TypedJSONDecoder.loads" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deserialize <code class="docutils literal notranslate"><span class="pre">s</span></code> (a <code class="docutils literal notranslate"><span class="pre">str</span></code>, <code class="docutils literal notranslate"><span class="pre">bytes</span></code> or <code class="docutils literal notranslate"><span class="pre">bytearray</span></code> instance
-containing a JSON document) to a Python object.</p>
-<p><code class="docutils literal notranslate"><span class="pre">object_hook</span></code> is an optional function that will be called with the
-result of any object literal decode (a <code class="docutils literal notranslate"><span class="pre">dict</span></code>). The return value of
-<code class="docutils literal notranslate"><span class="pre">object_hook</span></code> will be used instead of the <code class="docutils literal notranslate"><span class="pre">dict</span></code>. This feature
-can be used to implement custom decoders (e.g. JSON-RPC class hinting).</p>
-<p><code class="docutils literal notranslate"><span class="pre">object_pairs_hook</span></code> is an optional function that will be called with the
-result of any object literal decoded with an ordered list of pairs.  The
-return value of <code class="docutils literal notranslate"><span class="pre">object_pairs_hook</span></code> will be used instead of the <code class="docutils literal notranslate"><span class="pre">dict</span></code>.
-This feature can be used to implement custom decoders.  If <code class="docutils literal notranslate"><span class="pre">object_hook</span></code>
-is also defined, the <code class="docutils literal notranslate"><span class="pre">object_pairs_hook</span></code> takes priority.</p>
-<p><code class="docutils literal notranslate"><span class="pre">parse_float</span></code>, if specified, will be called with the string
-of every JSON float to be decoded. By default this is equivalent to
-float(num_str). This can be used to use another datatype or parser
-for JSON floats (e.g. decimal.Decimal).</p>
-<p><code class="docutils literal notranslate"><span class="pre">parse_int</span></code>, if specified, will be called with the string
-of every JSON int to be decoded. By default this is equivalent to
-int(num_str). This can be used to use another datatype or parser
-for JSON integers (e.g. float).</p>
-<p><code class="docutils literal notranslate"><span class="pre">parse_constant</span></code>, if specified, will be called with one of the
-following strings: -Infinity, Infinity, NaN.
-This can be used to raise an exception if invalid JSON numbers
-are encountered.</p>
-<p>To use a custom <code class="docutils literal notranslate"><span class="pre">JSONDecoder</span></code> subclass, specify it with the <code class="docutils literal notranslate"><span class="pre">cls</span></code>
-kwarg; otherwise <code class="docutils literal notranslate"><span class="pre">JSONDecoder</span></code> is used.</p>
+<em class="property">classmethod </em><code class="sig-name descname">loads</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.decoder.TypedJSONDecoder.loads" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thin wrapper around <cite>json.loads</cite> that use this class as the <code class="docutils literal notranslate"><span class="pre">cls</span></code> argument</p>
+<p>The TypedJSONDecoder must be parametrized</p>
 </dd></dl>
 
 </dd></dl>
@@ -243,14 +212,19 @@ kwarg; otherwise <code class="docutils literal notranslate"><span class="pre">JS
 <dd><p>Deserializes a python object representing a JSON to a Type Hint</p>
 <p>This is the equivalent of TypedJSONDecoder for JSON object that were
 already loaded with json.loads()</p>
-<dl class="simple">
-<dt>Arguments</dt><dd><p>obj – the object to deserialize
-type_hint – the type to deserialize to, i.e. to type-check against</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – the object to deserialize</p></li>
+<li><p><strong>type_hint</strong> – the type to deserialize to, i.e. to type-check against</p></li>
+</ul>
 </dd>
-<dt>Returns</dt><dd><p>A JSONObject. It might not be equal to the original object, because
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <cite>JSONObject</cite>. It might not be equal to the original object, because
 JSONable serialization are converted to a proper class instance</p>
 </dd>
-<dt>Raises</dt><dd><p>TypedJSONDecodeError if obj cannot be deserialized to type_hint</p>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference internal" href="api_exceptions.html#pheres.exceptions.TypedJSONDecodeError" title="pheres.exceptions.TypedJSONDecodeError"><strong>TypedJSONDecodeError</strong></a> – <code class="docutils literal notranslate"><span class="pre">obj</span></code> cannot be deserialized to type_hint</p>
 </dd>
 </dl>
 </dd></dl>

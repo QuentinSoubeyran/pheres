@@ -37,6 +37,7 @@ from .datatypes import (
     JsonableEnum,
     JsonAttr,
     ObjectData,
+    UsableDecoder,
     ValueData,
 )
 from .decoder import TypedJSONDecoder, deserialize
@@ -54,7 +55,6 @@ from .utils import (
     Subscriptable,
     TypeHint,
     TypeT,
-    UsableDecoder,
     classproperty,
     get_args,
     get_class_namespaces,
@@ -75,6 +75,11 @@ __all__ = [
 
 
 class DelayedJsonableHandler:
+    """
+    Class handling delayed jsonables
+    
+    `UndefinedReference`
+    """
     dependencies: ClassVar[  # pylint: disable=unsubscriptable-object
         Dict[ModuleType, Dict[str, FrozenSet[str]]]
     ] = {}
@@ -93,6 +98,12 @@ class DelayedJsonableHandler:
 
     @classmethod
     def decorate_delayed(cls):
+        """
+        Modifies all delayed jsonables whose dependencies are now met
+
+        You only need to call this if you do not use `@jsonable <pheres._jsonable.jsonable>`
+        after the dependencies are made available
+        """
         done = {}
         for module, deps in cls.dependencies.items():
             for cls_name, after in deps.items():
@@ -109,13 +120,18 @@ class DelayedJsonableHandler:
 
 class JsonableDummy:
     """
-    Base Class providing dummy members for those added by @jsonable
-
-    Allows type checkers and linters to detect said attributes
+    Dummy class providing dummy members for all members
+    added by `@jsonable <pheres._jsonable.jsonable>`. Allows type checkers and linters to detect
+    said attributes
     """
 
     # attributes defined by the @jsonable decorator
     Decoder: ClassVar[UsableDecoder] = UsableDecoder
+    """Decoder for the `@jsonable <pheres._jsonable.jsonable>` type.
+    
+    This is a default that just delegates to the `json` module since the type is not known
+    """
+    
 
     @classmethod
     def from_json(cls: AnyClass, /, obj: Any) -> AnyClass:
@@ -244,19 +260,16 @@ def _decorate_dict(cls: AnyClass, *, type_hint: TypeHint) -> AnyClass:
 @attrs
 class JsonMark:
     """
-    Annotation for JSONized arguments type that provides more control
-    on the JSONized attribute behavior. All arguments are optional.
+    Annotation for jsonized arguments that provides more control
+    on the jsonized attribute behavior. All arguments are optional.
 
     Arguments:
         key: Set the name of the key in JSON for that attribute.
-          Defaults to: the name of the attribute in python
-
-    json_only: Make the attribute only present in JSON. The attribute
-      must have a default value or be a Literal of a single value. The
-      attribute is removed from the class' annotations at runtime
-      Defaults to:
-      -- True for Literals of a single value
-      -- False for all other types
+            Defaults to the name of the attribute in python
+        json_only: Make the attribute only present in JSON. The attribute
+            must have a default value or be a `typing.Literal` of a single value. The
+            attribute is removed from the class' annotations at runtime
+            Defaults to `True` for Literals of a single value; `False` for all other types
     """
 
     key: str = None
@@ -264,14 +277,19 @@ class JsonMark:
 
 
 Marked = Annotated[TypeT, JsonMark()]
+"""Simple type alias to quickly mark an attribute as jsonized
+
+``Marked[T]`` is equivalent to ``Annotated[T, JsonMark()]``
+"""
 
 
 def marked(tp: TypeHint, /, **kwargs) -> TypeHint:
     """
-    Shortcut for ``Annotated[T, JSONAttr(**kwargs)]``
+    Shortcut for ``Annotated[T, JsonMark(**kwargs)]``
 
-    See JSONAttr for a list of supported keyword arguments. Not compatible
-    with type checkers due to being runtime
+    See `JsonMark` for a list of supported keyword arguments.
+    `marked` may not be compatible with type checkers due to being
+    a runtime definition
 
     Args:
         tp: Type hint to mark

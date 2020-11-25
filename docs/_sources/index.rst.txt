@@ -13,7 +13,7 @@ Overview
 ^^^^^^^^
 
 ``pheres`` is a python package that extends the builtin `json` module.
-It mainly provides the `jsonable` API to make class (de)serializable to JSON in a single decorator, and tools to work with JSON in a typed manner.
+It mainly provides the `@jsonable <pheres._jsonable.jsonable>` API to make class (de)serializable to JSON in a single decorator, and tools to work with JSON in a typed manner.
 
 
 .. toctree::

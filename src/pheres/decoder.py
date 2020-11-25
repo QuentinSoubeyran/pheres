@@ -49,6 +49,7 @@ from .datatypes import (
     ArrayData,
     DictData,
     ObjectData,
+    UsableDecoder,
     ValueData,
 )
 from .exceptions import PheresInternalError, TypedJSONDecodeError
@@ -72,7 +73,7 @@ from .typing import (
 )
 from .utils import (
     TypeHint,
-    UsableDecoder,
+    append_doc,
     get_args,
     get_class_namespaces,
     get_outer_namespaces,
@@ -792,6 +793,8 @@ def _exec_body(namespace, type_hint, globalns, localns):
 class ParametrizedTypedJSONDecoderMeta(ABCMeta):
     """
     Metaclass for parametrized TypedJSONDecoder classes -- provides a nice repr()
+
+    :meta private:
     """
 
     def __repr__(self):
@@ -801,27 +804,35 @@ class ParametrizedTypedJSONDecoderMeta(ABCMeta):
         return f"TypedJSONDecoder[{tp!r}]"
 
 
+_private = append_doc("\n:meta private:")
+
+
 class TypedJSONDecoder(ABC, UsableDecoder):
     """
-    JSONDecoder subclass to typed JSON decoding
+    `json.JSONDecoder` subclass for typed JSON decoding
 
-    The type to decode must be provided my indexing this class by
-    a tye hint, like in the 'typing' module. The type hint must be
+    The type to decode must be provided by indexing this class with the
+    type as key (like in the 'typing' module). The type hint must be
     valid in a JSON context.
 
-    Jsonable subclasses are supported, as this is the whole point
+    jsonables are supported, as this is the whole point
     of that class
 
     Example:
+        ::
 
-    # type check that all values are int
-    json.load(..., cls=JSONableDecoder[Dict[str, int]])
+            # type check that all values are str or int
+            json.load(..., cls=JSONableDecoder[Dict[str, int]])
+            # The class exposed a `load` method
+            JSONableDecoder[Dict[str, int]].load(...)
     """
 
     @property
     @abstractmethod
     def type_hint(self):
-        """Type hint that this decoder decodes"""
+        """Type hint that this decoder decodes
+
+        :meta private:"""
 
     @classmethod
     @_tp_cache
@@ -843,6 +854,13 @@ class TypedJSONDecoder(ABC, UsableDecoder):
         """Parametrize the TypedJSONDecoder to decode the provided type hint
 
         Jsonable subclasses are supported
+
+        Args:
+            tp: type hint to parametrize a TypedJSONDecoder for
+
+        Returns:
+            A special subclass of TypedJSONDecoder for use with
+            `json.load`
         """
         if is_jsonable_class(tp):
             globalns, localns = get_class_namespaces(get_updated_class(tp))
@@ -860,6 +878,7 @@ class TypedJSONDecoder(ABC, UsableDecoder):
         self.parse_array = JSONArrayParser
         self.scan_once = make_string_scanner(self)
 
+    @_private
     @functools.wraps(JSONDecoder.raw_decode)
     def raw_decode(self, s, idx=0):
         globalns, localns = self.globalns, self.localns  # pylint: disable=no-member
@@ -884,15 +903,23 @@ class TypedJSONDecoder(ABC, UsableDecoder):
         return obj, end
 
     @classmethod
-    @functools.wraps(json.load)
     def load(cls, *args, **kwargs):
+        """
+        Thin wrapper around `json.load` that use this class as the ``cls`` argument
+
+        The TypedJSONDecoder must be parametrized
+        """
         if cls is TypedJSONDecoder:
             raise TypeError(f"You must parametrize {cls.__name__} before using it")
         return json.load(*args, cls=cls, **kwargs)
 
     @classmethod
-    @functools.wraps(json.loads)
     def loads(cls, *args, **kwargs):
+        """
+        Thin wrapper around `json.loads` that use this class as the ``cls`` argument
+
+        The TypedJSONDecoder must be parametrized
+        """
         if cls is TypedJSONDecoder:
             raise TypeError(f"You must parametrize {cls.__name__} before using it")
         return json.loads(*args, cls=cls, **kwargs)
@@ -905,16 +932,16 @@ def deserialize(obj: JSONObject, type_hint: TypeHint) -> JSONObject:
     This is the equivalent of TypedJSONDecoder for JSON object that were
     already loaded with json.loads()
 
-    Arguments
-        obj -- the object to deserialize
-        type_hint -- the type to deserialize to, i.e. to type-check against
+    Args:
+        obj: the object to deserialize
+        type_hint: the type to deserialize to, i.e. to type-check against
 
-    Returns
-        A JSONObject. It might not be equal to the original object, because
+    Returns:
+        A `JSONObject`. It might not be equal to the original object, because
         JSONable serialization are converted to a proper class instance
 
-    Raises
-        TypedJSONDecodeError if obj cannot be deserialized to type_hint
+    Raises:
+        `TypedJSONDecodeError`: ``obj`` cannot be deserialized to type_hint
     """
     if is_jsonable_class(type_hint):
         globalns, localns = get_class_namespaces(type_hint)

@@ -34,6 +34,7 @@ TypeHint = Union[  # pylint: disable=unsubscriptable-object
     Type[Callable],
 ]
 TypeT = TypeVar("TypeT", *typing.get_args(TypeHint))
+U = TypeVar("U")
 
 
 class Virtual:
@@ -73,20 +74,16 @@ class Subscriptable:
         return self._func(arg)
 
 
-class UsableDecoder(json.JSONDecoder):
+def append_doc(s: str) -> Callable[[U], U]:
     """
-    JSONDecoder subclass with method to use itself as a decoder
+    Decorator appending in-place to the docstring of the decorated object
     """
 
-    @functools.wraps(json.load)
-    @classmethod
-    def load(cls, *args, **kwargs):
-        return json.load(*args, cls=cls, **kwargs)
+    def append(obj: U) -> U:
+        obj.__doc__ += s
+        return obj
 
-    @functools.wraps(json.loads)
-    @classmethod
-    def loads(cls, *args, **kwargs):
-        return json.loads(*args, cls=cls, **kwargs)
+    return append
 
 
 # from https://stackoverflow.com/questions/5189699/how-to-make-a-class-property
@@ -190,6 +187,7 @@ class Variable(str):
     def __str__(self):
         return self
 
+
 def _sig_without(sig: inspect.Signature, param: Union[int, str]):
     """Removes a parameter from a Signature object
 
@@ -209,9 +207,10 @@ def _sig_merge(lsig: inspect.Signature, rsig: inspect.Signature):
     return inspect.Signature(
         sorted(
             list(lsig.parameters.values()) + list(rsig.parameters.values()),
-            key=lambda param: param.kind
+            key=lambda param: param.kind,
         )
     )
+
 
 def _sig_to_def(sig: inspect.Signature):
     return str(sig).split("->", 1)[0].strip()[1:-1]
@@ -257,22 +256,30 @@ def post_init(cls):
                     except Exception:
                         break
                 else:
-                    raise TypeError("__post_init__ signature is incompatible with the class") from err
-                raise TypeError(f"__post_init__() is incompatible with {parent.__qualname__}{method}()") from err
+                    raise TypeError(
+                        "__post_init__ signature is incompatible with the class"
+                    ) from err
+                raise TypeError(
+                    f"__post_init__() is incompatible with {parent.__qualname__}{method}()"
+                ) from err
             # No exception
             previous.append((parent, "__post_init__", post_sig))
     # handles type annotations and defaults
     # inspired by the dataclasses modules
     params = list(sig.parameters.values())
-    localns = {
-        f"__type_{p.name}": p.annotation
-        for p in params
-        if p.annotation is not inspect.Parameter.empty
-    } | {
-        f"__default_{p.name}": p.default
-        for p in params
-        if p.default is not inspect.Parameter.empty
-    } | cls.__dict__
+    localns = (
+        {
+            f"__type_{p.name}": p.annotation
+            for p in params
+            if p.annotation is not inspect.Parameter.empty
+        }
+        | {
+            f"__default_{p.name}": p.default
+            for p in params
+            if p.default is not inspect.Parameter.empty
+        }
+        | cls.__dict__
+    )
     for i, p in enumerate(params):
         if p.default is not inspect.Parameter.empty:
             p = p.replace(default=Variable(f"__default_{p.name}"))
@@ -284,12 +291,14 @@ def post_init(cls):
     self = "self" if "self" not in sig.parameters else "__post_init_self"
     init_lines = [
         f"def __init__({self}, {_sig_to_def(new_sig)}) -> None:",
-        f"__original_init({self}, {_sig_to_call(init_sig)})"
+        f"__original_init({self}, {_sig_to_call(init_sig)})",
     ]
     for parent, method, psig in previous[1:]:
         if hasattr(parent, "__post_init__"):
             if parent is not cls:
-                init_lines.append(f"super({parent.__qualname__}, {self}).{method}({_sig_to_call(psig)})")
+                init_lines.append(
+                    f"super({parent.__qualname__}, {self}).{method}({_sig_to_call(psig)})"
+                )
             else:
                 init_lines.append(f"{self}.{method}({_sig_to_call(psig)})")
     init_src = "\n  ".join(init_lines)
@@ -305,7 +314,9 @@ def post_init(cls):
     exec(factory_src, globalns, (ns := {}))
     cls.__init__ = ns["__make_init__"](cls.__init__, **localns)
     self_param = inspect.Parameter(self, inspect.Parameter.POSITIONAL_ONLY)
-    cls.__init__.__signature__ = inspect.Signature(parameters = [self_param] + list(sig.parameters.values()), return_annotation=None)
+    cls.__init__.__signature__ = inspect.Signature(
+        parameters=[self_param] + list(sig.parameters.values()), return_annotation=None
+    )
     return cls
 
 

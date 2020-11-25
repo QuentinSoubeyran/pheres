@@ -120,7 +120,7 @@ class JsonableArray(ABC, Virtual):
 class JsonableDict(ABC, Virtual):
     """
     Virtual class to represent a jsonable dict in type hints.
-    
+
     While this :class:`~abc.ABC` does implements :meth:`~abc.ABCMeta.__subclasshook__`,
     it should not be used with `issubclass`. Use the `is_jsonable_dict` function
     instead
@@ -136,7 +136,7 @@ class JsonableDict(ABC, Virtual):
 class JsonableObject(ABC, Virtual):
     """
     Virtual class to represent a jsonable object in type hints.
-    
+
     While this :class:`~abc.ABC` does implements :meth:`~abc.ABCMeta.__subclasshook__`,
     it should not be used with `issubclass`. Use the `is_jsonable_object` function
     instead
@@ -400,7 +400,7 @@ def is_number(obj: Any) -> bool:
         obj: object to test the type of
 
     Returns:
-       `True`if ``obj`` is a json number, `False` otherwise
+       `True` if ``obj`` is a json number, `False` otherwise
     """
     return type(obj) in (int, float)
 
@@ -413,7 +413,7 @@ def is_value(obj: Any) -> bool:
         obj: object to test the type of
 
     Returns:
-       `True`if ``obj`` is a json value, `False` otherwise
+       `True` if ``obj`` is a json value, `False` otherwise
     """
     try:
         return typeof(obj) is JSONValue
@@ -429,7 +429,7 @@ def is_array(obj: Any) -> bool:
         obj: object to test the type of
 
     Returns:
-       `True`if ``obj`` is a json array, `False` otherwise
+       `True` if ``obj`` is a json array, `False` otherwise
     """
     try:
         return typeof(obj) is JSONArray
@@ -483,7 +483,7 @@ def is_json(obj: Any) -> bool:
         obj: object to test
 
     Returns:
-       `True`if ``obj`` is a valid json, `False` otherwise
+       `True` if ``obj`` is a valid json, `False` otherwise
 
     Raises:
         `CycleError`: the value has circular references
@@ -492,84 +492,84 @@ def is_json(obj: Any) -> bool:
 
 
 def is_jsonable_value(obj: Any) -> bool:
-    """Return`True`if ``obj`` is a jsonable value"""
+    """Return `True` if ``obj`` is a jsonable value"""
     cls = obj if isinstance(obj, type) else type(obj)
     return isinstance(getattr(cls, PHERES_ATTR, None), ValueData)
 
 
 def is_jvalue_class(cls: Any) -> bool:
-    """Return`True`if ``cls`` is a jsonable value class"""
+    """Return `True` if ``cls`` is a jsonable value class"""
     return isinstance(cls, type) and isinstance(
         getattr(cls, PHERES_ATTR, None), ValueData
     )
 
 
 def is_jvalue_instance(obj: Any) -> bool:
-    """Return`True`if ``obj`` a jsonable value instance"""
+    """Return `True` if ``obj`` a jsonable value instance"""
     return isinstance(getattr(type(obj), PHERES_ATTR, None), ValueData)
 
 
 def is_jsonable_array(obj: Any) -> bool:
-    """Return`True`if ``obj`` is a jsonable array"""
+    """Return `True` if ``obj`` is a jsonable array"""
     cls = obj if isinstance(obj, type) else type(obj)
     return isinstance(getattr(cls, PHERES_ATTR, None), ArrayData)
 
 
 def is_jarray_class(cls: Any) -> bool:
-    """Return`True`if ``cls`` if a jsonable array class"""
+    """Return `True` if ``cls`` if a jsonable array class"""
     return isinstance(cls, type) and isinstance(
         getattr(cls, PHERES_ATTR, None), ArrayData
     )
 
 
 def is_jarray_instance(obj: Any) -> bool:
-    """Return`True`if ``obj`` is a jsonable array instance"""
+    """Return `True` if ``obj`` is a jsonable array instance"""
     return isinstance(getattr(type(obj), PHERES_ATTR, None), ArrayData)
 
 
 def is_jsonable_dict(obj: Any) -> bool:
     """
-    Return`True`if ``obj`` is a jsonable dict
+    Return `True` if ``obj`` is a jsonable dict
     """
     cls = obj if isinstance(obj, type) else type(obj)
     return isinstance(getattr(cls, PHERES_ATTR, None), DictData)
 
 
 def is_jdict_class(cls: Any) -> bool:
-    """Return`True`if ``cls`` is a jsonable dict class"""
+    """Return `True` if ``cls`` is a jsonable dict class"""
     return isinstance(cls, type) and isinstance(
         getattr(cls, PHERES_ATTR, None), DictData
     )
 
 
 def is_jdict_instance(obj: Any) -> bool:
-    """Return`True`if ``obj`` is a jsonable dict instance"""
+    """Return `True` if ``obj`` is a jsonable dict instance"""
     return isinstance(getattr(type(obj), PHERES_ATTR, None), DictData)
 
 
 def is_jsonable_object(obj: Any) -> bool:
     """
-    Return`True`if ``obj`` is a jsonable object
+    Return `True` if ``obj`` is a jsonable object
     """
     cls = obj if isinstance(obj, type) else type(obj)
     return isinstance(getattr(cls, PHERES_ATTR, None), ObjectData)
 
 
 def is_jobject_class(cls: Any) -> bool:
-    """Return`True`if ``cls`` is a jsonable object class"""
+    """Return `True` if ``cls`` is a jsonable object class"""
     return isinstance(cls, type) and isinstance(
         getattr(cls, PHERES_ATTR, None), ObjectData
     )
 
 
 def is_jobject_instance(obj: Any) -> bool:
-    """Return`True`if ``obj`` is a jsonable object instance"""
+    """Return `True` if ``obj`` is a jsonable object instance"""
     return isinstance(getattr(type(obj), PHERES_ATTR, None), ObjectData)
 
 
 def is_jsonable(obj: Any) -> bool:
     """
-    Return`True`if ``obj`` is a jsonable value or an instance of a jsonable
+    Return `True` if ``obj`` is a jsonable value or an instance of a jsonable
     value
     """
     cls = obj if isinstance(obj, type) else type(obj)
@@ -577,12 +577,12 @@ def is_jsonable(obj: Any) -> bool:
 
 
 def is_jsonable_class(cls: Any) -> bool:
-    """Return`True`if ``cls`` is a jsonable class"""
+    """Return `True` if ``cls`` is a jsonable class"""
     return isinstance(cls, type) and hasattr(cls, PHERES_ATTR)
 
 
 def is_jsonable_instance(obj: Any) -> bool:
-    """Return `True`if ``obj`` is a jsonable instance"""
+    """Return `True` if ``obj`` is a jsonable instance"""
     return hasattr(type(obj), PHERES_ATTR)
 
 
@@ -601,7 +601,7 @@ def typeof(obj: JSONType) -> TypeHint:
 
     Raises:
         `JSONValueError`: the passed object is not a valid JSON
-    
+
     Attention:
         The returned value is a type hint, equality testing must be done with `is`:
 
@@ -626,7 +626,7 @@ def typeof(obj: JSONType) -> TypeHint:
 def typecheck(value: JSONType, tp: TypeHint) -> bool:
     """Test if a JSON value matches a JSON type hint
 
-    The type hint must be normalized (see `normalize_hint`). Otherwise, 
+    The type hint must be normalized (see `normalize_hint`). Otherwise,
     this function may fail or return a wrong result
 
     Args:

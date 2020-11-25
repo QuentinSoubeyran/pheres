@@ -29,7 +29,6 @@
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/language_data.js"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -158,18 +157,34 @@
             
   <div class="section" id="pheres-jsonable">
 <h1><code class="docutils literal notranslate"><span class="pre">pheres.jsonable</span></code><a class="headerlink" href="#pheres-jsonable" title="Permalink to this headline">¶</a></h1>
-<p>Note: Since there is a name conflict between this module and the <a class="reference internal" href="#pheres._jsonable.jsonable" title="pheres._jsonable.jsonable"><code class="xref any py py-class docutils literal notranslate"><span class="pre">&#64;jsonable</span></code></a> decorator, this module actual name is <code class="docutils literal notranslate"><span class="pre">_jsonable</span></code>.</p>
+<p>Note: Since there is a name conflict between this module and the <cite>&#64;jsonable &lt;pheres._jsonable.jsonable&gt;</cite> decorator, this module actual name is <code class="docutils literal notranslate"><span class="pre">_jsonable</span></code>.</p>
 <span class="target" id="module-pheres._jsonable"></span><p>Module for the jsonable interface</p>
+<dl class="py class">
+<dt id="pheres._jsonable.DelayedJsonableHandler">
+<em class="property">class </em><code class="sig-prename descclassname">pheres._jsonable.</code><code class="sig-name descname">DelayedJsonableHandler</code><a class="headerlink" href="#pheres._jsonable.DelayedJsonableHandler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Class handling delayed jsonables</p>
+<dl class="py method">
+<dt id="pheres._jsonable.DelayedJsonableHandler.decorate_delayed">
+<em class="property">classmethod </em><code class="sig-name descname">decorate_delayed</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pheres._jsonable.DelayedJsonableHandler.decorate_delayed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Modifies all delayed jsonables whose dependencies are now met</p>
+<p>You only need to call this if you do not use <cite>&#64;jsonable &lt;pheres._jsonable.jsonable&gt;</cite>
+after the dependencies are made available</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py class">
 <dt id="pheres._jsonable.JsonableDummy">
 <em class="property">class </em><code class="sig-prename descclassname">pheres._jsonable.</code><code class="sig-name descname">JsonableDummy</code><a class="headerlink" href="#pheres._jsonable.JsonableDummy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Base Class providing dummy members for those added by &#64;jsonable</p>
-<p>Allows type checkers and linters to detect said attributes</p>
+<p>Dummy class providing dummy members for all members
+added by <cite>&#64;jsonable &lt;pheres._jsonable.jsonable&gt;</cite>. Allows type checkers and linters to detect
+said attributes</p>
 <dl class="py attribute">
 <dt id="pheres._jsonable.JsonableDummy.Decoder">
 <code class="sig-name descname">Decoder</code><a class="headerlink" href="#pheres._jsonable.JsonableDummy.Decoder" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.utils.UsableDecoder</span></code></p>
+<dd><p>alias of <a class="reference internal" href="api_datatypes.html#pheres.datatypes.UsableDecoder" title="pheres.datatypes.UsableDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.datatypes.UsableDecoder</span></code></a></p>
 </dd></dl>
 
 <dl class="py method">
@@ -190,41 +205,48 @@
 <dt id="pheres._jsonable.JsonMark">
 <em class="property">class </em><code class="sig-prename descclassname">pheres._jsonable.</code><code class="sig-name descname">JsonMark</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">json_only</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">MISSING</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._jsonable.JsonMark" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Annotation for JSONized arguments type that provides more control
-on the JSONized attribute behavior. All arguments are optional.</p>
+<p>Annotation for jsonized arguments that provides more control
+on the jsonized attribute behavior. All arguments are optional.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>key</strong> – Set the name of the key in JSON for that attribute.
-Defaults to: the name of the attribute in python</p>
-</dd>
-</dl>
-<dl class="simple">
-<dt>json_only: Make the attribute only present in JSON. The attribute</dt><dd><p>must have a default value or be a Literal of a single value. The
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> – Set the name of the key in JSON for that attribute.
+Defaults to the name of the attribute in python</p></li>
+<li><p><strong>json_only</strong> – Make the attribute only present in JSON. The attribute
+must have a default value or be a <cite>typing.Literal</cite> of a single value. The
 attribute is removed from the class’ annotations at runtime
-Defaults to:
-– True for Literals of a single value
-– False for all other types</p>
+Defaults to <cite>True</cite> for Literals of a single value; <cite>False</cite> for all other types</p></li>
+</ul>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py data">
+<dt id="pheres._jsonable.Marked">
+<code class="sig-prename descclassname">pheres._jsonable.</code><code class="sig-name descname">Marked</code><a class="headerlink" href="#pheres._jsonable.Marked" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple type alias to quickly mark an attribute as jsonized</p>
+<p><code class="docutils literal notranslate"><span class="pre">Marked[T]</span></code> is equivalent to <code class="docutils literal notranslate"><span class="pre">Annotated[T,</span> <span class="pre">JsonMark()]</span></code></p>
+<p>alias of TypeT</p>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres._jsonable.marked">
 <code class="sig-prename descclassname">pheres._jsonable.</code><code class="sig-name descname">marked</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tp</span><span class="p">:</span> <span class="n">TypeHint</span></em>, <em class="sig-param"><span class="o">/</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span> &#x2192; TypeHint<a class="headerlink" href="#pheres._jsonable.marked" title="Permalink to this definition">¶</a></dt>
-<dd><p>Shortcut for <code class="docutils literal notranslate"><span class="pre">Annotated[T,</span> <span class="pre">JSONAttr(**kwargs)]</span></code></p>
-<p>See JSONAttr for a list of supported keyword arguments. Not compatible
-with type checkers due to being runtime</p>
+<dd><p>Shortcut for <code class="docutils literal notranslate"><span class="pre">Annotated[T,</span> <span class="pre">JsonMark(**kwargs)]</span></code></p>
+<p>See <cite>JsonMarkk</cite> for a list of supported keyword arguments.
+<cite>marked</cite> may not be compatible with type checkers due to being
+a runtime definition</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tp</strong> – Type hint to mark</p></li>
-<li><p><strong>**kwargs</strong> – additional info to pass to <a class="reference internal" href="#pheres._jsonable.JsonMark" title="pheres._jsonable.JsonMark"><code class="xref any py py-class docutils literal notranslate"><span class="pre">JsonMark</span></code></a></p></li>
+<li><p><strong>**kwargs</strong> – additional info to pass to <cite>JsonMark</cite></p></li>
 </ul>
 </dd>
 </dl>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#pheres._jsonable.JsonMark" title="pheres._jsonable.JsonMark"><code class="xref any py py-class docutils literal notranslate"><span class="pre">JsonMark</span></code></a></p>
+<p><cite>JsonMark</cite></p>
 </div>
 </dd></dl>
 

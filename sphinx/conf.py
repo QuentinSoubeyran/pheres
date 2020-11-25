@@ -35,7 +35,6 @@ extensions = [
 ]
 
 napoleon_use_ivar=True
-napoleon_google_attr_annotations = True
 
 autodoc_member_order = "bysource"
 autodoc_default_flags = ["members", "show-inheritance"]
