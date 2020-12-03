@@ -45,8 +45,8 @@ from typing import (
 
 # Local import
 from . import core
-from .core import JSONableArray
 from .core import (
+    JSONableArray,
     JSONableClass,
     JSONableObject,
     JSONableValue,
@@ -177,7 +177,16 @@ class DecodeContext:
     DecodeContext are immutable
     """
 
-    __slots__ = ("__weakref__", "doc", "pos", "types", "origs", "args", "parent", "pkey")
+    __slots__ = (
+        "__weakref__",
+        "doc",
+        "pos",
+        "types",
+        "origs",
+        "args",
+        "parent",
+        "pkey",
+    )
 
     doc: Union[str, JSONObject]  # pylint: disable=unsubscriptable-object
     pos: Pos

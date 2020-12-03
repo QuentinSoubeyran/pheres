@@ -1,0 +1,250 @@
+Tutorial - Jsonable API
+=======================
+
+The [`@jsonable` decorator](Jsonable-API) lets you easily create python classes that are serializable and deserializable in the JSON format. The API somewhat ressembles the API of the [`dataclasses`](https://docs.python.org/3/library/dataclasses.html) buitlin module. A "jsonable" is a class that has been decorated with *pheres*' `@jsonable` decorator.
+
+There are two main ways to use the decorator. One without type hint, to make *jsonable classes*, and three use with a type hint, to make *jsonable value*, *array*, and *object*. Those change how an instance serializes and deserializes to JSON. As we expect *jsonable classes* to be most useful, this usage is presented first.
+
+## Jsonable classes
+### Introduction
+An instance of a Jsonable class can serialize it's attributes to JSON as a JSONObject, and deserialize if the proper attributes are defined.
+
+This uses the `@jsonable` decorator without a type hint (i.e. without square brackets). Attributes to serialize/deserialize are defined at the class level, by providing type annotations.
+
+```python
+import pheres as ph
+from typing import *
+
+@ph.jsonable
+class SimpleJSONable:
+    """Simple JSONable class"""
+    names: List[str]
+
+    def __init__(self, names: List[str]=None):
+        self.names = names or []
+
+    def print_all(self):
+        for name in self.names:
+            print(name)
+```
+
+When creating a jsonable class, *Pheres* will look at the annotated attributes of the class (much like [`@dataclass`](https://docs.python.org/3.9/library/dataclasses.html?highlight=dataclasses#dataclasses.dataclass) does) and register them as **Jsonized attributes** for that class. This means those attributes will be written to JSON when serializing an instance, and are looked for when deserializing one.
+
+A key difference between `@dataclass` and `@jsonable` is that `@jsonable` will *always* look at the type hint of the Jsonized attributes to determine the type of the JSONized attribute. The type is used to correctly deserialize from JSON. See [JSON-typing](JSON-typing) for supported type hints.
+
+To allow deserialization, your class *must* define an `__init__()` method that accepts the Jsonized attributes as keywords arguments.
+
+After the class has been processed, Pheres adds the following methods and attributes to it:
+- `to_json()` is a method that serialize an instance to a JSON object, i.e. an object that `json.dump()` accepts
+- `from_json()` is a class methods that can deserialize from JSON files, strings or object to the class. It guesses what its argument is, using the following heuristic:
+    + if the passed argument has a `read` attribute, it is a file-like object
+    + if it is a subclass of `str` or `bytes`, it is a string-like
+    + else, it is a python object that represents a JSON
+- `Decoder` is a class attribute (e.g. stored on the class itself) that is a [`TypedJSONDecoder`](decoder) parametrized for that class
+- `conflict_with()` can be used to check if a JSON could correspond to two jsonable classes
+
+To serialize to a file or string, you can use `pheres.JSONableEncoder` as the encoder for `json.dump()` and `json.dumps()`. The functions `pheres.dump()` and `pheres.dumps()` use this encoder by default.
+
+### Jsonable class conflict
+*Pheres* can deserialized arbitrary JSON and automatically find jsonable classes in it. To allow that, *pheres* must be able to identify *the* jsonable class to deserialize to, without ambiguity. If a JSON object could correspond to more than one jsonable class, there is a jsonable conflict. jsonable conflicts are not permitted.
+
+Conflicts are found based on the classes' jsonized attributes names *and* types. If the types are incompatible, e.g. `str` and `int`, the value will differentiate the two classes and there is no conflict. For instance, the following two classes have a conflict in JSON, because both representation are a JSON object with a single key `"value"` of type `str`. We used the `@dataclass` decorator to get the `__init__` method automatically.
+
+```python
+from dataclasses import dataclass
+from pheres import jsonable
+
+@dataclass
+@jsonable
+class A:
+    value: str
+
+@dataclass
+@jsonable
+class B:
+    value: str
+```
+
+To prevent conflicts, when creating a new jsonable, *Pheres* checks that it does not conflict with any existing jsonable class. It raises a `JSONableError` if a conflict is found. This early detection prevent errors later in the code, for instance when deserializing.
+
+> In the above example, the error is raised when the class `B` is created, during module import if this file is a module.
+
+Fixing class conflict is relatively easy. The simplest way is to rename attributes so that there is no conflict. But sometimes you wish to keep the same names because this is clearer in python, in which case you can use json-only attributes to solve conflicts (see below). An attribute `type` wich is a `Literal` of a single value is automatically json-only: this is intended to make solving conflict easy.
+
+Let us fix our conflict using this technique:
+
+```python
+from dataclasses import dataclass
+from typing import Literal
+from pheres import jsonable
+
+@dataclass
+@jsonable
+class A:
+    type: Literal["A"]
+    value: str
+
+@dataclass
+@jsonable
+class B:
+    type: Literal["B"]
+    value: str
+```
+
+This will no longer raise on created class `B`. Note that this changes the JSON representation of our class: for instance, the JSON `{"value": "yes"}` no longer corresponds to A or B, because it doesn't contain a `"type"` key.
+
+### Python-only attributes
+*Pheres* can only jsonize attributes that are type-hinted in the class definition. You can remove an attribute from the JSON serialization by not type-hinting it.
+
+However, you might want to type hint some attributes without them being reflected in the JSON -- for instance, because you use a type checker, or because you use `@dataclass`. For those cases, `@jsonable` supports the `all_attrs` argument (`True` by default). By setting it to `False`, *Pheres* will only jsonize attributes that have been appropriately marked:
+
+```python
+@jsonable(all_attrs=False)
+class PartialJSONable:
+    name : ph.JAttr[str] # marked attribute
+    value: ph.jattr(str) # marked attribute
+    number: typing.Annotated[int, ph.JSONAttr()] # full syntax for marking attributes
+    py_only: int # attribute is not marked
+```
+
+To mark attributes, annotate them using the `typing.Annotated` type from the builtin [typing](https://docs.python.org/3/library/typing.html) module. One of the annotation values must be an instance of `pheres.JSONAttr`. As a short-hand, you can also:
++ use the type `pheres.JAttr[]`. It is an type alias that will annotate the provided type hint
++ use the function `pheres.jattr()` that will build the type hint at runtime. This might be incompatible with type-checkers
+
+### json-only attributes
+Conversely, you might want some attributes to only be present in the JSON serialization of your class. The most common use-case is to resolve jsonable conflicts (see above).
+
+To make an attribute json-only, you need to annotate its type-hint with an instance of `pheres.JSONAttr`, passing `True` to the instance's `json_only` argument. You can also use the `pheres.jattr` short-hand (see below).
+
+```python
+@ph.jsonable
+class EmptyPython:
+    """
+    JSONable class that doesn't contain any python attributes
+    """
+    type_: Literal["empty_python"] # json-only by default
+    json_key: ph.jattr(Union[str, int], json_only=True) = 5 # marked as json-only
+```
+
+Note that attributes that are `Literal` of a single value are json-only by default. The rationale is that you know the value in python, so you don't need to load it from JSON. You can still force them to not be json-only by passing `False` as the `json_only` argument.
+
+```python
+@ph.jsonable
+class NotEmpty:
+    type_: ph.jattr(Literal["not_empty"], json_only=False) # forced to be in python
+```
+
+json-only attributes must provide a default value. If the type hint is a `Literal` of a single value, the default is not required and the value of the `Literal` is the default.
+
+The default is used for serialization only: the value found in JSON is not checked to be equal to the default (only its type is checked). If you need to check for specific value(s), use a `Literal` type.
+
+> **Warning**
+>
+> If you use `@dataclass` on a jsonable class with json-only attribute, `@jsonable` must be the inner-most decorator of the two: it removes json-only attributes from the class' annotation and dictionary so taht `@dataclass` doesn't include them in the `__init__` method.
+> You will get a `JSONableError` if you get the order wrong.
+
+### Default values
+If a jsonized attribute has a value in the class definition, this is used as the default value for the jsonized attribute. The default value can be a JSON value, or a callable without arguments that builds the default value.
+
+When serializing to JSON, attributes with a value equal to their default value are not included (unless `default_values` is True, see below).
+
+When deserializing from JSON, if a jsonized attribute is not found, it is given it's default value. Callable default value are called without arguments to get the default value. Values are deep-copied (this means you can use a mutable value such as the empty list `[]` without side effects).
+
+### Changing the name of the attribute in JSON
+The `JSONAttr` Annotation can also be used to change the name of the attribute in JSON (compared to python). The python name is always the name of the attribute in the class definition. The JSON key for the attribute can be changed with the `key` argument of `JSONAttr`. The function `jattr()` also supports the argument. `JAttr` does not, since it is a type alias.
+
+```python
+@ph.jsonable
+class Widget:
+    type_ : ph.jattr(str, key="type") # change the name in JSON
+```
+
+### Compatibility with the [`dataclasses`](https://docs.python.org/3.9/library/dataclasses.html) builtin module
+The jsonable API is fully compatible with `@dataclass`. If the default value of an attribute is a `dataclasses.Field`, the `default` or `default_factory` is retrieved. Attributes that are removed from the class, but were still defined as dataclass fields, are also properly retrieved.
+
+## jsonable values
+Sometimes, you don't want your class JSON representation to be a JSON object, because it has a single key. `@jsonable` can also make a class that is represented in JSON by a single value.
+
+To define such a class, pass the type of the value to `@jsonable` as you do for type hints.
+
+```python
+
+@ph.jsonable[str]
+class SmartString:
+    # required by @jsonable
+    def __init__(self, value):
+        self.s = value
+
+    def to_json(self):
+        return self.s
+    
+    ...
+```
+
+The syntax `@jsonable[]` guesses what you want based on the provided type. There is an explicit syntax:
+
+```python
+@ph.jsonable.Value[str]
+class SmartString:
+    ...
+```
+
+Jsonable values are a bit different from jsonable object seen before: *pheres* cannot guess what you do with the value, so you must implement the `to_json()` method yourself. Usually this isn't too hard.
+
+The `__init__` method must accept the call `self.__init__(value)`, where `value` is the decoded JSON value. This is necessary for deserialization.
+
+jsonable values otherwise support everything jsonable classes do (`from_json()`,`Decoder` etc.)
+
+## jsonable array
+If you want the value to be an array, then the syntax is a bit different: either pass a `Tuple` or `List` type, or pass all the type hints you would pass to `Tuple` to `@jsonable` directly, like so:
+
+```python
+@jsonable[str, str]
+class Person:
+    def __init__(self, name, surname):
+        self.name = name
+        self.surname = surname
+    
+    def to_json(self):
+        return (self.name, self.surname)
+    
+    def hello(self):
+        return f"Hello, my name is {self.name} {self.surname}"
+
+@jsonable[str, ...]
+class AddressBook:
+    def __init__(self, *addresses):
+        self.addresses = addresses
+    
+    def to_json(self):
+        return self.addresses
+
+    def contains(address):
+        return address in self.addresses
+```
+
+If you want an array of arrays, then the syntax is `@jsonable[List[List[T]]]`. You can also use the explicit syntax `@jsonable.Array[List[T]]`, where *pheres* doesn't unwraps the first `List` or `Tuple` annotation.
+
+As for jsonable value, the class must define `to_json`, *pheres* can't do it automatically. Also, the `__init__` method must accept the call `self.__init__(*array)`, where array is the decoded JSONarray (a python list). For fixed-length jsonable array as `Person` above, you can name the arguments explicitely. For variable-length jsonable array such as `AddressBook` above, it is not possible.
+
+jsonable arrays otherwise support everything jsonable classes do (`from_json()`,`Decoder` etc.)
+
+## jsonable object
+Jsonable object are equivalent to jsonable values and arrays, but for JSON object. The difference between jsonable classes and jsonable objects is that object accept any number of arbitrary key, while classes accept only a fixed, finite and predetermined set of key (the jsonized attributes).
+
+The syntax uses the `Dict` type, or the explicit syntax `@jsonable.Object` which doesn't unwraps the first `Dict` annotation:
+
+```python
+@jsonable[Dict[str, str]] # or @jsonable.Object[str]
+class Peoples:
+    def __init__(self, *names):
+        self.names = names
+    
+    def to_json(self):
+        return self.names
+
+    def surname(name):
+        return self.names.get(name)
+```
+
+As for jsonable values and arrays, you must provide `to_json`. Jsonable objects otherwise support everything jsonable classes do (`from_json()`,`Decoder` etc.)

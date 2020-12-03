@@ -6,17 +6,20 @@ with open("README.md", "r") as f:
 setuptools.setup(
     # Package
     name="pheres",
-    version="1.0a9",
+    version="2.0a1",
     packages=setuptools.find_packages("src"),
     package_dir={"": "src"},
     python_requires="~=3.9",
+    install_requires=[
+        "attrs>=20.1.0"
+    ],
     # Metadata
     author="Quentin Soubeyran",
     license="MIT",
     author_email="45202794+QuentinSoubeyran@users.noreply.github.com",
-    description="Extension of the builtin json module",
+    description="JSON conversions in a decorator",
     long_description=readme,
-    long_description_content_type="text/markdown",
+    long_description_content_type="text/markdown", # text/x-rst
     url="https://github.com/QuentinSoubeyran/pheres",
     project_urls={
         "Documentation": r"https://github.com/QuentinSoubeyran/pheres/wiki",

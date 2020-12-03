@@ -1,0 +1,8 @@
+Complete API Reference
+======================
+
+.. automodule:: pheres
+    :members:
+    :show-inheritance:
+    :noindex:
+    :imported-members:
