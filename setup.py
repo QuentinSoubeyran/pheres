@@ -19,7 +19,7 @@ setuptools.setup(
     author_email="45202794+QuentinSoubeyran@users.noreply.github.com",
     description="JSON conversions in a decorator",
     long_description=readme,
-    long_description_content_type="text/markdown",
+    long_description_content_type="text/markdown", # text/x-rst
     url="https://github.com/QuentinSoubeyran/pheres",
     project_urls={
         "Documentation": r"https://github.com/QuentinSoubeyran/pheres/wiki",

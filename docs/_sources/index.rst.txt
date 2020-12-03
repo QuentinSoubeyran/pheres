@@ -6,6 +6,9 @@
 
 .. _pheres:
 
+Pheres
+======
+
 .. mdinclude:: ../../README.md
 
 .. toctree::
@@ -15,6 +18,8 @@
    :hidden:
 
    Home <self>
+   Github <https://github.com/QuentinSoubeyran/pheres>
+   Issue tracker <https://github.com/QuentinSoubeyran/pheres/issues>
 
 .. toctree::
    :maxdepth: 1

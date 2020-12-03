@@ -84,6 +84,8 @@
               <p class="caption"><span class="caption-text">Quick Links</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../index.html">Home</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/QuentinSoubeyran/pheres">Github</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/QuentinSoubeyran/pheres/issues">Issue tracker</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Tutorials</span></p>
 <ul>
@@ -181,7 +183,7 @@ usage of this decorator, see below.</p>
 must have the correct types when deserializing. Types are specified
 in python code by using PEP 526 type annotations. No typecheck occurs
 on serialization, as python’s type annotations are not binding.
-<code class="xref any docutils literal notranslate"><span class="pre">pheres</span></code> trusts that the code follows the annotations it exposes, but
+<a class="reference internal" href="../index.html#pheres"><span class="std std-ref">Pheres</span></a> trusts that the code follows the annotations it exposes, but
 does not enforce it. Ill-implemented code may well crash when
 deserializing instances that did not abide to their annotations.</p>
 <p><code class="docutils literal notranslate"><span class="pre">&#64;jsonable</span></code> can be parametrized by type-hints, much like types from
@@ -236,7 +238,7 @@ where value is the JSON value for an instance of the class
 (this is used for deserialization)</p></li>
 <li><p>implement the <code class="docutils literal notranslate"><span class="pre">to_json(self)</span></code> method, that returns the value
 to represents the instance with in JSON (e.g. <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">None</span></code></a>, an <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">int</span></code></a>
-or a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">str</span></code></a>). This is because <code class="xref any docutils literal notranslate"><span class="pre">pheres</span></code> cannot know what the class
+or a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">str</span></code></a>). This is because <a class="reference internal" href="../index.html#pheres"><span class="std std-ref">Pheres</span></a> cannot know what the class
 does with the value, like it does with jsonable objects.</p></li>
 </ul>
 <p>See the <em>Usage</em> section below for how to make jsonable values</p>
@@ -261,7 +263,7 @@ as it does accept the call above).</p></li>
 </li>
 <li><p>implement the <code class="docutils literal notranslate"><span class="pre">to_json(self)</span></code> method, that returns the python
 <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">list</span></code></a> that represents the instance in JSON. This is because
-<code class="xref any docutils literal notranslate"><span class="pre">pheres</span></code> cannot know what the class does with the values like
+<a class="reference internal" href="../index.html#pheres"><span class="std std-ref">Pheres</span></a> cannot know what the class does with the values like
 it does with jsonable objects.</p></li>
 </ul>
 <p>See the <em>Usage</em> section below for how to make jsonable arrays</p>
@@ -283,7 +285,7 @@ but all key-value pairs found in the deserialized JSON will be
 passed as keyword arguments. This is used for deserialization.</p></li>
 <li><p>implement the <code class="docutils literal notranslate"><span class="pre">to_json(self)</span></code> method, that returns a python
 <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a> that represents the instance in JSON. This is because
-<code class="xref any docutils literal notranslate"><span class="pre">pheres</span></code> cannot know what the class does with the key-value
+<a class="reference internal" href="../index.html#pheres"><span class="std std-ref">Pheres</span></a> cannot know what the class does with the key-value
 pairs like it does with jsonable objects.</p></li>
 </ul>
 <p>See the <em>Usage</em> section below for how to make jsonable dicts</p>
@@ -293,7 +295,7 @@ pairs like it does with jsonable objects.</p></li>
 <dt>Jsonable objects:</dt><dd><p>Jsonable objects are represented by a JSON Object with known
 key-value pairs. The key-value paires are obtained from the
 class by inspecting PEP 526 annotations. Attributes must be
-annotated to be considered by <code class="xref any docutils literal notranslate"><span class="pre">pheres</span></code>, then:</p>
+annotated to be considered by <a class="reference internal" href="../index.html#pheres"><span class="std std-ref">Pheres</span></a>, then:</p>
 <ul class="simple">
 <li><p>If <code class="docutils literal notranslate"><span class="pre">auto_attrs</span></code> is <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a> (the default), all annotated
 attributes are used</p></li>
@@ -317,7 +319,7 @@ if you used <a class="reference external" href="https://docs.python.org/3/librar
 the intended usage for this functuonality.</p></li>
 </ul>
 <p>In particular, jsonable object <em>do not</em> need to implement a
-<code class="docutils literal notranslate"><span class="pre">to_json(self)</span></code> method, as <code class="xref any docutils literal notranslate"><span class="pre">pheres</span></code> knows exactly what attributes
+<code class="docutils literal notranslate"><span class="pre">to_json(self)</span></code> method, as <a class="reference internal" href="../index.html#pheres"><span class="std std-ref">Pheres</span></a> knows exactly what attributes
 to use. This is in contrast with other jsonable classes.</p>
 <p>See the <em>Usage</em> section below for how to make jsonable objects</p>
 </dd>
