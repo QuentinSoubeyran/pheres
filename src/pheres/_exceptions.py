@@ -14,7 +14,7 @@ import graphlib
 from attr import attrib
 from attr import dataclass as attrs
 
-from .utils import TypeHint, autoformat
+from pheres._utils import TypeHint, autoformat
 
 exception = functools.partial(attrs, auto_exc=True)
 

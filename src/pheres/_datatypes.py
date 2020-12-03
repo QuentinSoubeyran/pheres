@@ -16,13 +16,13 @@ from typing import Any, Callable, ClassVar, Iterable, Literal, Union, get_origin
 from attr import Factory, attrib
 from attr import dataclass as attrs
 
-from .exceptions import (
+from pheres._exceptions import (
     JsonAttrError,
     JsonAttrTypeError,
     JsonAttrValueError,
     PheresInternalError,
 )
-from .utils import AnyClass, TypeHint, get_args, get_class_namespaces, post_init
+from pheres._utils import AnyClass, TypeHint, get_args, get_class_namespaces, post_init
 
 PHERES_ATTR = "__pheres_data__"
 
@@ -143,7 +143,7 @@ class JsonAttr:
     is_json_only: bool = attrib(default=MISSING)
 
     def __post_init__(self, *, cls=None):
-        from .typing import is_json, typecheck
+        from pheres._typing import is_json, typecheck
 
         if cls is None:
             raise ValueError("Missing parent class")

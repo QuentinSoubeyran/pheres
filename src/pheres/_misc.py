@@ -3,13 +3,15 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Dict, List, Tuple, Type, Union
 
-from .datatypes import MISSING
-from .exceptions import JSONKeyError, JSONTypeError, PheresInternalError
-from .typing import JSONArray, JSONObject, JSONType, JSONValue, typeof
+from pheres._datatypes import MISSING
+from pheres._exceptions import JSONKeyError, JSONTypeError, PheresInternalError
+from pheres._typing import JSONArray, JSONObject, JSONType, JSONValue, typeof
 
 # Types used in his module
 FlatKey = Tuple[Union[int, str], ...]  # pylint: disable=unsubscriptable-object
+"""Typehint for keys of flattened JSON"""
 FlatJSON = Dict[FlatKey, JSONValue]
+"""Type hint of a flattened JSON"""
 
 
 def _flatten(flat_json: FlatJSON, keys: FlatKey, obj: JSONType) -> FlatJSON:
@@ -36,9 +38,9 @@ def flatten(obj: JSONObject) -> FlatJSON:
     path from the top-level object down to the value. Object keys are stored as str, Array index as int
 
     Arguments:
-        obj -- json object to flatten
+        obj: json object to flatten
 
-    Return:
+    Returns:
         A dict mapping tuples of index and key to the final value
     """
     return _flatten({}, tuple(), obj)
@@ -94,29 +96,32 @@ def expand(
     If there are duplicated values under the same key, a random one is kept
 
     Arguments:
-        flat_json -- flat json to expand
-        array_as_dict -- represent arrays as dict[int, JSONValue] instead of list
-        sort -- sort JSONObject by keys
+        flat_json: flat json to expand
+        array_as_dict: whether to represent arrays as dict[int, JSONValue] instead of list
+        sort: whether to sort JSONObject by keys
 
     Returns:
         A JSON object that is the expanded representation of the flat_json
 
     Raises:
-        ValueError -- the flat_json is invalid
+        ValueError: the flat_json is invalid. See the error for details
     """
     return _expand(flat_json, array_as_dict, sort, tuple())
 
 
 def compact(obj: JSONObject, *, sep=".") -> JSONObject:
     """
-    Returns a new dict-only json that is a copy of ``obj`` where keys with only one element are
-    merged with their parent key
+    Removes unnecessary levels in the JSON tree
+    
+    Returns a new JSONObject where keys with only one element are merged
+    with their parent key. Keys are converted to `str` objects. The returned
+    value contains only dicts, even if the original JSON contained arrays.
 
-    Arguments
-        obj -- json object object to compact
-        sep -- separator to use for merging keys
+    Arguments:
+        obj: json object object to compact
+        sep: separator to use for merging keys
 
-    Returns
+    Returns:
         A compact, dict-only, representation of json_obj
     """
     ret = {}
@@ -138,15 +143,16 @@ def get(
     key: Union[int, str, FlatKey],  # pylint: disable=unsubscriptable-object
     default=MISSING,
 ) -> JSONType:
-    """Retrieve a value on a JSON array or object. Return Default if provided and the key is missing
+    """Retrieve a value on a JSON array or object. Return ``default``
+    if it was provided and ``key`` is missing
 
-    Arguments
-        obj -- JSON array or object to retrive the value from
-        key -- key to index
-        default -- optional value to return if key is missing
+    Arguments:
+        obj: JSON array or object to retrieve the value from
+        key: key to index. Supports iterable of successive keys
+        default: optional value to return if ``key`` is missing
 
-    Raises
-        JSONKeyError if the key is missing and 'default' is not provided
+    Raises:
+        JSONKeyError: ``key`` is missing and ``default`` was not specified
     """
     if isinstance(key, Iterable) and not isinstance(key, str):
         key = tuple(key)
@@ -168,7 +174,10 @@ def has(
 ):
     """Test if a JSON has the provided key
 
-    Implemented by calling get(obj, key) and catching JSONKeyError
+    Implemented by calling ``get(obj, key)`` and catching JSONKeyError
+
+    See also:
+        `pheres._misc.get`
     """
     try:
         get(obj, key)
@@ -184,11 +193,18 @@ def set(
 ):
     """Sets the value of the key in the JSON
 
-    Possibly creates the full path at once
+    Possibly creates the full path at once. Setting a value in a array
+    past its length or adding an element at the end is supported
 
-    Raises
-        IndexError -- when setting a value in a array past its length. Adding an element at
-            the end is supported
+    Arguments:
+        obj: JSON to set the value ine
+        key: path from the root JSON ``obj`` to the value to set.
+            Supports iterables of keys. Key of type `int` will create new
+            `list` if necessary, and `str` will create new `dict`
+        value: the value to set under the key ``key``
+
+    Raises:
+        IndexError: The key is not valid
     """
     if isinstance(key, Iterable) and not isinstance(key, str):
         key = tuple(key)
@@ -204,7 +220,7 @@ def set(
             raise JSONTypeError(
                 type=Union[int, str],
                 value=next_key,
-                msg=f"JSON key smust have type {{type}}, got {type(next_key)}",
+                msg=f"JSON key must have type {{type}}, got {type(next_key)}",
             )
         if isinstance(obj, list) and k == len(obj):
             obj.append(next_obj)

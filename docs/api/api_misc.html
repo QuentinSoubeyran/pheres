@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>pheres.misc &mdash; pheres  documentation</title>
+  <title>Miscellaneous &mdash; pheres  documentation</title>
   
 
   
@@ -35,7 +35,7 @@
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="prev" title="pheres.jsonable" href="api_jsonable.html" /> 
+    <link rel="prev" title="Jsonable API" href="api_jsonable.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -80,15 +80,25 @@
               
             
             
-              <p class="caption"><span class="caption-text">API Reference</span></p>
+              <p class="caption"><span class="caption-text">Quick Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Home</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/typed_decoding.html">Typed JSON decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/jsonable.html">Jsonable Classes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API Reference</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="api_notes.html">API notes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_exceptions.html"><code class="docutils literal notranslate"><span class="pre">pheres.exceptions</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_datatypes.html"><code class="docutils literal notranslate"><span class="pre">pheres.datatypes</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_typing.html"><code class="docutils literal notranslate"><span class="pre">pheres.typing</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_decoder.html"><code class="docutils literal notranslate"><span class="pre">pheres.decoder</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_jsonable.html"><code class="docutils literal notranslate"><span class="pre">pheres.jsonable</span></code></a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">pheres.misc</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_intro.html">API Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_exceptions.html">Exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_datatypes.html">Datatypes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_types.html">Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_typing.html">JSON Typing API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_decoder.html">Decoding API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_jsonable.html">Jsonable API</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Miscellaneous</a></li>
 </ul>
 
             
@@ -135,7 +145,7 @@
     
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li><code class="docutils literal notranslate"><span class="pre">pheres.misc</span></code></li>
+      <li>Miscellaneous</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -154,16 +164,30 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-pheres.misc">
-<span id="pheres-misc"></span><h1><code class="docutils literal notranslate"><span class="pre">pheres.misc</span></code><a class="headerlink" href="#module-pheres.misc" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-pheres._misc">
+<span id="miscellaneous"></span><h1>Miscellaneous<a class="headerlink" href="#module-pheres._misc" title="Permalink to this headline">¶</a></h1>
+<dl class="py data">
+<dt id="pheres._misc.FlatKey">
+<code class="sig-prename descclassname">pheres._misc.</code><code class="sig-name descname">FlatKey</code><a class="headerlink" href="#pheres._misc.FlatKey" title="Permalink to this definition">¶</a></dt>
+<dd><p>Typehint for keys of flattened JSON</p>
+<p>alias of Tuple[Union[int, str], …]</p>
+</dd></dl>
+
+<dl class="py data">
+<dt id="pheres._misc.FlatJSON">
+<code class="sig-prename descclassname">pheres._misc.</code><code class="sig-name descname">FlatJSON</code><a class="headerlink" href="#pheres._misc.FlatJSON" title="Permalink to this definition">¶</a></dt>
+<dd><p>Type hint of a flattened JSON</p>
+<p>alias of Dict[Tuple[Union[int, str], …], Union[None, bool, int, float, str, pheres._typing.JsonableValue]]</p>
+</dd></dl>
+
 <dl class="py function">
-<dt id="pheres.misc.flatten">
-<code class="sig-prename descclassname">pheres.misc.</code><code class="sig-name descname">flatten</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">JSONObject</span></em><span class="sig-paren">)</span> &#x2192; FlatJSON<a class="headerlink" href="#pheres.misc.flatten" title="Permalink to this definition">¶</a></dt>
+<dt id="pheres._misc.flatten">
+<code class="sig-prename descclassname">pheres._misc.</code><code class="sig-name descname">flatten</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">JSONObject</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pheres._misc.FlatJSON" title="pheres._misc.FlatJSON">FlatJSON</a><a class="headerlink" href="#pheres._misc.flatten" title="Permalink to this definition">¶</a></dt>
 <dd><p>Flattens a JSON object to a dict with a single level of mapping. Key become tuples that store the
 path from the top-level object down to the value. Object keys are stored as str, Array index as int</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>-- json object to flatten</strong> (<em>obj</em>) – </p>
+<dd class="field-odd"><p><strong>obj</strong> – json object to flatten</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A dict mapping tuples of index and key to the final value</p>
@@ -172,73 +196,95 @@ path from the top-level object down to the value. Object keys are stored as str,
 </dd></dl>
 
 <dl class="py function">
-<dt id="pheres.misc.expand">
-<code class="sig-prename descclassname">pheres.misc.</code><code class="sig-name descname">expand</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">flat_json</span><span class="p">:</span> <span class="n">FlatJSON</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">array_as_dict</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">sort</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">True</span></em><span class="sig-paren">)</span> &#x2192; JSONObject<a class="headerlink" href="#pheres.misc.expand" title="Permalink to this definition">¶</a></dt>
+<dt id="pheres._misc.expand">
+<code class="sig-prename descclassname">pheres._misc.</code><code class="sig-name descname">expand</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">flat_json</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#pheres._misc.FlatJSON" title="pheres._misc.FlatJSON">FlatJSON</a></span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">array_as_dict</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">sort</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">True</span></em><span class="sig-paren">)</span> &#x2192; JSONObject<a class="headerlink" href="#pheres._misc.expand" title="Permalink to this definition">¶</a></dt>
 <dd><p>Expand a flat JSON back into a JSON object. This is the inverse operation of flatten().
 If there are duplicated values under the same key, a random one is kept</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>-- flat json to expand</strong> (<em>flat_json</em>) – </p></li>
-<li><p><strong>-- represent arrays as dict</strong><strong>[</strong><strong>int</strong> (<em>array_as_dict</em>) – </p></li>
-<li><p><strong>instead of list</strong> (<em>JSONValue</em><em>]</em>) – </p></li>
-<li><p><strong>-- sort JSONObject by keys</strong> (<em>sort</em>) – </p></li>
+<li><p><strong>flat_json</strong> – flat json to expand</p></li>
+<li><p><strong>array_as_dict</strong> – whether to represent arrays as dict[int, JSONValue] instead of list</p></li>
+<li><p><strong>sort</strong> – whether to sort JSONObject by keys</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A JSON object that is the expanded representation of the flat_json</p>
 </dd>
 <dt class="field-odd">Raises</dt>
-<dd class="field-odd"><p><strong>ValueError -- the flat_json is invalid</strong> – </p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.9)"><strong>ValueError</strong></a> – the flat_json is invalid. See the error for details</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pheres.misc.compact">
-<code class="sig-prename descclassname">pheres.misc.</code><code class="sig-name descname">compact</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">JSONObject</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">sep</span><span class="o">=</span><span class="default_value">'.'</span></em><span class="sig-paren">)</span> &#x2192; JSONObject<a class="headerlink" href="#pheres.misc.compact" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a new dict-only json that is a copy of <code class="docutils literal notranslate"><span class="pre">obj</span></code> where keys with only one element are
-merged with their parent key</p>
-<dl class="simple">
-<dt>Arguments</dt><dd><p>obj – json object object to compact
-sep – separator to use for merging keys</p>
+<dt id="pheres._misc.compact">
+<code class="sig-prename descclassname">pheres._misc.</code><code class="sig-name descname">compact</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">JSONObject</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">sep</span><span class="o">=</span><span class="default_value">'.'</span></em><span class="sig-paren">)</span> &#x2192; JSONObject<a class="headerlink" href="#pheres._misc.compact" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes unnecessary levels in the JSON tree</p>
+<p>Returns a new JSONObject where keys with only one element are merged
+with their parent key. Keys are converted to <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">str</span></code></a> objects. The returned
+value contains only dicts, even if the original JSON contained arrays.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – json object object to compact</p></li>
+<li><p><strong>sep</strong> – separator to use for merging keys</p></li>
+</ul>
 </dd>
-<dt>Returns</dt><dd><p>A compact, dict-only, representation of json_obj</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="pheres.misc.get">
-<code class="sig-prename descclassname">pheres.misc.</code><code class="sig-name descname">get</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>JSONArray<span class="p">, </span>JSONObject<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">key</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>FlatKey<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">default</span><span class="o">=</span><span class="default_value">MISSING</span></em><span class="sig-paren">)</span> &#x2192; JSONType<a class="headerlink" href="#pheres.misc.get" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retrieve a value on a JSON array or object. Return Default if provided and the key is missing</p>
-<dl class="simple">
-<dt>Arguments</dt><dd><p>obj – JSON array or object to retrive the value from
-key – key to index
-default – optional value to return if key is missing</p>
-</dd>
-<dt>Raises</dt><dd><p>JSONKeyError if the key is missing and ‘default’ is not provided</p>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A compact, dict-only, representation of json_obj</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pheres.misc.has">
-<code class="sig-prename descclassname">pheres.misc.</code><code class="sig-name descname">has</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>JSONArray<span class="p">, </span>JSONObject<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">key</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>FlatKey<span class="p">]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.misc.has" title="Permalink to this definition">¶</a></dt>
+<dt id="pheres._misc.get">
+<code class="sig-prename descclassname">pheres._misc.</code><code class="sig-name descname">get</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>JSONArray<span class="p">, </span>JSONObject<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">key</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><a class="reference internal" href="#pheres._misc.FlatKey" title="pheres._misc.FlatKey">FlatKey</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">default</span><span class="o">=</span><span class="default_value">MISSING</span></em><span class="sig-paren">)</span> &#x2192; JSONType<a class="headerlink" href="#pheres._misc.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve a value on a JSON array or object. Return <code class="docutils literal notranslate"><span class="pre">default</span></code>
+if it was provided and <code class="docutils literal notranslate"><span class="pre">key</span></code> is missing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – JSON array or object to retrieve the value from</p></li>
+<li><p><strong>key</strong> – key to index. Supports iterable of successive keys</p></li>
+<li><p><strong>default</strong> – optional value to return if <code class="docutils literal notranslate"><span class="pre">key</span></code> is missing</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>JSONKeyError</strong> – <code class="docutils literal notranslate"><span class="pre">key</span></code> is missing and <code class="docutils literal notranslate"><span class="pre">default</span></code> was not specified</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pheres._misc.has">
+<code class="sig-prename descclassname">pheres._misc.</code><code class="sig-name descname">has</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>JSONArray<span class="p">, </span>JSONObject<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">key</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><a class="reference internal" href="#pheres._misc.FlatKey" title="pheres._misc.FlatKey">FlatKey</a><span class="p">]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._misc.has" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test if a JSON has the provided key</p>
-<p>Implemented by calling get(obj, key) and catching JSONKeyError</p>
+<p>Implemented by calling <code class="docutils literal notranslate"><span class="pre">get(obj,</span> <span class="pre">key)</span></code> and catching JSONKeyError</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#pheres._misc.get" title="pheres._misc.get"><code class="xref any py py-func docutils literal notranslate"><span class="pre">pheres._misc.get</span></code></a></p>
+</div>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pheres.misc.set">
-<code class="sig-prename descclassname">pheres.misc.</code><code class="sig-name descname">set</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>JSONArray<span class="p">, </span>JSONObject<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">key</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>FlatKey<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">value</span><span class="p">:</span> <span class="n">JSONObject</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.misc.set" title="Permalink to this definition">¶</a></dt>
+<dt id="pheres._misc.set">
+<code class="sig-prename descclassname">pheres._misc.</code><code class="sig-name descname">set</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>JSONArray<span class="p">, </span>JSONObject<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">key</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a><span class="p">, </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span><a class="reference internal" href="#pheres._misc.FlatKey" title="pheres._misc.FlatKey">FlatKey</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">value</span><span class="p">:</span> <span class="n">JSONObject</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._misc.set" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the value of the key in the JSON</p>
-<p>Possibly creates the full path at once</p>
-<dl class="simple">
-<dt>Raises</dt><dd><dl class="simple">
-<dt>IndexError – when setting a value in a array past its length. Adding an element at</dt><dd><p>the end is supported</p>
+<p>Possibly creates the full path at once. Setting a value in a array
+past its length or adding an element at the end is supported</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – JSON to set the value ine</p></li>
+<li><p><strong>key</strong> – path from the root JSON <code class="docutils literal notranslate"><span class="pre">obj</span></code> to the value to set.
+Supports iterables of keys. Key of type <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">int</span></code></a> will create new
+<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">list</span></code></a> if necessary, and <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">str</span></code></a> will create new <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a></p></li>
+<li><p><strong>value</strong> – the value to set under the key <code class="docutils literal notranslate"><span class="pre">key</span></code></p></li>
+</ul>
 </dd>
-</dl>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#IndexError" title="(in Python v3.9)"><strong>IndexError</strong></a> – The key is not valid</p>
 </dd>
 </dl>
 </dd></dl>
@@ -254,7 +300,7 @@ default – optional value to return if key is missing</p>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
       
-        <a href="api_jsonable.html" class="btn btn-neutral float-left" title="pheres.jsonable" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="api_jsonable.html" class="btn btn-neutral float-left" title="Jsonable API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

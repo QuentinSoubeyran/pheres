@@ -1,0 +1,454 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Jsonable Classes &mdash; pheres  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="API Introduction" href="../api/api_intro.html" />
+    <link rel="prev" title="Typed JSON decoding" href="typed_decoding.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> pheres
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Quick Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Home</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tutorials</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="typed_decoding.html">Typed JSON decoding</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Jsonable Classes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api/api_intro.html">API Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/api_exceptions.html">Exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/api_datatypes.html">Datatypes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/api_types.html">Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/api_typing.html">JSON Typing API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/api_decoder.html">Decoding API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/api_jsonable.html">Jsonable API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/api_misc.html">Miscellaneous</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">pheres</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Jsonable Classes</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/tutorials/jsonable.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="jsonable-classes">
+<h1>Jsonable Classes<a class="headerlink" href="#jsonable-classes" title="Permalink to this headline">¶</a></h1>
+<p>The <a class="reference external" href="Jsonable-API"><code class="docutils literal notranslate"><span class="pre">&#64;jsonable</span></code> decorator</a> lets you easily create python classes that are serializable and deserializable in the JSON format. The API somewhat ressembles the API of the <a class="reference external" href="https://docs.python.org/3/library/dataclasses.html"><code class="docutils literal notranslate"><span class="pre">dataclasses</span></code></a> buitlin module. A “jsonable” is a class that has been decorated with <em>pheres</em>’ <code class="docutils literal notranslate"><span class="pre">&#64;jsonable</span></code> decorator.</p>
+<p>There are two main ways to use the decorator. One without type hint, to make <em>jsonable classes</em>, and three use with a type hint, to make <em>jsonable value</em>, <em>array</em>, and <em>object</em>. Those change how an instance serializes and deserializes to JSON. As we expect <em>jsonable classes</em> to be most useful, this usage is presented first.</p>
+<div class="section" id="id1">
+<h2>Jsonable classes<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="introduction">
+<h3>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h3>
+<p>An instance of a Jsonable class can serialize it’s attributes to JSON as a JSONObject, and deserialize if the proper attributes are defined.</p>
+<p>This uses the <code class="docutils literal notranslate"><span class="pre">&#64;jsonable</span></code> decorator without a type hint (i.e. without square brackets). Attributes to serialize/deserialize are defined at the class level, by providing type annotations.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pheres</span> <span class="k">as</span> <span class="nn">ph</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="nd">@ph</span><span class="o">.</span><span class="n">jsonable</span>
+<span class="k">class</span> <span class="nc">SimpleJSONable</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Simple JSONable class&quot;&quot;&quot;</span>
+    <span class="n">names</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="n">names</span> <span class="ow">or</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">print_all</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>When creating a jsonable class, <em>Pheres</em> will look at the annotated attributes of the class (much like <a class="reference external" href="https://docs.python.org/3.9/library/dataclasses.html?highlight=dataclasses#dataclasses.dataclass"><code class="docutils literal notranslate"><span class="pre">&#64;dataclass</span></code></a> does) and register them as <strong>Jsonized attributes</strong> for that class. This means those attributes will be written to JSON when serializing an instance, and are looked for when deserializing one.</p>
+<p>A key difference between <code class="docutils literal notranslate"><span class="pre">&#64;dataclass</span></code> and <code class="docutils literal notranslate"><span class="pre">&#64;jsonable</span></code> is that <code class="docutils literal notranslate"><span class="pre">&#64;jsonable</span></code> will <em>always</em> look at the type hint of the Jsonized attributes to determine the type of the JSONized attribute. The type is used to correctly deserialize from JSON. See <a class="reference external" href="JSON-typing">JSON-typing</a> for supported type hints.</p>
+<p>To allow deserialization, your class <em>must</em> define an <code class="docutils literal notranslate"><span class="pre">__init__()</span></code> method that accepts the Jsonized attributes as keywords arguments.</p>
+<p>After the class has been processed, Pheres adds the following methods and attributes to it:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_json()</span></code> is a method that serialize an instance to a JSON object, i.e. an object that <code class="docutils literal notranslate"><span class="pre">json.dump()</span></code> accepts</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">from_json()</span></code> is a class methods that can deserialize from JSON files, strings or object to the class. It guesses what its argument is, using the following heuristic:</p>
+<ul>
+<li><p>if the passed argument has a <code class="docutils literal notranslate"><span class="pre">read</span></code> attribute, it is a file-like object</p></li>
+<li><p>if it is a subclass of <code class="docutils literal notranslate"><span class="pre">str</span></code> or <code class="docutils literal notranslate"><span class="pre">bytes</span></code>, it is a string-like</p></li>
+<li><p>else, it is a python object that represents a JSON</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Decoder</span></code> is a class attribute (e.g. stored on the class itself) that is a <a class="reference external" href="decoder"><code class="docutils literal notranslate"><span class="pre">TypedJSONDecoder</span></code></a> parametrized for that class</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">conflict_with()</span></code> can be used to check if a JSON could correspond to two jsonable classes</p></li>
+</ul>
+<p>To serialize to a file or string, you can use <code class="docutils literal notranslate"><span class="pre">pheres.JSONableEncoder</span></code> as the encoder for <code class="docutils literal notranslate"><span class="pre">json.dump()</span></code> and <code class="docutils literal notranslate"><span class="pre">json.dumps()</span></code>. The functions <code class="docutils literal notranslate"><span class="pre">pheres.dump()</span></code> and <code class="docutils literal notranslate"><span class="pre">pheres.dumps()</span></code> use this encoder by default.</p>
+</div>
+<div class="section" id="jsonable-class-conflict">
+<h3>Jsonable class conflict<a class="headerlink" href="#jsonable-class-conflict" title="Permalink to this headline">¶</a></h3>
+<p><em>Pheres</em> can deserialized arbitrary JSON and automatically find jsonable classes in it. To allow that, <em>pheres</em> must be able to identify <em>the</em> jsonable class to deserialize to, without ambiguity. If a JSON object could correspond to more than one jsonable class, there is a jsonable conflict. jsonable conflicts are not permitted.</p>
+<p>Conflicts are found based on the classes’ jsonized attributes names <em>and</em> types. If the types are incompatible, e.g. <code class="docutils literal notranslate"><span class="pre">str</span></code> and <code class="docutils literal notranslate"><span class="pre">int</span></code>, the value will differentiate the two classes and there is no conflict. For instance, the following two classes have a conflict in JSON, because both representation are a JSON object with a single key <code class="docutils literal notranslate"><span class="pre">&quot;value&quot;</span></code> of type <code class="docutils literal notranslate"><span class="pre">str</span></code>. We used the <code class="docutils literal notranslate"><span class="pre">&#64;dataclass</span></code> decorator to get the <code class="docutils literal notranslate"><span class="pre">__init__</span></code> method automatically.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">pheres</span> <span class="kn">import</span> <span class="n">jsonable</span>
+
+<span class="nd">@dataclass</span>
+<span class="nd">@jsonable</span>
+<span class="k">class</span> <span class="nc">A</span><span class="p">:</span>
+    <span class="n">value</span><span class="p">:</span> <span class="nb">str</span>
+
+<span class="nd">@dataclass</span>
+<span class="nd">@jsonable</span>
+<span class="k">class</span> <span class="nc">B</span><span class="p">:</span>
+    <span class="n">value</span><span class="p">:</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>To prevent conflicts, when creating a new jsonable, <em>Pheres</em> checks that it does not conflict with any existing jsonable class. It raises a <code class="docutils literal notranslate"><span class="pre">JSONableError</span></code> if a conflict is found. This early detection prevent errors later in the code, for instance when deserializing.</p>
+<blockquote>
+<div><p>In the above example, the error is raised when the class <code class="docutils literal notranslate"><span class="pre">B</span></code> is created, during module import if this file is a module.</p>
+</div></blockquote>
+<p>Fixing class conflict is relatively easy. The simplest way is to rename attributes so that there is no conflict. But sometimes you wish to keep the same names because this is clearer in python, in which case you can use json-only attributes to solve conflicts (see below). An attribute <code class="docutils literal notranslate"><span class="pre">type</span></code> wich is a <code class="docutils literal notranslate"><span class="pre">Literal</span></code> of a single value is automatically json-only: this is intended to make solving conflict easy.</p>
+<p>Let us fix our conflict using this technique:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Literal</span>
+<span class="kn">from</span> <span class="nn">pheres</span> <span class="kn">import</span> <span class="n">jsonable</span>
+
+<span class="nd">@dataclass</span>
+<span class="nd">@jsonable</span>
+<span class="k">class</span> <span class="nc">A</span><span class="p">:</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">]</span>
+    <span class="n">value</span><span class="p">:</span> <span class="nb">str</span>
+
+<span class="nd">@dataclass</span>
+<span class="nd">@jsonable</span>
+<span class="k">class</span> <span class="nc">B</span><span class="p">:</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;B&quot;</span><span class="p">]</span>
+    <span class="n">value</span><span class="p">:</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>This will no longer raise on created class <code class="docutils literal notranslate"><span class="pre">B</span></code>. Note that this changes the JSON representation of our class: for instance, the JSON <code class="docutils literal notranslate"><span class="pre">{&quot;value&quot;:</span> <span class="pre">&quot;yes&quot;}</span></code> no longer corresponds to A or B, because it doesn’t contain a <code class="docutils literal notranslate"><span class="pre">&quot;type&quot;</span></code> key.</p>
+</div>
+<div class="section" id="python-only-attributes">
+<h3>Python-only attributes<a class="headerlink" href="#python-only-attributes" title="Permalink to this headline">¶</a></h3>
+<p><em>Pheres</em> can only jsonize attributes that are type-hinted in the class definition. You can remove an attribute from the JSON serialization by not type-hinting it.</p>
+<p>However, you might want to type hint some attributes without them being reflected in the JSON – for instance, because you use a type checker, or because you use <code class="docutils literal notranslate"><span class="pre">&#64;dataclass</span></code>. For those cases, <code class="docutils literal notranslate"><span class="pre">&#64;jsonable</span></code> supports the <code class="docutils literal notranslate"><span class="pre">all_attrs</span></code> argument (<code class="docutils literal notranslate"><span class="pre">True</span></code> by default). By setting it to <code class="docutils literal notranslate"><span class="pre">False</span></code>, <em>Pheres</em> will only jsonize attributes that have been appropriately marked:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@jsonable</span><span class="p">(</span><span class="n">all_attrs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">PartialJSONable</span><span class="p">:</span>
+    <span class="n">name</span> <span class="p">:</span> <span class="n">ph</span><span class="o">.</span><span class="n">JAttr</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="c1"># marked attribute</span>
+    <span class="n">value</span><span class="p">:</span> <span class="n">ph</span><span class="o">.</span><span class="n">jattr</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="c1"># marked attribute</span>
+    <span class="n">number</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Annotated</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">ph</span><span class="o">.</span><span class="n">JSONAttr</span><span class="p">()]</span> <span class="c1"># full syntax for marking attributes</span>
+    <span class="n">py_only</span><span class="p">:</span> <span class="nb">int</span> <span class="c1"># attribute is not marked</span>
+</pre></div>
+</div>
+<p>To mark attributes, annotate them using the <code class="docutils literal notranslate"><span class="pre">typing.Annotated</span></code> type from the builtin <a class="reference external" href="https://docs.python.org/3/library/typing.html">typing</a> module. One of the annotation values must be an instance of <code class="docutils literal notranslate"><span class="pre">pheres.JSONAttr</span></code>. As a short-hand, you can also:</p>
+<ul class="simple">
+<li><p>use the type <code class="docutils literal notranslate"><span class="pre">pheres.JAttr[]</span></code>. It is an type alias that will annotate the provided type hint</p></li>
+<li><p>use the function <code class="docutils literal notranslate"><span class="pre">pheres.jattr()</span></code> that will build the type hint at runtime. This might be incompatible with type-checkers</p></li>
+</ul>
+</div>
+<div class="section" id="json-only-attributes">
+<h3>json-only attributes<a class="headerlink" href="#json-only-attributes" title="Permalink to this headline">¶</a></h3>
+<p>Conversely, you might want some attributes to only be present in the JSON serialization of your class. The most common use-case is to resolve jsonable conflicts (see above).</p>
+<p>To make an attribute json-only, you need to annotate its type-hint with an instance of <code class="docutils literal notranslate"><span class="pre">pheres.JSONAttr</span></code>, passing <code class="docutils literal notranslate"><span class="pre">True</span></code> to the instance’s <code class="docutils literal notranslate"><span class="pre">json_only</span></code> argument. You can also use the <code class="docutils literal notranslate"><span class="pre">pheres.jattr</span></code> short-hand (see below).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@ph</span><span class="o">.</span><span class="n">jsonable</span>
+<span class="k">class</span> <span class="nc">EmptyPython</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    JSONable class that doesn&#39;t contain any python attributes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">type_</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;empty_python&quot;</span><span class="p">]</span> <span class="c1"># json-only by default</span>
+    <span class="n">json_key</span><span class="p">:</span> <span class="n">ph</span><span class="o">.</span><span class="n">jattr</span><span class="p">(</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">json_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">=</span> <span class="mi">5</span> <span class="c1"># marked as json-only</span>
+</pre></div>
+</div>
+<p>Note that attributes that are <code class="docutils literal notranslate"><span class="pre">Literal</span></code> of a single value are json-only by default. The rationale is that you know the value in python, so you don’t need to load it from JSON. You can still force them to not be json-only by passing <code class="docutils literal notranslate"><span class="pre">False</span></code> as the <code class="docutils literal notranslate"><span class="pre">json_only</span></code> argument.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@ph</span><span class="o">.</span><span class="n">jsonable</span>
+<span class="k">class</span> <span class="nc">NotEmpty</span><span class="p">:</span>
+    <span class="n">type_</span><span class="p">:</span> <span class="n">ph</span><span class="o">.</span><span class="n">jattr</span><span class="p">(</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;not_empty&quot;</span><span class="p">],</span> <span class="n">json_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="c1"># forced to be in python</span>
+</pre></div>
+</div>
+<p>json-only attributes must provide a default value. If the type hint is a <code class="docutils literal notranslate"><span class="pre">Literal</span></code> of a single value, the default is not required and the value of the <code class="docutils literal notranslate"><span class="pre">Literal</span></code> is the default.</p>
+<p>The default is used for serialization only: the value found in JSON is not checked to be equal to the default (only its type is checked). If you need to check for specific value(s), use a <code class="docutils literal notranslate"><span class="pre">Literal</span></code> type.</p>
+<blockquote>
+<div><p><strong>Warning</strong></p>
+<p>If you use <code class="docutils literal notranslate"><span class="pre">&#64;dataclass</span></code> on a jsonable class with json-only attribute, <code class="docutils literal notranslate"><span class="pre">&#64;jsonable</span></code> must be the inner-most decorator of the two: it removes json-only attributes from the class’ annotation and dictionary so taht <code class="docutils literal notranslate"><span class="pre">&#64;dataclass</span></code> doesn’t include them in the <code class="docutils literal notranslate"><span class="pre">__init__</span></code> method.
+You will get a <code class="docutils literal notranslate"><span class="pre">JSONableError</span></code> if you get the order wrong.</p>
+</div></blockquote>
+</div>
+<div class="section" id="default-values">
+<h3>Default values<a class="headerlink" href="#default-values" title="Permalink to this headline">¶</a></h3>
+<p>If a jsonized attribute has a value in the class definition, this is used as the default value for the jsonized attribute. The default value can be a JSON value, or a callable without arguments that builds the default value.</p>
+<p>When serializing to JSON, attributes with a value equal to their default value are not included (unless <code class="docutils literal notranslate"><span class="pre">default_values</span></code> is True, see below).</p>
+<p>When deserializing from JSON, if a jsonized attribute is not found, it is given it’s default value. Callable default value are called without arguments to get the default value. Values are deep-copied (this means you can use a mutable value such as the empty list <code class="docutils literal notranslate"><span class="pre">[]</span></code> without side effects).</p>
+</div>
+<div class="section" id="changing-the-name-of-the-attribute-in-json">
+<h3>Changing the name of the attribute in JSON<a class="headerlink" href="#changing-the-name-of-the-attribute-in-json" title="Permalink to this headline">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">JSONAttr</span></code> Annotation can also be used to change the name of the attribute in JSON (compared to python). The python name is always the name of the attribute in the class definition. The JSON key for the attribute can be changed with the <code class="docutils literal notranslate"><span class="pre">key</span></code> argument of <code class="docutils literal notranslate"><span class="pre">JSONAttr</span></code>. The function <code class="docutils literal notranslate"><span class="pre">jattr()</span></code> also supports the argument. <code class="docutils literal notranslate"><span class="pre">JAttr</span></code> does not, since it is a type alias.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@ph</span><span class="o">.</span><span class="n">jsonable</span>
+<span class="k">class</span> <span class="nc">Widget</span><span class="p">:</span>
+    <span class="n">type_</span> <span class="p">:</span> <span class="n">ph</span><span class="o">.</span><span class="n">jattr</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s2">&quot;type&quot;</span><span class="p">)</span> <span class="c1"># change the name in JSON</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="compatibility-with-the-dataclasses-builtin-module">
+<h3>Compatibility with the <a class="reference external" href="https://docs.python.org/3.9/library/dataclasses.html"><code class="docutils literal notranslate"><span class="pre">dataclasses</span></code></a> builtin module<a class="headerlink" href="#compatibility-with-the-dataclasses-builtin-module" title="Permalink to this headline">¶</a></h3>
+<p>The jsonable API is fully compatible with <code class="docutils literal notranslate"><span class="pre">&#64;dataclass</span></code>. If the default value of an attribute is a <code class="docutils literal notranslate"><span class="pre">dataclasses.Field</span></code>, the <code class="docutils literal notranslate"><span class="pre">default</span></code> or <code class="docutils literal notranslate"><span class="pre">default_factory</span></code> is retrieved. Attributes that are removed from the class, but were still defined as dataclass fields, are also properly retrieved.</p>
+</div>
+</div>
+<div class="section" id="jsonable-values">
+<h2>jsonable values<a class="headerlink" href="#jsonable-values" title="Permalink to this headline">¶</a></h2>
+<p>Sometimes, you don’t want your class JSON representation to be a JSON object, because it has a single key. <code class="docutils literal notranslate"><span class="pre">&#64;jsonable</span></code> can also make a class that is represented in JSON by a single value.</p>
+<p>To define such a class, pass the type of the value to <code class="docutils literal notranslate"><span class="pre">&#64;jsonable</span></code> as you do for type hints.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+<span class="nd">@ph</span><span class="o">.</span><span class="n">jsonable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<span class="k">class</span> <span class="nc">SmartString</span><span class="p">:</span>
+    <span class="c1"># required by @jsonable</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">s</span>
+    
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>The syntax <code class="docutils literal notranslate"><span class="pre">&#64;jsonable[]</span></code> guesses what you want based on the provided type. There is an explicit syntax:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@ph</span><span class="o">.</span><span class="n">jsonable</span><span class="o">.</span><span class="n">Value</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<span class="k">class</span> <span class="nc">SmartString</span><span class="p">:</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>Jsonable values are a bit different from jsonable object seen before: <em>pheres</em> cannot guess what you do with the value, so you must implement the <code class="docutils literal notranslate"><span class="pre">to_json()</span></code> method yourself. Usually this isn’t too hard.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">__init__</span></code> method must accept the call <code class="docutils literal notranslate"><span class="pre">self.__init__(value)</span></code>, where <code class="docutils literal notranslate"><span class="pre">value</span></code> is the decoded JSON value. This is necessary for deserialization.</p>
+<p>jsonable values otherwise support everything jsonable classes do (<code class="docutils literal notranslate"><span class="pre">from_json()</span></code>,<code class="docutils literal notranslate"><span class="pre">Decoder</span></code> etc.)</p>
+</div>
+<div class="section" id="jsonable-array">
+<h2>jsonable array<a class="headerlink" href="#jsonable-array" title="Permalink to this headline">¶</a></h2>
+<p>If you want the value to be an array, then the syntax is a bit different: either pass a <code class="docutils literal notranslate"><span class="pre">Tuple</span></code> or <code class="docutils literal notranslate"><span class="pre">List</span></code> type, or pass all the type hints you would pass to <code class="docutils literal notranslate"><span class="pre">Tuple</span></code> to <code class="docutils literal notranslate"><span class="pre">&#64;jsonable</span></code> directly, like so:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@jsonable</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+<span class="k">class</span> <span class="nc">Person</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">surname</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">surname</span> <span class="o">=</span> <span class="n">surname</span>
+    
+    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">surname</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">hello</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Hello, my name is </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">surname</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="nd">@jsonable</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+<span class="k">class</span> <span class="nc">AddressBook</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">addresses</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">addresses</span> <span class="o">=</span> <span class="n">addresses</span>
+    
+    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">addresses</span>
+
+    <span class="k">def</span> <span class="nf">contains</span><span class="p">(</span><span class="n">address</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">address</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">addresses</span>
+</pre></div>
+</div>
+<p>If you want an array of arrays, then the syntax is <code class="docutils literal notranslate"><span class="pre">&#64;jsonable[List[List[T]]]</span></code>. You can also use the explicit syntax <code class="docutils literal notranslate"><span class="pre">&#64;jsonable.Array[List[T]]</span></code>, where <em>pheres</em> doesn’t unwraps the first <code class="docutils literal notranslate"><span class="pre">List</span></code> or <code class="docutils literal notranslate"><span class="pre">Tuple</span></code> annotation.</p>
+<p>As for jsonable value, the class must define <code class="docutils literal notranslate"><span class="pre">to_json</span></code>, <em>pheres</em> can’t do it automatically. Also, the <code class="docutils literal notranslate"><span class="pre">__init__</span></code> method must accept the call <code class="docutils literal notranslate"><span class="pre">self.__init__(*array)</span></code>, where array is the decoded JSONarray (a python list). For fixed-length jsonable array as <code class="docutils literal notranslate"><span class="pre">Person</span></code> above, you can name the arguments explicitely. For variable-length jsonable array such as <code class="docutils literal notranslate"><span class="pre">AddressBook</span></code> above, it is not possible.</p>
+<p>jsonable arrays otherwise support everything jsonable classes do (<code class="docutils literal notranslate"><span class="pre">from_json()</span></code>,<code class="docutils literal notranslate"><span class="pre">Decoder</span></code> etc.)</p>
+</div>
+<div class="section" id="jsonable-object">
+<h2>jsonable object<a class="headerlink" href="#jsonable-object" title="Permalink to this headline">¶</a></h2>
+<p>Jsonable object are equivalent to jsonable values and arrays, but for JSON object. The difference between jsonable classes and jsonable objects is that object accept any number of arbitrary key, while classes accept only a fixed, finite and predetermined set of key (the jsonized attributes).</p>
+<p>The syntax uses the <code class="docutils literal notranslate"><span class="pre">Dict</span></code> type, or the explicit syntax <code class="docutils literal notranslate"><span class="pre">&#64;jsonable.Object</span></code> which doesn’t unwraps the first <code class="docutils literal notranslate"><span class="pre">Dict</span></code> annotation:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@jsonable</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="c1"># or @jsonable.Object[str]</span>
+<span class="k">class</span> <span class="nc">Peoples</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">names</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="n">names</span>
+    
+    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span>
+
+    <span class="k">def</span> <span class="nf">surname</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>As for jsonable values and arrays, you must provide <code class="docutils literal notranslate"><span class="pre">to_json</span></code>. Jsonable objects otherwise support everything jsonable classes do (<code class="docutils literal notranslate"><span class="pre">from_json()</span></code>,<code class="docutils literal notranslate"><span class="pre">Decoder</span></code> etc.)</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../api/api_intro.html" class="btn btn-neutral float-right" title="API Introduction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="typed_decoding.html" class="btn btn-neutral float-left" title="Typed JSON decoding" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Quentin Soubeyran
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

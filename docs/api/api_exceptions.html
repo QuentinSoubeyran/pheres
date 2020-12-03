@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>pheres.exceptions &mdash; pheres  documentation</title>
+  <title>Exceptions &mdash; pheres  documentation</title>
   
 
   
@@ -35,8 +35,8 @@
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="pheres.datatypes" href="api_datatypes.html" />
-    <link rel="prev" title="API notes" href="api_notes.html" /> 
+    <link rel="next" title="Datatypes" href="api_datatypes.html" />
+    <link rel="prev" title="API Introduction" href="api_intro.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -81,15 +81,25 @@
               
             
             
-              <p class="caption"><span class="caption-text">API Reference</span></p>
+              <p class="caption"><span class="caption-text">Quick Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Home</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/typed_decoding.html">Typed JSON decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/jsonable.html">Jsonable Classes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API Reference</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="api_notes.html">API notes</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">pheres.exceptions</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_datatypes.html"><code class="docutils literal notranslate"><span class="pre">pheres.datatypes</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_typing.html"><code class="docutils literal notranslate"><span class="pre">pheres.typing</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_decoder.html"><code class="docutils literal notranslate"><span class="pre">pheres.decoder</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_jsonable.html"><code class="docutils literal notranslate"><span class="pre">pheres.jsonable</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_misc.html"><code class="docutils literal notranslate"><span class="pre">pheres.misc</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_intro.html">API Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_datatypes.html">Datatypes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_types.html">Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_typing.html">JSON Typing API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_decoder.html">Decoding API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_jsonable.html">Jsonable API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_misc.html">Miscellaneous</a></li>
 </ul>
 
             
@@ -136,7 +146,7 @@
     
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li><code class="docutils literal notranslate"><span class="pre">pheres.exceptions</span></code></li>
+      <li>Exceptions</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -155,15 +165,15 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-pheres.exceptions">
-<span id="pheres-exceptions"></span><h1><code class="docutils literal notranslate"><span class="pre">pheres.exceptions</span></code><a class="headerlink" href="#module-pheres.exceptions" title="Permalink to this headline">¶</a></h1>
-<p>Module containing all the exceptions used in <cite>pheres</cite></p>
-<p>All exception are subclasses of <cite>PheresError</cite>, except for <cite>PheresInternalError</cite>.
-This is intended, as <cite>PheresInternalError</cite> is only raised in case of bugs and
-should not be catched. Please make a bug report if you ever encounter <cite>PheresInternalError</cite></p>
+  <div class="section" id="module-pheres._exceptions">
+<span id="exceptions"></span><h1>Exceptions<a class="headerlink" href="#module-pheres._exceptions" title="Permalink to this headline">¶</a></h1>
+<p>Module containing all the exceptions used in <code class="xref any docutils literal notranslate"><span class="pre">pheres</span></code></p>
+<p>All exception are subclasses of <a class="reference internal" href="#pheres._exceptions.PheresError" title="pheres._exceptions.PheresError"><code class="xref any py py-exc docutils literal notranslate"><span class="pre">PheresError</span></code></a>, except for <a class="reference internal" href="#pheres._exceptions.PheresInternalError" title="pheres._exceptions.PheresInternalError"><code class="xref any py py-exc docutils literal notranslate"><span class="pre">PheresInternalError</span></code></a>.
+This is intended, as <a class="reference internal" href="#pheres._exceptions.PheresInternalError" title="pheres._exceptions.PheresInternalError"><code class="xref any py py-exc docutils literal notranslate"><span class="pre">PheresInternalError</span></code></a> is only raised in case of bugs and
+should not be catched. Please make a bug report if you ever encounter <a class="reference internal" href="#pheres._exceptions.PheresInternalError" title="pheres._exceptions.PheresInternalError"><code class="xref any py py-exc docutils literal notranslate"><span class="pre">PheresInternalError</span></code></a></p>
 <dl class="py exception">
-<dt id="pheres.exceptions.PheresInternalError">
-<em class="property">exception </em><code class="sig-prename descclassname">pheres.exceptions.</code><code class="sig-name descname">PheresInternalError</code><a class="headerlink" href="#pheres.exceptions.PheresInternalError" title="Permalink to this definition">¶</a></dt>
+<dt id="pheres._exceptions.PheresInternalError">
+<em class="property">exception </em><code class="sig-prename descclassname">pheres._exceptions.</code><code class="sig-name descname">PheresInternalError</code><a class="headerlink" href="#pheres._exceptions.PheresInternalError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#BaseException" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseException</span></code></a></p>
 <p>Raised when pheres encounters an internal error</p>
 <p>If you see this exception, please make a bug report</p>
@@ -175,153 +185,153 @@ should not be catched. Please make a bug report if you ever encounter <cite>Pher
 </dd></dl>
 
 <dl class="py exception">
-<dt id="pheres.exceptions.PheresError">
-<em class="property">exception </em><code class="sig-prename descclassname">pheres.exceptions.</code><code class="sig-name descname">PheresError</code><a class="headerlink" href="#pheres.exceptions.PheresError" title="Permalink to this definition">¶</a></dt>
+<dt id="pheres._exceptions.PheresError">
+<em class="property">exception </em><code class="sig-prename descclassname">pheres._exceptions.</code><code class="sig-name descname">PheresError</code><a class="headerlink" href="#pheres._exceptions.PheresError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
 <p>Base exception in pheres for all other exceptions</p>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="pheres.exceptions.TypeHintError">
-<em class="property">exception </em><code class="sig-prename descclassname">pheres.exceptions.</code><code class="sig-name descname">TypeHintError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">type</span><span class="p">:</span> <span class="n">TypeHint</span></em>, <em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">'{type} is not a valid JSON type hint'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.exceptions.TypeHintError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pheres.exceptions.PheresError" title="pheres.exceptions.PheresError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.exceptions.PheresError</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeError</span></code></a></p>
+<dt id="pheres._exceptions.TypeHintError">
+<em class="property">exception </em><code class="sig-prename descclassname">pheres._exceptions.</code><code class="sig-name descname">TypeHintError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">type</span><span class="p">:</span> <span class="n">TypeHint</span></em>, <em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">'{type} is not a valid JSON type hint'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._exceptions.TypeHintError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pheres._exceptions.PheresError" title="pheres._exceptions.PheresError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres._exceptions.PheresError</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeError</span></code></a></p>
 <p>Raised for invalid JSON type hints</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>type</strong> – invalid type hint</p></li>
-<li><p><strong>msg</strong> – explanation of the error</p></li>
+<li><p><strong>type</strong> (<em>TypeHint</em>) – invalid type hint</p></li>
+<li><p><strong>msg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – explanation of the error</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="pheres.exceptions.JSONTypeError">
-<em class="property">exception </em><code class="sig-prename descclassname">pheres.exceptions.</code><code class="sig-name descname">JSONTypeError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">type</span><span class="p">:</span> <span class="n">TypeHint</span></em>, <em class="sig-param"><span class="n">value</span><span class="p">:</span> <span class="n">Any</span></em>, <em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">&quot;{value} doesn't have type {type}&quot;</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.exceptions.JSONTypeError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pheres.exceptions.PheresError" title="pheres.exceptions.PheresError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.exceptions.PheresError</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeError</span></code></a></p>
+<dt id="pheres._exceptions.JSONTypeError">
+<em class="property">exception </em><code class="sig-prename descclassname">pheres._exceptions.</code><code class="sig-name descname">JSONTypeError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">type</span><span class="p">:</span> <span class="n">TypeHint</span></em>, <em class="sig-param"><span class="n">value</span><span class="p">:</span> <span class="n">Any</span></em>, <em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">&quot;{value} doesn't have type {type}&quot;</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._exceptions.JSONTypeError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pheres._exceptions.PheresError" title="pheres._exceptions.PheresError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres._exceptions.PheresError</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeError</span></code></a></p>
 <p>Raised when a value doesn’t have the excepted type</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>type</strong> – expected type</p></li>
-<li><p><strong>value</strong> – invalid value</p></li>
-<li><p><strong>msg</strong> – explanation of the error</p></li>
+<li><p><strong>type</strong> (<em>TypeHint</em>) – expected type</p></li>
+<li><p><strong>value</strong> (<em>Any</em>) – invalid value</p></li>
+<li><p><strong>msg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – explanation of the error</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="pheres.exceptions.JSONValueError">
-<em class="property">exception </em><code class="sig-prename descclassname">pheres.exceptions.</code><code class="sig-name descname">JSONValueError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span><span class="p">:</span> <span class="n">Any</span></em>, <em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">'invalid JSON {value}'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.exceptions.JSONValueError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pheres.exceptions.PheresError" title="pheres.exceptions.PheresError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.exceptions.PheresError</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></a></p>
+<dt id="pheres._exceptions.JSONValueError">
+<em class="property">exception </em><code class="sig-prename descclassname">pheres._exceptions.</code><code class="sig-name descname">JSONValueError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span><span class="p">:</span> <span class="n">Any</span></em>, <em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">'invalid JSON {value}'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._exceptions.JSONValueError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pheres._exceptions.PheresError" title="pheres._exceptions.PheresError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres._exceptions.PheresError</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></a></p>
 <p>Raised when an invalid json value is encountered</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>value</strong> – invalid value</p></li>
-<li><p><strong>msg</strong> – explanation of the error</p></li>
+<li><p><strong>value</strong> (<em>Any</em>) – invalid value</p></li>
+<li><p><strong>msg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – explanation of the error</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="pheres.exceptions.CycleError">
-<em class="property">exception </em><code class="sig-prename descclassname">pheres.exceptions.</code><code class="sig-name descname">CycleError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span></em>, <em class="sig-param"><span class="n">cycle</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.9)">tuple</a><span class="p">[</span>Any<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">'{obj} contains the cycle {cycle}'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.exceptions.CycleError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pheres.exceptions.PheresError" title="pheres.exceptions.PheresError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.exceptions.PheresError</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/graphlib.html#graphlib.CycleError" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">graphlib.CycleError</span></code></a></p>
+<dt id="pheres._exceptions.CycleError">
+<em class="property">exception </em><code class="sig-prename descclassname">pheres._exceptions.</code><code class="sig-name descname">CycleError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span></em>, <em class="sig-param"><span class="n">cycle</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.9)">tuple</a><span class="p">[</span>Any<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">'{obj} contains the cycle {cycle}'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._exceptions.CycleError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pheres._exceptions.PheresError" title="pheres._exceptions.PheresError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres._exceptions.PheresError</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/graphlib.html#graphlib.CycleError" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">graphlib.CycleError</span></code></a></p>
 <p>Raised when a value has cycles in it</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>obj</strong> – object containing the cycle</p></li>
-<li><p><strong>cycle</strong> – detected cycle</p></li>
-<li><p><strong>msg</strong> – explanation of the error</p></li>
+<li><p><strong>obj</strong> (<em>Any</em>) – object containing the cycle</p></li>
+<li><p><strong>cycle</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.9)"><em>tuple</em></a>) – detected cycle</p></li>
+<li><p><strong>msg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – explanation of the error</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="pheres.exceptions.JsonableError">
-<em class="property">exception </em><code class="sig-prename descclassname">pheres.exceptions.</code><code class="sig-name descname">JsonableError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.exceptions.JsonableError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pheres.exceptions.PheresError" title="pheres.exceptions.PheresError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.exceptions.PheresError</span></code></a></p>
-<p>Raised on problems with <cite>&#64;jsonable &lt;jsonable&gt;</cite> when no better sub-exception
+<dt id="pheres._exceptions.JsonableError">
+<em class="property">exception </em><code class="sig-prename descclassname">pheres._exceptions.</code><code class="sig-name descname">JsonableError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._exceptions.JsonableError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pheres._exceptions.PheresError" title="pheres._exceptions.PheresError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres._exceptions.PheresError</span></code></a></p>
+<p>Raised on problems with <a class="reference internal" href="api_jsonable.html#pheres._jsonable.jsonable" title="pheres._jsonable.jsonable"><code class="xref any py py-class docutils literal notranslate"><span class="pre">&#64;jsonable</span></code></a> when no better sub-exception
 exists</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
-<dd class="field-odd"><p><strong>msg</strong> – explanation of the error</p>
+<dd class="field-odd"><p><strong>msg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – explanation of the error</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="pheres.exceptions.JsonAttrError">
-<em class="property">exception </em><code class="sig-prename descclassname">pheres.exceptions.</code><code class="sig-name descname">JsonAttrError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cls</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">attr</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">detail</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">''</span></em>, <em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">&quot;Error in '{cls}' at attribute '{attr}'{detail}&quot;</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.exceptions.JsonAttrError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pheres.exceptions.JsonableError" title="pheres.exceptions.JsonableError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.exceptions.JsonableError</span></code></a></p>
-<p>Raised on problems with <cite>&#64;jsonable &lt;jsonable&gt;</cite> due to <cite>JsonAttr</cite>
+<dt id="pheres._exceptions.JsonAttrError">
+<em class="property">exception </em><code class="sig-prename descclassname">pheres._exceptions.</code><code class="sig-name descname">JsonAttrError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cls</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">attr</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">detail</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">''</span></em>, <em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">&quot;Error in '{cls}' at attribute '{attr}'{detail}&quot;</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._exceptions.JsonAttrError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pheres._exceptions.JsonableError" title="pheres._exceptions.JsonableError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres._exceptions.JsonableError</span></code></a></p>
+<p>Raised on problems with <a class="reference internal" href="api_jsonable.html#pheres._jsonable.jsonable" title="pheres._jsonable.jsonable"><code class="xref any py py-class docutils literal notranslate"><span class="pre">&#64;jsonable</span></code></a> due to <a class="reference internal" href="api_datatypes.html#pheres._datatypes.JsonAttr" title="pheres._datatypes.JsonAttr"><code class="xref any py py-class docutils literal notranslate"><span class="pre">JsonAttr</span></code></a>
 when no better sub-exception exists</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>cls</strong> – name of the class that raised the error</p></li>
-<li><p><strong>attr</strong> – name of the attribute that raised the error</p></li>
-<li><p><strong>msg</strong> – explanation of the error</p></li>
+<li><p><strong>cls</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – name of the class that raised the error</p></li>
+<li><p><strong>attr</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – name of the attribute that raised the error</p></li>
+<li><p><strong>msg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – explanation of the error</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="pheres.exceptions.JsonAttrValueError">
-<em class="property">exception </em><code class="sig-prename descclassname">pheres.exceptions.</code><code class="sig-name descname">JsonAttrValueError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span><span class="p">:</span> <span class="n">Any</span></em>, <em class="sig-param"><span class="n">cls</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">attr</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">detail</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">''</span></em>, <em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">&quot;Invalid JSON value '{value}' in class '{cls}' at attribute '{attr}'&quot;</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.exceptions.JsonAttrValueError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pheres.exceptions.JSONValueError" title="pheres.exceptions.JSONValueError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.exceptions.JSONValueError</span></code></a>, <a class="reference internal" href="#pheres.exceptions.JsonAttrError" title="pheres.exceptions.JsonAttrError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.exceptions.JsonAttrError</span></code></a></p>
+<dt id="pheres._exceptions.JsonAttrValueError">
+<em class="property">exception </em><code class="sig-prename descclassname">pheres._exceptions.</code><code class="sig-name descname">JsonAttrValueError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span><span class="p">:</span> <span class="n">Any</span></em>, <em class="sig-param"><span class="n">cls</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">attr</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">detail</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">''</span></em>, <em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">&quot;Invalid JSON value '{value}' in class '{cls}' at attribute '{attr}'&quot;</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._exceptions.JsonAttrValueError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pheres._exceptions.JSONValueError" title="pheres._exceptions.JSONValueError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres._exceptions.JSONValueError</span></code></a>, <a class="reference internal" href="#pheres._exceptions.JsonAttrError" title="pheres._exceptions.JsonAttrError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres._exceptions.JsonAttrError</span></code></a></p>
 <p>Raised when the default value of a json attribute is not a valid json</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>cls</strong> – name of the class that raised the error</p></li>
-<li><p><strong>attr</strong> – name of the attribute that raised the error</p></li>
-<li><p><strong>value</strong> – invalid value</p></li>
-<li><p><strong>msg</strong> – explanation of the error</p></li>
+<li><p><strong>cls</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – name of the class that raised the error</p></li>
+<li><p><strong>attr</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – name of the attribute that raised the error</p></li>
+<li><p><strong>value</strong> (<em>Any</em>) – invalid value</p></li>
+<li><p><strong>msg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – explanation of the error</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="pheres.exceptions.JsonAttrTypeError">
-<em class="property">exception </em><code class="sig-prename descclassname">pheres.exceptions.</code><code class="sig-name descname">JsonAttrTypeError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">type</span><span class="p">:</span> <span class="n">TypeHint</span></em>, <em class="sig-param"><span class="n">value</span><span class="p">:</span> <span class="n">Any</span></em>, <em class="sig-param"><span class="n">cls</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">attr</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">detail</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">''</span></em>, <em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">&quot;{value} doesn't have type {type} in class '{cls}' at attribute '{attr}'&quot;</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.exceptions.JsonAttrTypeError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pheres.exceptions.JSONTypeError" title="pheres.exceptions.JSONTypeError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.exceptions.JSONTypeError</span></code></a>, <a class="reference internal" href="#pheres.exceptions.JsonAttrError" title="pheres.exceptions.JsonAttrError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.exceptions.JsonAttrError</span></code></a></p>
+<dt id="pheres._exceptions.JsonAttrTypeError">
+<em class="property">exception </em><code class="sig-prename descclassname">pheres._exceptions.</code><code class="sig-name descname">JsonAttrTypeError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">type</span><span class="p">:</span> <span class="n">TypeHint</span></em>, <em class="sig-param"><span class="n">value</span><span class="p">:</span> <span class="n">Any</span></em>, <em class="sig-param"><span class="n">cls</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">attr</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em>, <em class="sig-param"><span class="n">detail</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">''</span></em>, <em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">&quot;{value} doesn't have type {type} in class '{cls}' at attribute '{attr}'&quot;</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._exceptions.JsonAttrTypeError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pheres._exceptions.JSONTypeError" title="pheres._exceptions.JSONTypeError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres._exceptions.JSONTypeError</span></code></a>, <a class="reference internal" href="#pheres._exceptions.JsonAttrError" title="pheres._exceptions.JsonAttrError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres._exceptions.JsonAttrError</span></code></a></p>
 <p>Raised when the default value of a json attribute doesn’t have the correct type</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>type</strong> – expected type</p></li>
 <li><p><strong>value</strong> – invalid value</p></li>
-<li><p><strong>msg</strong> – explanation of the error</p></li>
+<li><p><strong>msg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – explanation of the error</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="pheres.exceptions.DecodeError">
-<em class="property">exception </em><code class="sig-prename descclassname">pheres.exceptions.</code><code class="sig-name descname">DecodeError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.exceptions.DecodeError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pheres.exceptions.PheresError" title="pheres.exceptions.PheresError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.exceptions.PheresError</span></code></a></p>
+<dt id="pheres._exceptions.DecodeError">
+<em class="property">exception </em><code class="sig-prename descclassname">pheres._exceptions.</code><code class="sig-name descname">DecodeError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._exceptions.DecodeError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pheres._exceptions.PheresError" title="pheres._exceptions.PheresError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres._exceptions.PheresError</span></code></a></p>
 <p>Raised on decoding problem in Pheres when no better exception exists</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
-<dd class="field-odd"><p><strong>msg</strong> – explanation of the error</p>
+<dd class="field-odd"><p><strong>msg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – explanation of the error</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="pheres.exceptions.TypedJSONDecodeError">
-<em class="property">exception </em><code class="sig-prename descclassname">pheres.exceptions.</code><code class="sig-name descname">TypedJSONDecodeError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">msg</span></em>, <em class="sig-param"><span class="n">doc</span></em>, <em class="sig-param"><span class="n">pos</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres.exceptions.TypedJSONDecodeError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">json.decoder.JSONDecodeError</span></code>, <a class="reference internal" href="#pheres.exceptions.DecodeError" title="pheres.exceptions.DecodeError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.exceptions.DecodeError</span></code></a></p>
+<dt id="pheres._exceptions.TypedJSONDecodeError">
+<em class="property">exception </em><code class="sig-prename descclassname">pheres._exceptions.</code><code class="sig-name descname">TypedJSONDecodeError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">msg</span></em>, <em class="sig-param"><span class="n">doc</span></em>, <em class="sig-param"><span class="n">pos</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._exceptions.TypedJSONDecodeError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">json.decoder.JSONDecodeError</span></code>, <a class="reference internal" href="#pheres._exceptions.DecodeError" title="pheres._exceptions.DecodeError"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres._exceptions.DecodeError</span></code></a></p>
 <p>Raised when the decoded type is not the expected one</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
@@ -331,7 +341,7 @@ when no better sub-exception exists</p>
 can be either an string index, or a list of keys in the json</p></li>
 <li><p><strong>lineno</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>]</em>) – line number of pos</p></li>
 <li><p><strong>colno</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>]</em>) – column number of pos</p></li>
-<li><p><strong>msg</strong> – explanation of the error</p></li>
+<li><p><strong>msg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – explanation of the error</p></li>
 </ul>
 </dd>
 </dl>
@@ -347,10 +357,10 @@ can be either an string index, or a list of keys in the json</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="api_datatypes.html" class="btn btn-neutral float-right" title="pheres.datatypes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="api_datatypes.html" class="btn btn-neutral float-right" title="Datatypes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="api_notes.html" class="btn btn-neutral float-left" title="API notes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="api_intro.html" class="btn btn-neutral float-left" title="API Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

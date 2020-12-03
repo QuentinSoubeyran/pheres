@@ -1,7 +1,7 @@
-``pheres.datatypes``
-====================
+Datatypes
+=========
 
 
-.. automodule:: pheres.datatypes
+.. automodule:: pheres._datatypes
     :members:
     :show-inheritance:

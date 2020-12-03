@@ -42,7 +42,7 @@ from attr import attrib
 from attr import dataclass as attrs
 from attr import evolve
 
-from .datatypes import (
+from pheres._datatypes import (
     MISSING,
     PHERES_ATTR,
     AnyClass,
@@ -52,9 +52,9 @@ from .datatypes import (
     UsableDecoder,
     ValueData,
 )
-from .exceptions import PheresInternalError, TypedJSONDecodeError
-from .misc import FlatKey
-from .typing import (
+from pheres._exceptions import PheresInternalError, TypedJSONDecodeError
+from pheres._misc import FlatKey
+from pheres._typing import (
     JSONArray,
     JSONObject,
     JSONType,
@@ -71,7 +71,7 @@ from .typing import (
     typecheck,
     typeof,
 )
-from .utils import (
+from pheres._utils import (
     TypeHint,
     append_doc,
     get_args,

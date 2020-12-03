@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>pheres.jsonable &mdash; pheres  documentation</title>
+  <title>Jsonable API &mdash; pheres  documentation</title>
   
 
   
@@ -35,8 +35,8 @@
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="pheres.misc" href="api_misc.html" />
-    <link rel="prev" title="pheres.decoder" href="api_decoder.html" /> 
+    <link rel="next" title="Miscellaneous" href="api_misc.html" />
+    <link rel="prev" title="Decoding API" href="api_decoder.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -81,15 +81,25 @@
               
             
             
-              <p class="caption"><span class="caption-text">API Reference</span></p>
+              <p class="caption"><span class="caption-text">Quick Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Home</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/typed_decoding.html">Typed JSON decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/jsonable.html">Jsonable Classes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API Reference</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="api_notes.html">API notes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_exceptions.html"><code class="docutils literal notranslate"><span class="pre">pheres.exceptions</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_datatypes.html"><code class="docutils literal notranslate"><span class="pre">pheres.datatypes</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_typing.html"><code class="docutils literal notranslate"><span class="pre">pheres.typing</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_decoder.html"><code class="docutils literal notranslate"><span class="pre">pheres.decoder</span></code></a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">pheres.jsonable</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_misc.html"><code class="docutils literal notranslate"><span class="pre">pheres.misc</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_intro.html">API Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_exceptions.html">Exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_datatypes.html">Datatypes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_types.html">Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_typing.html">JSON Typing API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_decoder.html">Decoding API</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Jsonable API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_misc.html">Miscellaneous</a></li>
 </ul>
 
             
@@ -136,7 +146,7 @@
     
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li><code class="docutils literal notranslate"><span class="pre">pheres.jsonable</span></code></li>
+      <li>Jsonable API</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -155,20 +165,256 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="pheres-jsonable">
-<h1><code class="docutils literal notranslate"><span class="pre">pheres.jsonable</span></code><a class="headerlink" href="#pheres-jsonable" title="Permalink to this headline">¶</a></h1>
-<p>Note: Since there is a name conflict between this module and the <cite>&#64;jsonable &lt;pheres._jsonable.jsonable&gt;</cite> decorator, this module actual name is <code class="docutils literal notranslate"><span class="pre">_jsonable</span></code>.</p>
-<span class="target" id="module-pheres._jsonable"></span><p>Module for the jsonable interface</p>
+  <div class="section" id="module-pheres._jsonable">
+<span id="jsonable-api"></span><h1>Jsonable API<a class="headerlink" href="#module-pheres._jsonable" title="Permalink to this headline">¶</a></h1>
+<p>Module for the jsonable interface</p>
 <dl class="py class">
-<dt id="pheres._jsonable.DelayedJsonableHandler">
-<em class="property">class </em><code class="sig-prename descclassname">pheres._jsonable.</code><code class="sig-name descname">DelayedJsonableHandler</code><a class="headerlink" href="#pheres._jsonable.DelayedJsonableHandler" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Class handling delayed jsonables</p>
+<dt id="pheres._jsonable.jsonable">
+<em class="property">class </em><code class="sig-prename descclassname">pheres._jsonable.</code><code class="sig-name descname">jsonable</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cls</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.9)">type</a></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="o">/</span></em>, <em class="sig-param"><span class="n">auto_attrs</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">after</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>Iterable<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">()</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._jsonable.jsonable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class decorator to make a class jsonable</p>
+<p id="jsonable-class">This decorator adds members to the decorated class to serialize or
+deserialize instance from JSON format. Class decorated this way are
+called <code class="docutils literal notranslate"><span class="pre">jsonable</span></code> classess. The members added by this decorator
+are described in <a class="reference internal" href="#pheres._jsonable.JsonableDummy" title="pheres._jsonable.JsonableDummy"><code class="xref any py py-class docutils literal notranslate"><span class="pre">JsonableDummy</span></code></a>. Some may not be added by certain
+usage of this decorator, see below.</p>
+<p>Jsonable classes are <strong>typed</strong>. This means the values found in JSON
+must have the correct types when deserializing. Types are specified
+in python code by using PEP 526 type annotations. No typecheck occurs
+on serialization, as python’s type annotations are not binding.
+<code class="xref any docutils literal notranslate"><span class="pre">pheres</span></code> trusts that the code follows the annotations it exposes, but
+does not enforce it. Ill-implemented code may well crash when
+deserializing instances that did not abide to their annotations.</p>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;jsonable</span></code> can be parametrized by type-hints, much like types from
+the <a class="reference external" href="https://docs.python.org/3/library/typing.html#module-typing" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">typing</span></code></a> module (e.g. <code class="docutils literal notranslate"><span class="pre">&#64;jsonable[int]</span></code>). This will produce
+various types of jsonable classes. Refer to the <em>Usage</em> section below
+for details.</p>
+<p>There are four types of <a class="reference internal" href="#jsonable-class"><span class="std std-ref">jsonable class</span></a>es:
+<a class="reference internal" href="#jsonable-value"><span class="std std-ref">jsonable value</span></a>, <a class="reference internal" href="#jsonable-array"><span class="std std-ref">jsonable array</span></a>,
+<a class="reference internal" href="#jsonable-dict"><span class="std std-ref">jsonable dict</span></a> and <a class="reference internal" href="#jsonable-object"><span class="std std-ref">jsonable object</span></a>.
+These jsonable class have different JSON representation and are
+documented below.</p>
+<p>This class decorator is fully compatible with the <a class="reference external" href="https://docs.python.org/3/library/dataclasses.html#module-dataclasses" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">dataclasses</span></code></a>
+module and the <a class="reference external" href="https://attrs.org/en/stable/api.html#attr.s" title="(in attrs v20.3)"><code class="xref any docutils literal notranslate"><span class="pre">attr.s</span></code></a> decorator, though it must be used as the
+inner-most decorator (that is, it must be executed first on the class).
+It will raise an error if this is not the case.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>auto_attrs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – For jsonable object only. If <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a>, all
+annotated attributes are used. If <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">False</span></code></a>, only <em>marked</em>
+attributes are used. See <em>jsonable objects</em> below. Attributes
+lacking a PEP 526 annotation are always ignored.</p></li>
+<li><p><strong>after</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><em>Iterable</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>]</em><em>]</em>) – <p>Modify the decorated class
+only after the listed member become available in the <strong>class’
+module</strong>. This allows for circular definitions. When the class
+is modified, the class object is retrieved again from the
+module it was defined in. This makes <code class="docutils literal notranslate"><span class="pre">after</span></code> compatibles
+with decorators that replace the class object with another one,
+such as <a class="reference external" href="https://attrs.org/en/stable/api.html#attr.s" title="(in attrs v20.3)"><code class="xref any docutils literal notranslate"><span class="pre">attr.s</span></code></a> in certain circumstances.</p>
+<p>Checks for dependencies are performed after each use of the
+<code class="docutils literal notranslate"><span class="pre">&#64;jsonable</span></code> decorator. If your class is the last decorated
+one in the file, call <a class="reference internal" href="#pheres._jsonable.jsonable.decorate_delayed" title="pheres._jsonable.jsonable.decorate_delayed"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">jsonable.decorate_delayed</span></code></a> to modify
+it before usage.</p>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.9)"><strong>TypeError</strong></a> – an argument has a wrong type</p></li>
+<li><p><a class="reference internal" href="api_exceptions.html#pheres._exceptions.JsonableError" title="pheres._exceptions.JsonableError"><strong>JsonableError</strong></a> – the decorator is not the innermost with respect to
+    <a class="reference external" href="https://docs.python.org/3/library/dataclasses.html#dataclasses.dataclass" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">dataclasses.dataclass</span></code></a> or <a class="reference external" href="https://attrs.org/en/stable/api.html#attr.s" title="(in attrs v20.3)"><code class="xref any docutils literal notranslate"><span class="pre">attr.s</span></code></a></p></li>
+</ul>
+</dd>
+</dl>
+<dl id="jsonable-value">
+<dt>Jsonable values:</dt><dd><p>Jsonable values are represented by a single JSON value (null, a
+number, a string). To make a jsonable value by decorating a class
+with <a class="reference internal" href="#pheres._jsonable.jsonable" title="pheres._jsonable.jsonable"><code class="xref any py py-class docutils literal notranslate"><span class="pre">&#64;jsonable</span></code></a>, the class must:</p>
+<ul class="simple">
+<li><p>have an <code class="docutils literal notranslate"><span class="pre">__init__</span></code> method accepting the call <code class="docutils literal notranslate"><span class="pre">Class(value)</span></code>,
+where value is the JSON value for an instance of the class
+(this is used for deserialization)</p></li>
+<li><p>implement the <code class="docutils literal notranslate"><span class="pre">to_json(self)</span></code> method, that returns the value
+to represents the instance with in JSON (e.g. <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">None</span></code></a>, an <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">int</span></code></a>
+or a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">str</span></code></a>). This is because <code class="xref any docutils literal notranslate"><span class="pre">pheres</span></code> cannot know what the class
+does with the value, like it does with jsonable objects.</p></li>
+</ul>
+<p>See the <em>Usage</em> section below for how to make jsonable values</p>
+</dd>
+</dl>
+<dl id="jsonable-array">
+<dt>Jsonable arrays:</dt><dd><p>Jsonable arrays are represented by a JSON array. There are two kind
+of arrays, fixed-length arrays and arbitrary length arrays. To make
+a jsonable array by decorating a class with
+<a class="reference internal" href="#pheres._jsonable.jsonable" title="pheres._jsonable.jsonable"><code class="xref any py py-class docutils literal notranslate"><span class="pre">&#64;jsonable</span></code></a>, the class must:</p>
+<ul class="simple">
+<li><p>have an <code class="docutils literal notranslate"><span class="pre">__init__</span></code> method that accept the call <code class="docutils literal notranslate"><span class="pre">Class(*array)</span></code>,
+where <code class="docutils literal notranslate"><span class="pre">array</span></code> is the python list for the JSON array. This means:</p>
+<ul>
+<li><p>For fixed-length array, a signature <code class="docutils literal notranslate"><span class="pre">__init__(self,</span> <span class="pre">v1,</span> <span class="pre">v2,</span> <span class="pre">...)</span></code>
+with a fixed number of arguments is accepted</p></li>
+<li><p>For arbitrary length array, the number of arguments is not known
+in advance, so the signature must be similar to <code class="docutils literal notranslate"><span class="pre">__init__(self,</span>
+<span class="pre">*array)</span></code> (this signature is also valid for fixed-length arrays
+as it does accept the call above).</p></li>
+</ul>
+</li>
+<li><p>implement the <code class="docutils literal notranslate"><span class="pre">to_json(self)</span></code> method, that returns the python
+<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">list</span></code></a> that represents the instance in JSON. This is because
+<code class="xref any docutils literal notranslate"><span class="pre">pheres</span></code> cannot know what the class does with the values like
+it does with jsonable objects.</p></li>
+</ul>
+<p>See the <em>Usage</em> section below for how to make jsonable arrays</p>
+</dd>
+</dl>
+<dl id="jsonable-dict">
+<dt>Jsonable dicts:</dt><dd><p>Jsonable dicts are represented by a JSON Object with arbitrary
+key-value pairs. For JSON object with known key-value pairs,
+see <em>jsonable objects</em> below. To make a jsonable dict by
+decorating a class with <a class="reference internal" href="#pheres._jsonable.jsonable" title="pheres._jsonable.jsonable"><code class="xref any py py-class docutils literal notranslate"><span class="pre">&#64;jsonable</span></code></a>,
+the class must:</p>
+<ul class="simple">
+<li><p>have an <code class="docutils literal notranslate"><span class="pre">__init__</span></code> method that accept the call <code class="docutils literal notranslate"><span class="pre">Class(**object)</span></code>,
+where <code class="docutils literal notranslate"><span class="pre">object</span></code> is the python dict representing the instance
+in JSON. The only signature that supports that in python is of
+the sort <code class="docutils literal notranslate"><span class="pre">__init__(self,</span> <span class="pre">**object)</span></code> (the actual name of the
+<code class="docutils literal notranslate"><span class="pre">object</span></code> parameter can vary). Optional arguments may be added,
+but all key-value pairs found in the deserialized JSON will be
+passed as keyword arguments. This is used for deserialization.</p></li>
+<li><p>implement the <code class="docutils literal notranslate"><span class="pre">to_json(self)</span></code> method, that returns a python
+<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a> that represents the instance in JSON. This is because
+<code class="xref any docutils literal notranslate"><span class="pre">pheres</span></code> cannot know what the class does with the key-value
+pairs like it does with jsonable objects.</p></li>
+</ul>
+<p>See the <em>Usage</em> section below for how to make jsonable dicts</p>
+</dd>
+</dl>
+<dl id="jsonable-object">
+<dt>Jsonable objects:</dt><dd><p>Jsonable objects are represented by a JSON Object with known
+key-value pairs. The key-value paires are obtained from the
+class by inspecting PEP 526 annotations. Attributes must be
+annotated to be considered by <code class="xref any docutils literal notranslate"><span class="pre">pheres</span></code>, then:</p>
+<ul class="simple">
+<li><p>If <code class="docutils literal notranslate"><span class="pre">auto_attrs</span></code> is <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a> (the default), all annotated
+attributes are used</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">auto_attrs</span></code> is <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">False</span></code></a>, attributes must be marked for
+use (see <a class="reference internal" href="#pheres._jsonable.Marked" title="pheres._jsonable.Marked"><code class="xref any py py-data docutils literal notranslate"><span class="pre">Marked</span></code></a> and <a class="reference internal" href="#pheres._jsonable.marked" title="pheres._jsonable.marked"><code class="xref any py py-func docutils literal notranslate"><span class="pre">marked</span></code></a>)</p></li>
+</ul>
+<p>Irrespective of the value of <code class="docutils literal notranslate"><span class="pre">auto_attrs</span></code>, <a class="reference internal" href="#pheres._jsonable.Marked" title="pheres._jsonable.Marked"><code class="xref any py py-data docutils literal notranslate"><span class="pre">Marked</span></code></a> and <a class="reference internal" href="#pheres._jsonable.marked" title="pheres._jsonable.marked"><code class="xref any py py-func docutils literal notranslate"><span class="pre">marked</span></code></a>
+can always be used for refined control (see their documentation).</p>
+<p>If an attribute has a value in the class body, it is taken to be the
+default value of this attribute. The attribute becomes optional in
+the JSON representation. Defaults are always deep-copied when
+instantiating the class from a JSON representation, so <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">list</span></code></a> and
+<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a> are safe to use.</p>
+<p>To make a jsonable object by decorating a class with <code class="docutils literal notranslate"><span class="pre">&#64;jsonable</span></code>,
+the class must:</p>
+<ul class="simple">
+<li><p>have an <code class="docutils literal notranslate"><span class="pre">__init__</span></code> method that accept the call
+<code class="docutils literal notranslate"><span class="pre">Class(attr1=val1,</span> <span class="pre">attr2=val2,</span> <span class="pre">...)</span></code> where attributes values
+are passed as keyword arguments. This is automatically the case
+if you used <a class="reference external" href="https://docs.python.org/3/library/dataclasses.html#dataclasses.dataclass" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">dataclasses.dataclass</span></code></a> or <a class="reference external" href="https://attrs.org/en/stable/api.html#attr.s" title="(in attrs v20.3)"><code class="xref any docutils literal notranslate"><span class="pre">attr.s</span></code></a> and is
+the intended usage for this functuonality.</p></li>
+</ul>
+<p>In particular, jsonable object <em>do not</em> need to implement a
+<code class="docutils literal notranslate"><span class="pre">to_json(self)</span></code> method, as <code class="xref any docutils literal notranslate"><span class="pre">pheres</span></code> knows exactly what attributes
+to use. This is in contrast with other jsonable classes.</p>
+<p>See the <em>Usage</em> section below for how to make jsonable objects</p>
+</dd>
+<dt>Usages:</dt><dd><p>There are several usage of this decorator.</p>
+<dl>
+<dt>Type parametrization:</dt><dd><p>To produce jsonable <em>values</em>, <em>arrays</em> or <em>dict</em>, the decorator
+must be <strong>parametrized</strong> by a type-hint. Any valid type-hint in
+JSON context can be used. The following syntax may be used:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@jsonable</span><span class="p">[</span><span class="n">T</span><span class="p">]</span>
+<span class="nd">@jsonable</span><span class="o">.</span><span class="n">Value</span><span class="p">[</span><span class="n">T</span><span class="p">]</span>
+<span class="nd">@jsonable</span><span class="o">.</span><span class="n">Array</span><span class="p">[</span><span class="n">T</span><span class="p">]</span>
+<span class="nd">@jsonable</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="n">T</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>The first forms encompasses the following three: If the
+passed type <code class="docutils literal notranslate"><span class="pre">T</span></code> is a JSON value, it will produce a jsonable
+value after decorating the class. If <code class="docutils literal notranslate"><span class="pre">T</span></code> is <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">typing.List</span></code></a>
+or <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">typing.Tuple</span></code></a> (or <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">list</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">tuple</span></code></a> since python 3.9), it
+will produce a jsonable array. Finally, if <code class="docutils literal notranslate"><span class="pre">T</span></code> is
+<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">typing.Dict</span></code></a> (or <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a>), it will produce a jsonable dict.
+If you wish to produce a jsonable object, do not parametrize
+the decorator.</p>
+<p>The type must be fully parametrized, to provide the type of
+the JSON representation down to the last value. <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">typing.Union</span></code></a> can
+be used. This means that:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@jsonable</span><span class="p">[</span><span class="n">List</span><span class="p">]</span> <span class="c1"># not valid</span>
+<span class="nd">@jsonable</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="c1"># valid</span>
+<span class="nd">@jsonable</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="c1"># valid</span>
+</pre></div>
+</div>
+<p>For jsonable arrays, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">typing.List</span></code></a> will produce an arbitrary-length
+array, while <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">typing.Tuple</span></code></a> will produce a fixed-length array, unless
+an ellipsis is used (e.g. <code class="docutils literal notranslate"><span class="pre">jsonable[Tuple[int,</span> <span class="pre">Ellipsis]]</span></code>).
+The literal ellipsis <a class="reference external" href="https://docs.python.org/3/glossary.html#term-1" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">...</span></code></a> may be used, but this is avoided
+in this documentation to prevent confusion with the meaning
+that more arguments can be provided.</p>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;jsonable.Value[T,</span> <span class="pre">...]</span></code> is equivalent to
+<code class="docutils literal notranslate"><span class="pre">jsonable[Union[T,</span> <span class="pre">...]]</span></code> (The <code class="docutils literal notranslate"><span class="pre">...</span></code> here is not python
+ellipsis but indicates that more than one types may be passed).</p>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;jsonable.Array[T,</span> <span class="pre">...]</span></code> is equivalent to
+<code class="docutils literal notranslate"><span class="pre">jsonable[Tuple[T,</span> <span class="pre">...]]</span></code> (where the <code class="docutils literal notranslate"><span class="pre">...</span></code> indicates
+that more than one argument may be passed). This produces
+a fixed-length array – use <a class="reference external" href="https://docs.python.org/3/glossary.html#term-1" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">Ellispis</span></code></a> in second position
+to procude an arbitrary-length array.</p>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;jsonable.Dict[T,</span> <span class="pre">...]</span></code> is equivalent to
+<code class="docutils literal notranslate"><span class="pre">&#64;jsonable[dict[str,</span> <span class="pre">Union[T,</span> <span class="pre">...]]]</span></code> and produces a
+jsonable dict. To produce a jsonable object, do not parametrize
+the decorator.</p>
+</dd>
+<dt>Arguments:</dt><dd><p>If specified, arguments must be provided <em>after</em> the type
+parametrization. <code class="docutils literal notranslate"><span class="pre">after</span></code> can be used for all jsonable
+classes, but <code class="docutils literal notranslate"><span class="pre">auto_attrs</span></code> only has an effect on jsonable
+objects.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;jsonable</span></code> only add members that are not explicitely defined by the
+decorated class (inherited implementation are ignored). This means you
+can overwrite the default behavior if necessary.</p>
+<p>When parametrized by a type or passed arguments, this decorator returns
+an object that may be re-used. This means that the following code is
+valid:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pheres</span> <span class="kn">import</span> <span class="n">jsonable</span><span class="p">,</span> <span class="n">Marked</span>
+
+<span class="n">my_decorator</span> <span class="o">=</span> <span class="n">jsonable</span><span class="p">(</span><span class="n">auto_attrs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="nd">@my_decorator</span>
+<span class="k">class</span> <span class="nc">MyClass</span><span class="p">:</span>
+    <span class="n">python</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">json</span><span class="p">:</span> <span class="n">Marked</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">Value[T, ...]</code></dt>
+<dd><p>Shortcut for <code class="docutils literal notranslate"><span class="pre">jsonable[Union[T,</span> <span class="pre">...]]</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">Array[T, ...]</code></dt>
+<dd><p>Shortcut for <code class="docutils literal notranslate"><span class="pre">jsonable[Tuple[T,</span> <span class="pre">...]]</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">Dict[T, ...]</code></dt>
+<dd><p>Shortcut for <code class="docutils literal notranslate"><span class="pre">jsonable[Dict[str,</span> <span class="pre">Union[T,</span> <span class="pre">...]]]</span></code></p>
+</dd></dl>
+
 <dl class="py method">
-<dt id="pheres._jsonable.DelayedJsonableHandler.decorate_delayed">
-<em class="property">classmethod </em><code class="sig-name descname">decorate_delayed</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pheres._jsonable.DelayedJsonableHandler.decorate_delayed" title="Permalink to this definition">¶</a></dt>
+<dt id="pheres._jsonable.jsonable.decorate_delayed">
+<em class="property">classmethod </em><code class="sig-name descname">decorate_delayed</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pheres._jsonable.jsonable.decorate_delayed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Modifies all delayed jsonables whose dependencies are now met</p>
-<p>You only need to call this if you do not use <cite>&#64;jsonable &lt;pheres._jsonable.jsonable&gt;</cite>
+<p>You only need to call this if you do not use <a class="reference internal" href="#pheres._jsonable.jsonable" title="pheres._jsonable.jsonable"><code class="xref any py py-class docutils literal notranslate"><span class="pre">&#64;jsonable</span></code></a>
 after the dependencies are made available</p>
 </dd></dl>
 
@@ -179,12 +425,12 @@ after the dependencies are made available</p>
 <em class="property">class </em><code class="sig-prename descclassname">pheres._jsonable.</code><code class="sig-name descname">JsonableDummy</code><a class="headerlink" href="#pheres._jsonable.JsonableDummy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Dummy class providing dummy members for all members
-added by <cite>&#64;jsonable &lt;pheres._jsonable.jsonable&gt;</cite>. Allows type checkers and linters to detect
+added by <a class="reference internal" href="#pheres._jsonable.jsonable" title="pheres._jsonable.jsonable"><code class="xref any py py-class docutils literal notranslate"><span class="pre">&#64;jsonable</span></code></a>. Allows type checkers and linters to detect
 said attributes</p>
 <dl class="py attribute">
 <dt id="pheres._jsonable.JsonableDummy.Decoder">
 <code class="sig-name descname">Decoder</code><a class="headerlink" href="#pheres._jsonable.JsonableDummy.Decoder" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <a class="reference internal" href="api_datatypes.html#pheres.datatypes.UsableDecoder" title="pheres.datatypes.UsableDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres.datatypes.UsableDecoder</span></code></a></p>
+<dd><p>alias of <a class="reference internal" href="api_datatypes.html#pheres._datatypes.UsableDecoder" title="pheres._datatypes.UsableDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">pheres._datatypes.UsableDecoder</span></code></a></p>
 </dd></dl>
 
 <dl class="py method">
@@ -213,9 +459,9 @@ on the jsonized attribute behavior. All arguments are optional.</p>
 <li><p><strong>key</strong> – Set the name of the key in JSON for that attribute.
 Defaults to the name of the attribute in python</p></li>
 <li><p><strong>json_only</strong> – Make the attribute only present in JSON. The attribute
-must have a default value or be a <cite>typing.Literal</cite> of a single value. The
+must have a default value or be a <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">typing.Literal</span></code></a> of a single value. The
 attribute is removed from the class’ annotations at runtime
-Defaults to <cite>True</cite> for Literals of a single value; <cite>False</cite> for all other types</p></li>
+Defaults to <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a> for Literals of a single value; <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">False</span></code></a> for all other types</p></li>
 </ul>
 </dd>
 </dl>
@@ -233,53 +479,21 @@ Defaults to <cite>True</cite> for Literals of a single value; <cite>False</cite>
 <dt id="pheres._jsonable.marked">
 <code class="sig-prename descclassname">pheres._jsonable.</code><code class="sig-name descname">marked</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tp</span><span class="p">:</span> <span class="n">TypeHint</span></em>, <em class="sig-param"><span class="o">/</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span> &#x2192; TypeHint<a class="headerlink" href="#pheres._jsonable.marked" title="Permalink to this definition">¶</a></dt>
 <dd><p>Shortcut for <code class="docutils literal notranslate"><span class="pre">Annotated[T,</span> <span class="pre">JsonMark(**kwargs)]</span></code></p>
-<p>See <cite>JsonMarkk</cite> for a list of supported keyword arguments.
-<cite>marked</cite> may not be compatible with type checkers due to being
+<p>See <a class="reference internal" href="#pheres._jsonable.JsonMark" title="pheres._jsonable.JsonMark"><code class="xref any py py-class docutils literal notranslate"><span class="pre">JsonMark</span></code></a> for a list of supported keyword arguments.
+<a class="reference internal" href="#pheres._jsonable.marked" title="pheres._jsonable.marked"><code class="xref any py py-func docutils literal notranslate"><span class="pre">marked</span></code></a> may not be compatible with type checkers due to being
 a runtime definition</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tp</strong> – Type hint to mark</p></li>
-<li><p><strong>**kwargs</strong> – additional info to pass to <cite>JsonMark</cite></p></li>
+<li><p><strong>**kwargs</strong> – additional info to pass to <a class="reference internal" href="#pheres._jsonable.JsonMark" title="pheres._jsonable.JsonMark"><code class="xref any py py-class docutils literal notranslate"><span class="pre">JsonMark</span></code></a></p></li>
 </ul>
 </dd>
 </dl>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><cite>JsonMark</cite></p>
+<p><a class="reference internal" href="#pheres._jsonable.JsonMark" title="pheres._jsonable.JsonMark"><code class="xref any py py-class docutils literal notranslate"><span class="pre">JsonMark</span></code></a></p>
 </div>
-</dd></dl>
-
-<dl class="py class">
-<dt id="pheres._jsonable.jsonable">
-<em class="property">class </em><code class="sig-prename descclassname">pheres._jsonable.</code><code class="sig-name descname">jsonable</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cls_arg</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">/</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._jsonable.jsonable" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Class decorator that makes a class JSONable.</p>
-<p>Can be used directly, or arguments that controls the JSONization
-process can be specified.
-It can also be indexed with type hint(s) to create a JSONable value
-or array</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>[</strong><strong>Optional</strong> (<em>all_attrs</em>) – </p></li>
-<li><p><strong>-- use all attributes for JSONized attribute</strong> (<em>True</em><em>]</em>) – </p></li>
-<li><p><strong>-- register this jsonable only after the listed foward ref are available to pheres</strong> (<em>after</em>) – </p></li>
-</ul>
-</dd>
-</dl>
-<dl>
-<dt>Usage:</dt><dd><p># Default behavior
-&#64;jsonable
-&#64;jsonable()</p>
-<p># Specify arguments
-&#64;jsonable(all_attrs=False)</p>
-<p># JSONable values
-&#64;jsonable[int]              # single value
-&#64;jsonable[int, …]         # variable length array
-&#64;jsonable[int, int]         # fixed length array</p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -361,10 +575,10 @@ the <code class="docutils literal notranslate"><span class="pre">cls</span></cod
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="api_misc.html" class="btn btn-neutral float-right" title="pheres.misc" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="api_misc.html" class="btn btn-neutral float-right" title="Miscellaneous" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="api_decoder.html" class="btn btn-neutral float-left" title="pheres.decoder" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="api_decoder.html" class="btn btn-neutral float-left" title="Decoding API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

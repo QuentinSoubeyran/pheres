@@ -1,7 +1,7 @@
-``pheres.exceptions``
-=====================
+Exceptions
+==========
 
 
-.. automodule:: pheres.exceptions
+.. automodule:: pheres._exceptions
     :members:
     :show-inheritance:

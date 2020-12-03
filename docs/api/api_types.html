@@ -1,0 +1,251 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Types &mdash; pheres  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="JSON Typing API" href="api_typing.html" />
+    <link rel="prev" title="Datatypes" href="api_datatypes.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> pheres
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Quick Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Home</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/typed_decoding.html">Typed JSON decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/jsonable.html">Jsonable Classes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api_intro.html">API Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_exceptions.html">Exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_datatypes.html">Datatypes</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_typing.html">JSON Typing API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_decoder.html">Decoding API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_jsonable.html">Jsonable API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_misc.html">Miscellaneous</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">pheres</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Types</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/api_types.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="types">
+<h1>Types<a class="headerlink" href="#types" title="Permalink to this headline">¶</a></h1>
+<p>This module contains all values used in type-hints in pheres.
+It should be imported in the local namespace with <code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">pheres.types</span> <span class="pre">import</span> <span class="pre">*</span></code>.
+While this kind of import is not recommended in python, ForwardRef in type hints needs the value to be accessible from the namespace they are used in, not the one they are defined in.
+This means that is you used e.g. <a class="reference internal" href="api_typing.html#pheres._typing.JSONType" title="pheres._typing.JSONType"><code class="xref any py py-data docutils literal notranslate"><span class="pre">JSONType</span></code></a>, <a class="reference internal" href="api_typing.html#pheres._typing.JSONValue" title="pheres._typing.JSONValue"><code class="xref any py py-data docutils literal notranslate"><span class="pre">JSONValue</span></code></a>, <a class="reference internal" href="api_typing.html#pheres._typing.JSONArray" title="pheres._typing.JSONArray"><code class="xref any py py-data docutils literal notranslate"><span class="pre">JSONArray</span></code></a> or <a class="reference internal" href="api_typing.html#pheres._typing.JSONObject" title="pheres._typing.JSONObject"><code class="xref any py py-data docutils literal notranslate"><span class="pre">JSONObject</span></code></a>, some values must be availabe in the current namespace.
+This modules simplifies that by provided all values necessary for type-hints, and only those (as to not pollute the namespace)</p>
+<div class="section" id="module-pheres.types">
+<span id="pheres-types"></span><h2><code class="docutils literal notranslate"><span class="pre">pheres.types</span></code><a class="headerlink" href="#module-pheres.types" title="Permalink to this headline">¶</a></h2>
+<p>Module for quick import of type-hints</p>
+<dl class="simple">
+<dt>Contains:</dt><dd><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">typing.Dict</span></code></a>
+<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">typing.List</span></code></a>
+<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">typing.Union</span></code></a>
+<a class="reference internal" href="api_typing.html#pheres._typing.JSONValue" title="pheres._typing.JSONValue"><code class="xref any py py-data docutils literal notranslate"><span class="pre">JSONValue</span></code></a>
+<a class="reference internal" href="api_typing.html#pheres._typing.JSONArray" title="pheres._typing.JSONArray"><code class="xref any py py-data docutils literal notranslate"><span class="pre">JSONArray</span></code></a>
+<a class="reference internal" href="api_typing.html#pheres._typing.JSONObject" title="pheres._typing.JSONObject"><code class="xref any py py-data docutils literal notranslate"><span class="pre">JSONObject</span></code></a>
+<a class="reference internal" href="api_typing.html#pheres._typing.JSONType" title="pheres._typing.JSONType"><code class="xref any py py-data docutils literal notranslate"><span class="pre">JSONType</span></code></a>
+<a class="reference internal" href="api_typing.html#pheres._typing.JsonableValue" title="pheres._typing.JsonableValue"><code class="xref any py py-class docutils literal notranslate"><span class="pre">JsonableValue</span></code></a>
+<a class="reference internal" href="api_typing.html#pheres._typing.JsonableArray" title="pheres._typing.JsonableArray"><code class="xref any py py-class docutils literal notranslate"><span class="pre">JsonableArray</span></code></a>
+<a class="reference internal" href="api_typing.html#pheres._typing.JsonableDict" title="pheres._typing.JsonableDict"><code class="xref any py py-class docutils literal notranslate"><span class="pre">JsonableDict</span></code></a>
+<a class="reference internal" href="api_typing.html#pheres._typing.JsonableObject" title="pheres._typing.JsonableObject"><code class="xref any py py-class docutils literal notranslate"><span class="pre">JsonableObject</span></code></a></p>
+</dd>
+</dl>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="api_typing.html" class="btn btn-neutral float-right" title="JSON Typing API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="api_datatypes.html" class="btn btn-neutral float-left" title="Datatypes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Quentin Soubeyran
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

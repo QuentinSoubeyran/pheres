@@ -1,7 +1,7 @@
-``pheres.typing``
-====================
+JSON Typing API
+===============
 
 
-.. automodule:: pheres.typing
+.. automodule:: pheres._typing
     :members:
     :show-inheritance:

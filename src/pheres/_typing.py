@@ -15,9 +15,9 @@ from abc import ABC
 from threading import RLock
 from typing import Any, Dict, List, Literal, Tuple, Type, TypeVar, Union, get_origin
 
-from .datatypes import MISSING, PHERES_ATTR, ArrayData, DictData, ObjectData, ValueData
-from .exceptions import CycleError, JSONValueError, PheresInternalError, TypeHintError
-from .utils import (
+from pheres._datatypes import MISSING, PHERES_ATTR, ArrayData, DictData, ObjectData, ValueData
+from pheres._exceptions import CycleError, JSONValueError, PheresInternalError, TypeHintError
+from pheres._utils import (
     AnyClass,
     TypeHint,
     Virtual,

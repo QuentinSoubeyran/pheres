@@ -69,6 +69,10 @@ class Subscriptable:
 
     def __init__(self, func):
         self._func = func
+        #self.__doc__ = func.__doc__
+    
+    def __call__(self):
+        raise SyntaxError("Use brackets '[]' instead")
 
     def __getitem__(self, arg):
         return self._func(arg)

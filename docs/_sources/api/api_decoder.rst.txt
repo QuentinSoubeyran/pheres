@@ -1,13 +1,13 @@
-``pheres.decoder``
-==================
+Decoding API
+============
 
 
-.. automodule:: pheres.decoder
+.. automodule:: pheres._decoder
     :show-inheritance:
 
-    .. autoclass:: pheres.decoder.TypedJSONDecoder
+    .. autoclass:: pheres._decoder.TypedJSONDecoder
         :members:
         :show-inheritance:
         :special-members: __class_getitem__
     
-    .. autofunction:: pheres.decoder.deserialize
+    .. autofunction:: pheres._decoder.deserialize

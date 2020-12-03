@@ -1,7 +1,7 @@
-``pheres.misc``
-=====================
+Miscellaneous
+=============
 
 
-.. automodule:: pheres.misc
+.. automodule:: pheres._misc
     :members:
     :show-inheritance:

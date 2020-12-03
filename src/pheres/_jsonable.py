@@ -20,6 +20,7 @@ from typing import (
     List,
     Set,
     Tuple,
+    Type,
     Union,
     get_origin,
     get_type_hints,
@@ -28,7 +29,7 @@ from typing import (
 import attr
 from attr import dataclass as attrs
 
-from .datatypes import (
+from pheres._datatypes import (
     MISSING,
     PHERES_ATTR,
     ArrayData,
@@ -40,9 +41,9 @@ from .datatypes import (
     UsableDecoder,
     ValueData,
 )
-from .decoder import TypedJSONDecoder, deserialize
-from .exceptions import JsonableError, JsonAttrError
-from .typing import (
+from pheres._decoder import TypedJSONDecoder, deserialize
+from pheres._exceptions import JsonableError, JsonAttrError
+from pheres._typing import (
     JSONType,
     _normalize_hint,
     is_jobject_class,
@@ -50,7 +51,7 @@ from .typing import (
     is_jsonable_class,
     is_jsonable_instance,
 )
-from .utils import (
+from pheres._utils import (
     AnyClass,
     Subscriptable,
     TypeHint,
@@ -63,7 +64,6 @@ from .utils import (
 )
 
 __all__ = [
-    "DelayedJsonableHandler",
     "JsonableDummy",
     "JsonMark",
     "Marked",
@@ -71,51 +71,7 @@ __all__ = [
     "jsonable",
     "dump",
     "dumps",
-]
-
-
-class DelayedJsonableHandler:
-    """
-    Class handling delayed jsonables
-    
-    `UndefinedReference`
-    """
-    dependencies: ClassVar[  # pylint: disable=unsubscriptable-object
-        Dict[ModuleType, Dict[str, FrozenSet[str]]]
-    ] = {}
-
-    @classmethod
-    def _add(cls, /, jsonable: AnyClass, deps: Iterable[str]) -> None:
-        module = inspect.getmodule(jsonable)
-        deps = frozenset(deps)
-        name = jsonable.__name__
-        cls.dependencies.setdefault(module, {})[name] = deps
-
-    @classmethod
-    def _contains(cls, /, jsonable: AnyClass):
-        module = inspect.getmodule(jsonable)
-        return jsonable.__name__ in cls.dependencies.get(module, {})
-
-    @classmethod
-    def decorate_delayed(cls):
-        """
-        Modifies all delayed jsonables whose dependencies are now met
-
-        You only need to call this if you do not use `@jsonable <pheres._jsonable.jsonable>`
-        after the dependencies are made available
-        """
-        done = {}
-        for module, deps in cls.dependencies.items():
-            for cls_name, after in deps.items():
-                if all(hasattr(module, a) for a in after):
-                    kls = getattr(module, cls_name)
-                    data: DelayedData = getattr(kls, PHERES_ATTR)
-                    setattr(module, cls_name, data.func(kls))
-                    done.setdefault(module, []).append(cls_name)
-        for module, cls_list in done.items():
-            for cls_name in cls_list:
-                del cls.dependencies[module][cls_name]
-        cls.dependencies = {k: v for k, v in cls.dependencies.items() if v}
+]   
 
 
 class JsonableDummy:
@@ -125,12 +81,7 @@ class JsonableDummy:
     said attributes
     """
 
-    # attributes defined by the @jsonable decorator
-    Decoder: ClassVar[UsableDecoder] = UsableDecoder
-    """Decoder for the `@jsonable <pheres._jsonable.jsonable>` type.
-    
-    This is a default that just delegates to the `json` module since the type is not known
-    """
+    Decoder: ClassVar[Type[UsableDecoder]] = UsableDecoder
     
 
     @classmethod
@@ -308,7 +259,7 @@ def _get_jattrs(cls: type, auto_attrs: bool = True) -> Dict[str, JsonAttr]:
             attr_names |= {
                 jattr.py_name for jattr in getattr(parent, PHERES_ATTR).attrs.values()
             }
-        elif DelayedJsonableHandler._contains(parent):
+        elif jsonable._is_delayed(parent):
             raise JsonableError(
                 f"Cannot register jsonable object {cls.__name__} before its parent class {parent.__name__}"
             )
@@ -436,34 +387,252 @@ _kwargs_table = {
 
 @attrs(frozen=True)
 class jsonable:
-    """
-    Class decorator that makes a class JSONable.
+    r"""
+    Class decorator to make a class jsonable
 
-    Can be used directly, or arguments that controls the JSONization
-    process can be specified.
-    It can also be indexed with type hint(s) to create a JSONable value
-    or array
+    .. _jsonable-class:
+
+    This decorator adds members to the decorated class to serialize or
+    deserialize instance from JSON format. Class decorated this way are
+    called ``jsonable`` classess. The members added by this decorator
+    are described in `JsonableDummy`. Some may not be added by certain
+    usage of this decorator, see below.
+
+    Jsonable classes are **typed**. This means the values found in JSON
+    must have the correct types when deserializing. Types are specified
+    in python code by using PEP 526 type annotations. No typecheck occurs
+    on serialization, as python's type annotations are not binding.
+    `pheres` trusts that the code follows the annotations it exposes, but
+    does not enforce it. Ill-implemented code may well crash when
+    deserializing instances that did not abide to their annotations.
+
+    ``@jsonable`` can be parametrized by type-hints, much like types from
+    the `typing` module (e.g. ``@jsonable[int]``). This will produce
+    various types of jsonable classes. Refer to the *Usage* section below
+    for details.
+
+    There are four types of :ref:`jsonable class <jsonable-class>`\ es:
+    `jsonable value <jsonable-value>`, `jsonable array <jsonable-array>`,
+    `jsonable dict <jsonable-dict>` and `jsonable object <jsonable-object>`.
+    These jsonable class have different JSON representation and are 
+    documented below.
+
+    This class decorator is fully compatible with the `dataclasses`
+    module and the `attr.s` decorator, though it must be used as the
+    inner-most decorator (that is, it must be executed first on the class).
+    It will raise an error if this is not the case.
 
     Arguments:
-        all_attrs [Optional, True] -- use all attributes for JSONized attribute
-        after -- register this jsonable only after the listed foward ref are available to pheres
+        auto_attrs (bool): For jsonable object only. If `True`, all
+            annotated attributes are used. If `False`, only *marked*
+            attributes are used. See *jsonable objects* below. Attributes
+            lacking a PEP 526 annotation are always ignored.
+        after (Union[str, Iterable[str]]): Modify the decorated class
+            only after the listed member become available in the **class'
+            module**. This allows for circular definitions. When the class
+            is modified, the class object is retrieved again from the
+            module it was defined in. This makes ``after`` compatibles
+            with decorators that replace the class object with another one,
+            such as `attr.s` in certain circumstances.
 
-    Usage:
-        # Default behavior
-        @jsonable
-        @jsonable()
+            Checks for dependencies are performed after each use of the
+            ``@jsonable`` decorator. If your class is the last decorated
+            one in the file, call `jsonable.decorate_delayed` to modify
+            it before usage.
 
-        # Specify arguments
-        @jsonable(all_attrs=False)
+    Raises:
+        TypeError: an argument has a wrong type
+        JsonableError: the decorator is not the innermost with respect to
+            `dataclasses.dataclass` or `attr.s`
 
-        # JSONable values
-        @jsonable[int]              # single value
-        @jsonable[int, ...]         # variable length array
-        @jsonable[int, int]         # fixed length array
+    .. _jsonable-value:
+
+    Jsonable values:
+        Jsonable values are represented by a single JSON value (null, a
+        number, a string). To make a jsonable value by decorating a class
+        with `@jsonable <pheres._jsonable.jsonable>`, the class must:
+
+        * have an ``__init__`` method accepting the call ``Class(value)``,
+          where value is the JSON value for an instance of the class
+          (this is used for deserialization)
+        * implement the ``to_json(self)`` method, that returns the value
+          to represents the instance with in JSON (e.g. `None`, an `int`
+          or a `str`). This is because `pheres` cannot know what the class
+          does with the value, like it does with jsonable objects.
+
+        See the *Usage* section below for how to make jsonable values
+
+    .. _jsonable-array:
+    
+    Jsonable arrays:
+        Jsonable arrays are represented by a JSON array. There are two kind
+        of arrays, fixed-length arrays and arbitrary length arrays. To make
+        a jsonable array by decorating a class with
+        `@jsonable <pheres._jsonable.jsonable>`, the class must:
+
+        * have an ``__init__`` method that accept the call ``Class(*array)``,
+          where ``array`` is the python list for the JSON array. This means:
+          
+          * For fixed-length array, a signature ``__init__(self, v1, v2, ...)``
+            with a fixed number of arguments is accepted
+          
+          * For arbitrary length array, the number of arguments is not known
+            in advance, so the signature must be similar to ``__init__(self,
+            *array)`` (this signature is also valid for fixed-length arrays
+            as it does accept the call above).
+        
+        * implement the ``to_json(self)`` method, that returns the python
+          `list` that represents the instance in JSON. This is because
+          `pheres` cannot know what the class does with the values like
+          it does with jsonable objects.
+        
+        See the *Usage* section below for how to make jsonable arrays
+
+    .. _jsonable-dict:
+
+    Jsonable dicts:
+        Jsonable dicts are represented by a JSON Object with arbitrary
+        key-value pairs. For JSON object with known key-value pairs,
+        see *jsonable objects* below. To make a jsonable dict by
+        decorating a class with `@jsonable <pheres._jsonable.jsonable>`,
+        the class must:
+
+        * have an ``__init__`` method that accept the call ``Class(**object)``,
+          where ``object`` is the python dict representing the instance
+          in JSON. The only signature that supports that in python is of
+          the sort ``__init__(self, **object)`` (the actual name of the
+          ``object`` parameter can vary). Optional arguments may be added,
+          but all key-value pairs found in the deserialized JSON will be
+          passed as keyword arguments. This is used for deserialization.
+
+        * implement the ``to_json(self)`` method, that returns a python
+          `dict` that represents the instance in JSON. This is because
+          `pheres` cannot know what the class does with the key-value
+          pairs like it does with jsonable objects.
+        
+        See the *Usage* section below for how to make jsonable dicts
+
+    .. _jsonable-object:
+
+    Jsonable objects:
+        Jsonable objects are represented by a JSON Object with known
+        key-value pairs. The key-value paires are obtained from the
+        class by inspecting PEP 526 annotations. Attributes must be
+        annotated to be considered by `pheres`, then:
+        
+        * If ``auto_attrs`` is `True` (the default), all annotated
+          attributes are used
+        * If ``auto_attrs`` is `False`, attributes must be marked for
+          use (see `Marked` and `marked`)
+
+        Irrespective of the value of ``auto_attrs``, `Marked` and `marked`
+        can always be used for refined control (see their documentation).
+
+        If an attribute has a value in the class body, it is taken to be the
+        default value of this attribute. The attribute becomes optional in
+        the JSON representation. Defaults are always deep-copied when
+        instantiating the class from a JSON representation, so `list` and
+        `dict` are safe to use.
+
+        To make a jsonable object by decorating a class with ``@jsonable``,
+        the class must:
+
+        * have an ``__init__`` method that accept the call
+          ``Class(attr1=val1, attr2=val2, ...)`` where attributes values
+          are passed as keyword arguments. This is automatically the case
+          if you used `dataclasses.dataclass` or `attr.s` and is
+          the intended usage for this functuonality.
+
+        In particular, jsonable object *do not* need to implement a
+        ``to_json(self)`` method, as `pheres` knows exactly what attributes
+        to use. This is in contrast with other jsonable classes.
+
+        See the *Usage* section below for how to make jsonable objects
+
+    Usages:
+        There are several usage of this decorator.
+
+        Type parametrization:
+            To produce jsonable *values*, *arrays* or *dict*, the decorator
+            must be **parametrized** by a type-hint. Any valid type-hint in
+            JSON context can be used. The following syntax may be used::
+
+                @jsonable[T]
+                @jsonable.Value[T]
+                @jsonable.Array[T]
+                @jsonable.Dict[T]
+            
+            The first forms encompasses the following three: If the
+            passed type ``T`` is a JSON value, it will produce a jsonable
+            value after decorating the class. If ``T`` is `typing.List`
+            or `typing.Tuple` (or `list` or `tuple` since python 3.9), it
+            will produce a jsonable array. Finally, if ``T`` is
+            `typing.Dict` (or `dict`), it will produce a jsonable dict.
+            If you wish to produce a jsonable object, do not parametrize
+            the decorator.
+
+            The type must be fully parametrized, to provide the type of
+            the JSON representation down to the last value. `typing.Union` can
+            be used. This means that::
+
+                @jsonable[List] # not valid
+                @jsonable[List[int]] # valid
+                @jsonable[List[Union[int, str]]] # valid
+
+            For jsonable arrays, `typing.List` will produce an arbitrary-length
+            array, while `typing.Tuple` will produce a fixed-length array, unless
+            an ellipsis is used (e.g. ``jsonable[Tuple[int, Ellipsis]]``).
+            The literal ellipsis `...` may be used, but this is avoided
+            in this documentation to prevent confusion with the meaning
+            that more arguments can be provided.
+
+            ``@jsonable.Value[T, ...]`` is equivalent to
+            ``jsonable[Union[T, ...]]`` (The ``...`` here is not python
+            ellipsis but indicates that more than one types may be passed).
+
+            ``@jsonable.Array[T, ...]`` is equivalent to
+            ``jsonable[Tuple[T, ...]]`` (where the ``...`` indicates
+            that more than one argument may be passed). This produces
+            a fixed-length array -- use `Ellispis <...>` in second position
+            to procude an arbitrary-length array.
+
+            ``@jsonable.Dict[T, ...]`` is equivalent to
+            ``@jsonable[dict[str, Union[T, ...]]]`` and produces a
+            jsonable dict. To produce a jsonable object, do not parametrize
+            the decorator.
+
+        Arguments:
+            If specified, arguments must be provided *after* the type
+            parametrization. ``after`` can be used for all jsonable
+            classes, but ``auto_attrs`` only has an effect on jsonable
+            objects.
+    
+    Notes:
+        ``@jsonable`` only add members that are not explicitely defined by the
+        decorated class (inherited implementation are ignored). This means you
+        can overwrite the default behavior if necessary.
+
+        When parametrized by a type or passed arguments, this decorator returns
+        an object that may be re-used. This means that the following code is
+        valid::
+
+            from pheres import jsonable, Marked
+            
+            my_decorator = jsonable(auto_attrs=False)
+
+            @my_decorator
+            class MyClass:
+                python: int
+                json: Marked[int]
     """
+    _DELAYED: ClassVar[  # pylint: disable=unsubscriptable-object
+        Dict[ModuleType, Dict[str, FrozenSet[str]]]
+    ] = {}
 
-    INIT_ARGS: ClassVar[Iterable[str]] = (  # pylint: disable=unsubscriptable-object
-        "all_attrs",
+
+
+    _INIT_ARGS: ClassVar[Iterable[str]] = (  # pylint: disable=unsubscriptable-object
+        "auto_attrs",
         "after",
     )
 
@@ -569,7 +738,7 @@ class jsonable:
             self.__class__.__qualname__,
             "" if self.type_hint is None else f"[{type_repr(self.type_hint)}]",
             ", ".join(
-                [f"{attr}={getattr(self, attr)!r}" for attr in jsonable.INIT_ARGS]
+                [f"{attr}={getattr(self, attr)!r}" for attr in jsonable._INIT_ARGS]
             ),
         )
 
@@ -584,7 +753,7 @@ class jsonable:
             raise JsonableError(
                 "@jsonable must be the inner-most decorator when used with @dataclass"
             )
-        if is_jsonable_class(cls) or DelayedJsonableHandler._contains(cls):
+        if is_jsonable_class(cls) or self._is_delayed(cls):
             # dont' decorate or delay twice
             return cls
         decorator = _decorator_table[self.kind]
@@ -595,11 +764,45 @@ class jsonable:
                 PHERES_ATTR,
                 DelayedData(functools.partial(decorator, **kwargs), self.kind),
             )
-            DelayedJsonableHandler._add(cls, self.after)
+            self._delay(cls, self.after)
         else:
             cls = decorator(cls, **kwargs)
-        DelayedJsonableHandler.decorate_delayed()
+        self.decorate_delayed()
         return cls
+    
+    @classmethod
+    def _delay(cls, /, jsonable: AnyClass, deps: Iterable[str]) -> None:
+        module = inspect.getmodule(jsonable)
+        deps = frozenset(deps)
+        name = jsonable.__name__
+        cls._DELAYED.setdefault(module, {})[name] = deps
+    
+    @classmethod
+    def _is_delayed(cls, /, jsonable: AnyClass):
+        module = inspect.getmodule(jsonable)
+        return jsonable.__name__ in cls._DELAYED.get(module, {})
+    
+    @classmethod
+    def decorate_delayed(cls):
+        """
+        Modifies all delayed jsonables whose dependencies are now met
+
+        You only need to call this if you do not use `@jsonable <pheres._jsonable.jsonable>`
+        after the dependencies are made available
+        """
+        decorated = {}
+        for module, cls_deps_map in cls._DELAYED.items():
+            for cls_name, dependencies in cls_deps_map.items():
+                if all(hasattr(module, deps) for deps in dependencies):
+                    kls = getattr(module, cls_name)
+                    data: DelayedData = getattr(kls, PHERES_ATTR)
+                    setattr(module, cls_name, data.func(kls))
+                    decorated.setdefault(module, []).append(cls_name)
+        for module, cls_list in decorated.items():
+            for cls_name in cls_list:
+                del cls._DELAYED[module][cls_name]
+                if not cls._DELAYED[module]:
+                    del cls._DELAYED[module]
 
 
 #################
