@@ -5,6 +5,7 @@ Contains:
     `typing.Dict`
     `typing.List`
     `typing.Union`
+    `typing.Literal`
     `JSONValue`
     `JSONArray`
     `JSONObject`
@@ -16,7 +17,7 @@ Contains:
 """
 from __future__ import annotations
 
-from typing import Dict, List, Union
+from typing import Dict, List, Literal, Union
 
 from pheres._typing import (
     JsonableArray,

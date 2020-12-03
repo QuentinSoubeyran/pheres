@@ -1,6 +1,8 @@
 Typed JSON decoding
 ===================
 
+**NOTE**: This tutorials needs to be rewritten
+
 The `TypedJSONDecoder` allows to decode/deserialize JSON files or string with typechecking.To use it, pass it as the `cls` argument of [`json.load()`](https://docs.python.org/3/library/json.html#json.load) (and `json.loads()`), after parametrizing it with a type.
 
 Let us go throught an example:

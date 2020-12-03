@@ -168,98 +168,117 @@
             
   <div class="section" id="pheres">
 <span id="id1"></span><h1>Pheres<a class="headerlink" href="#pheres" title="Permalink to this headline">¶</a></h1>
-<p><span class="raw-html-m2r"><h1 align="center">Pheres</h1></span></p>
-<dl class="simple">
-<dt><span class="raw-html-m2r"><p align="center"></span></dt><dd><p><span class="raw-html-m2r"><i>To JSON and back !</i></span></p>
-</dd>
-</dl>
-<p><a class="reference external image-reference" href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg" /></a>
-<hr class="docutils" />
-<p>In greek methology, Pheres is (one of) the son of Jason. In python, Pheres expands the <code class="docutils literal notranslate"><span class="pre">json</span></code> builtin-module with useful utilities.
-It is a drop-in replacement for <code class="docutils literal notranslate"><span class="pre">json</span></code> and provides several utilities to work with JSON in python.</p>
-</div>
-<div class="section" id="disclaimer">
-<h1>Disclaimer<a class="headerlink" href="#disclaimer" title="Permalink to this headline">¶</a></h1>
-<p><em>Pheres</em> is currently in alpha. It might have bugs or features not working properly, and the API might change.</p>
-</div>
+<a class="reference external image-reference" href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg" /></a>
+<p>Pheres is an extension of python’s <a class="reference external" href="https://docs.python.org/3/library/json.html#module-json" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">json</span></code></a> module, that is almost a drop-in replacement.
+It allows typed JSON decoding/encoding and features the <a class="reference internal" href="api/api_jsonable.html#pheres._jsonable.jsonable" title="pheres._jsonable.jsonable"><code class="xref any py py-class docutils literal notranslate"><span class="pre">&#64;jsonable</span></code></a>
+that makes python classes automatically (de)serializable to JSON format.</p>
+<p>The name comes from greek mythology: Pheres is a son of Jason (JSON).</p>
+<p>For more information, refer to the <a class="reference external" href="https://github.com/QuentinSoubeyran/pheres/wiki">documentation</a>.</p>
+<p><strong>NOTE</strong>: Pheres is currently in <em>alpha</em>. There are planned features not
+yet implemented, tests are far from complete, features may have bugs and
+the API might change. Please report bugs and suggestions on the <a class="reference external" href="https://github.com/QuentinSoubeyran/pheres/issues">bug tracker</a>.</p>
 <div class="section" id="installation">
-<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
-<blockquote>
-<div><p>Not yet available on PyPI</p>
-</div></blockquote>
-<p>Install directly from GitHub:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip install <span class="s2">&quot;git+https://github.com/QuentinSoubeyran/pheres#egg=pheres&quot;</span>
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>Pheres is not yet available on <a class="reference external" href="https://pypi.org">PyPI</a>, so you must intall it from github:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">git</span><span class="o">+</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">QuentinSoubeyran</span><span class="o">/</span><span class="n">pheres</span>
 </pre></div>
 </div>
+<p>We are working on releasing Pheres to <a class="reference external" href="https://pypi.org">PyPI</a>.</p>
 </div>
-<div class="section" id="features">
-<h1>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h1>
-<p>This is a quick introduction. See the <a class="reference external" href="https://github.com/QuentinSoubeyran/pheres/wiki">wiki</a> for details.</p>
-<p>Pheres is a drop-in replacement for <code class="docutils literal notranslate"><span class="pre">json</span></code>. It provides the complete <code class="docutils literal notranslate"><span class="pre">json</span></code> module content, tweaks the loading and dumping functions (see below) and adds many utilities.</p>
-<div class="section" id="jsonable-classes">
-<h2>Jsonable classes<a class="headerlink" href="#jsonable-classes" title="Permalink to this headline">¶</a></h2>
-<p><em>Pheres</em> adds <strong>jsonable classes</strong>. Jsonable classes are classes that can readily be serialized and deserialized in the JSON format. (Almost) no code user code is required.
-Jsonable classes are easy to make, akin to dataclasses: pass the class to the <code class="docutils literal notranslate"><span class="pre">&#64;pheres.jsonable</span></code> decorator and annotate the attributes with type-hints.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">pheres</span> <span class="kn">import</span> <span class="n">jsonable</span><span class="p">,</span> <span class="n">loads</span><span class="p">,</span> <span class="n">dumps</span>
-<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<div class="section" id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
+<p>The documentation is available from <a class="reference external" href="https://github.com/QuentinSoubeyran/pheres/wiki">github wiki</a>.</p>
+</div>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>Pheres is typed and i, many places will require types.
+Those are specified with the objects from the builtin <a class="reference external" href="https://docs.python.org/3/library/typing.html#module-typing" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">typing</span></code></a> module.</p>
+<p><strong>Note</strong>: Starting with <a class="reference external" href="https://docs.python.org/3.9/whatsnew/3.9.html">Python 3.9</a>, you can also use builtin types
+for generic type annotations thanks to <a class="reference external" href="https://www.python.org/dev/peps/pep-0585/">PEP 585</a>.</p>
+<p>Pheres provide the <a class="reference internal" href="api/api_types.html#module-pheres.types" title="pheres.types"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">pheres.types</span></code></a> submodule for quick imports of all
+the required types in the current namespace. See the <a class="reference external" href="https://github.com/QuentinSoubeyran/pheres/wiki">documentation</a>
+for why this is necessary.</p>
+<div class="section" id="typed-json">
+<h3>Typed JSON<a class="headerlink" href="#typed-json" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference internal" href="api/api_decoder.html#pheres._decoder.TypedJSONDecoder" title="pheres._decoder.TypedJSONDecoder"><code class="xref any py py-class docutils literal notranslate"><span class="pre">TypedJSONDecoder</span></code></a> class is a typed version of the builtin <a class="reference external" href="https://docs.python.org/3/library/json.html#json.JSONDecoder" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">json.JSONDecoder</span></code></a>,
+with a few tweaks to make it easier to use:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pheres</span> <span class="k">as</span> <span class="nn">ph</span>
+<span class="kn">from</span> <span class="nn">pheres.types</span> <span class="kn">import</span> <span class="o">*</span>
 
-<span class="c1"># Use type hint to specify the attributes to jsonize</span>
-<span class="c1"># The decorator order does not matter</span>
-<span class="nd">@dataclass</span>
-<span class="nd">@jsonable</span>
-<span class="k">class</span> <span class="nc">ExampleJSONable</span><span class="p">:</span>
-    <span class="n">x</span><span class="p">:</span> <span class="nb">int</span>
-    <span class="n">y</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="c1"># complex type hints are supported</span>
-    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;A&quot;</span> <span class="c1"># default value can be provided</span>
-    <span class="n">list_of_things</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span> <span class="c1">#fields are suported</span>
+<span class="n">GraphDecoder</span> <span class="o">=</span> <span class="n">ph</span><span class="o">.</span><span class="n">TypedJSONDecoder</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]</span>
 
-<span class="c1"># Get an instance</span>
-<span class="n">ex</span> <span class="o">=</span> <span class="n">ExampleJSONable</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">graph</span> <span class="o">=</span> <span class="n">GraphDecoder</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;graph.json&quot;</span><span class="p">)</span>
 
-<span class="c1"># Serialize to JSON</span>
-<span class="n">jstring</span> <span class="o">=</span> <span class="n">dumps</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span>
-
-<span class="c1"># Load from JSON</span>
-<span class="n">ex2</span> <span class="o">=</span> <span class="n">ExampleJSONable</span><span class="o">.</span><span class="n">Decoder</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">jstring</span><span class="p">)</span>
-<span class="k">assert</span> <span class="n">ex</span> <span class="o">==</span> <span class="n">ex2</span>
-
-<span class="c1"># Type error reporting</span>
-<span class="c1"># X should be an &#39;int&#39;, not &#39;float&#39;</span>
-<span class="n">jstring</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;{</span>
-<span class="s2">    &quot;x&quot;: 15.006,</span>
-<span class="s2">    &quot;y&quot;: {</span>
-<span class="s2">        &quot;gravity&quot;: 9.81,</span>
-<span class="s2">        &quot;mass&quot;: 75.0</span>
-<span class="s2">    }</span>
+<span class="n">not_a_graph</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;{</span>
+<span class="s2">    &quot;v1&quot;: [&quot;v1&quot;, &quot;v2&quot;],</span>
+<span class="s2">    &quot;v2&quot;: &quot;v2&quot;</span>
 <span class="s2">}&quot;&quot;&quot;</span>
-
-<span class="c1"># Raises TypedJSONDecodeError that reporst were exactly</span>
-<span class="c1"># the type error is</span>
-<span class="n">ExampleJSONable</span><span class="o">.</span><span class="n">Decoder</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">jstring</span><span class="p">)</span>
+<span class="n">GraphDecoder</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">not_a_graph</span><span class="p">)</span> <span class="c1"># Raises pheres.TypedJSONDecodeError</span>
 </pre></div>
 </div>
-<p>Jsonable classes are fully <em>typed</em>. Type errors will be detected early on during JSON decoding, and their exact location in the file or string reported.</p>
-<p>Jsonable classes are fully compatible with <a class="reference external" href="https://docs.python.org/3/library/dataclasses.html">dataclasses</a> and can be nested. This provides a powerfull API to define structured data as python classes whose methods use/handle the data. <em>Pheres</em> will provide seamless loading and dumping to JSON. The obvious example are configuration files.</p>
-<p>It is also possible to create classes that serialize to (deserialize from) simple JSON values or arrays.</p>
-<div class="section" id="serializing">
-<h3>Serializing<a class="headerlink" href="#serializing" title="Permalink to this headline">¶</a></h3>
-<p>Jsonable classes automatically gain a <code class="docutils literal notranslate"><span class="pre">to_json()</span></code> method, that return a python object suitable for <code class="docutils literal notranslate"><span class="pre">json.dump()</span></code>. <code class="docutils literal notranslate"><span class="pre">pheres.JSONableEncoder</span></code> can encode Jsonable classes to a string when used in <code class="docutils literal notranslate"><span class="pre">json.dumps(...,</span> <span class="pre">cls=pheres.JSONableEncoder)</span></code>, and <code class="docutils literal notranslate"><span class="pre">pheres.dumps()</span></code> defaults to that encoder.</p>
 </div>
-<div class="section" id="deserialization">
-<h3>Deserialization<a class="headerlink" href="#deserialization" title="Permalink to this headline">¶</a></h3>
-<p>All Jsonable class can be deserialized from JSON object, string or files using the <code class="docutils literal notranslate"><span class="pre">from_josn()</span></code> method of any Jsonable class. Deserialization is <strong>typed</strong>: values are type-checked against the type hint used in the definition, and errors are reported.</p>
-<p>Additionally, <em>Pheres</em> provides a <code class="docutils literal notranslate"><span class="pre">jsonable_hook</span></code> to pass to <code class="docutils literal notranslate"><span class="pre">json.load()</span></code> (or <code class="docutils literal notranslate"><span class="pre">pheres.load</span></code> directly) that detects any Jsonable class serialization in the JSON and replace them by a proper instance. The drawbacks is that Jsonable classes cannot have serialization that could correspond to more than a single class, but <em>Pheres</em> provides a mechanism to resolve such conflicts.</p>
+<div class="section" id="jsonable-classes">
+<h3>Jsonable classes<a class="headerlink" href="#jsonable-classes" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference internal" href="api/api_jsonable.html#pheres._jsonable.jsonable" title="pheres._jsonable.jsonable"><code class="xref any py py-class docutils literal notranslate"><span class="pre">&#64;jsonable</span></code></a> decorator is an easy way to make
+a class serializable and deserializable to JSON. It is compatible with
+<a class="reference external" href="https://docs.python.org/3/library/dataclasses.html#dataclasses.dataclass" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">dataclasses.dataclass</span></code></a> and <a class="reference external" href="https://attrs.org/en/stable/api.html#attr.s" title="(in attrs v20.3)"><code class="xref any docutils literal notranslate"><span class="pre">attr.s</span></code></a> which makes creating classes seamless:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="kn">import</span> <span class="nn">pheres</span> <span class="k">as</span> <span class="nn">ph</span>
+<span class="kn">from</span> <span class="nn">pheres.types</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="nd">@ph</span><span class="o">.</span><span class="n">jsonable</span><span class="o">.</span><span class="n">Array</span><span class="p">[</span><span class="s2">&quot;People&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">](</span><span class="n">after</span><span class="o">=</span><span class="s2">&quot;People&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">Contacts</span><span class="p">:</span>
+    <span class="n">contacts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="s2">&quot;People&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">contacts</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">contacts</span> <span class="o">=</span> <span class="n">contacts</span>
+
+    <span class="k">def</span> <span class="nf">has</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="n">People</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">contacts</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">contacts</span><span class="p">)</span>
+
+<span class="nd">@dataclass</span>
+<span class="nd">@ph</span><span class="o">.</span><span class="n">jsonable</span>
+<span class="k">class</span> <span class="nc">People</span><span class="p">:</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">surname</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">number</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">contacts</span><span class="p">:</span> <span class="n">Contacts</span>
+
+    <span class="k">def</span> <span class="nf">phone</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">contact</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">contacts</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">contact</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Calling </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">contact</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
+                <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;I do not know </span><span class="si">%s</span><span class="s2">&#39;s number&quot;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+
+<span class="n">database</span> <span class="o">=</span> <span class="n">ph</span><span class="o">.</span><span class="n">TypedJSONDecoder</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">People</span><span class="p">]]</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;data/database.json&quot;</span><span class="p">)</span>
+<span class="n">database</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">phone</span><span class="p">(</span><span class="s2">&quot;Bob&quot;</span><span class="p">)</span>
+</pre></div>
 </div>
+<p>This overly simple example highlights the main features of <a class="reference internal" href="api/api_jsonable.html#pheres._jsonable.jsonable" title="pheres._jsonable.jsonable"><code class="xref any py py-class docutils literal notranslate"><span class="pre">&#64;jsonable</span></code></a>:</p>
+<ul class="simple">
+<li><p>Definition similar to those of <a class="reference external" href="https://docs.python.org/3/library/dataclasses.html#dataclasses.dataclass" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">dataclasses.dataclass</span></code></a>, that can be combined</p></li>
+<li><p>Different types of jsonable classes depending on the JSON representation</p></li>
+<li><p>The ability to nest jsonable classes together, and to create cyclic definitions</p></li>
+</ul>
 </div>
-<div class="section" id="typing-for-json">
-<h2>Typing for JSON<a class="headerlink" href="#typing-for-json" title="Permalink to this headline">¶</a></h2>
-<p>Pheres provides utilities to inspect and validate the types of JSON object, such as <code class="docutils literal notranslate"><span class="pre">typeof()</span></code>, <code class="docutils literal notranslate"><span class="pre">typecheck()</span></code> and <code class="docutils literal notranslate"><span class="pre">is_json()</span></code>. It also provides utilities for working with type-hints themselves.</p>
+<div class="section" id="typing">
+<h3>Typing<a class="headerlink" href="#typing" title="Permalink to this headline">¶</a></h3>
+<p>Pheres also contains some utilities to analyse the type of loaded JSON:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pheres</span> <span class="k">as</span> <span class="nn">ph</span>
+
+<span class="n">jdata</span> <span class="o">=</span> <span class="n">ph</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;data/my_file.json&quot;</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">ph</span><span class="o">.</span><span class="n">typeof</span><span class="p">(</span><span class="n">jdata</span><span class="p">)</span> <span class="ow">is</span> <span class="n">ph</span><span class="o">.</span><span class="n">JSONObject</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Root document found!&quot;</span><span class="p">)</span>
+</pre></div>
 </div>
-<div class="section" id="various-utilities">
-<h2>Various Utilities<a class="headerlink" href="#various-utilities" title="Permalink to this headline">¶</a></h2>
-<p>There are also useful small functions, such as <code class="docutils literal notranslate"><span class="pre">get</span></code>, <code class="docutils literal notranslate"><span class="pre">has</span></code> and <code class="docutils literal notranslate"><span class="pre">set</span></code> that accept nested keys (<code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">str</span></code>) at once and can navigate in python JSON object. Those are ultimately <code class="docutils literal notranslate"><span class="pre">dict</span></code>s and <code class="docutils literal notranslate"><span class="pre">list</span></code>s, but adding a key-value pair deep down an arborescent in one go is convenient.</p>
-<p>The function <code class="docutils literal notranslate"><span class="pre">flatten</span></code>, <code class="docutils literal notranslate"><span class="pre">expand</span></code> and <code class="docutils literal notranslate"><span class="pre">compact</span></code> provide transformations on JSON objects that make handling them easier in certain contexts.</p>
+<p>See the <a class="reference external" href="https://github.com/QuentinSoubeyran/pheres/wiki">documentation</a> for details.</p>
 <div class="toctree-wrapper compound">
 </div>
 <div class="toctree-wrapper compound">
@@ -268,12 +287,13 @@ Jsonable classes are easy to make, akin to dataclasses: pass the class to the <c
 </div>
 </div>
 <div class="section" id="indices-and-tables">
-<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<h3>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
 <li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
 </ul>
+</div>
 </div>
 </div>
 

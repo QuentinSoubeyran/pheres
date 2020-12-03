@@ -1,15 +1,5 @@
-.. Pheres documentation master file, created by
-   sphinx-quickstart on Sun Oct  4 12:52:51 2020.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
 
-
-.. _pheres:
-
-Pheres
-======
-
-.. mdinclude:: ../../README.md
+.. include:: ../../README.rst
 
 .. toctree::
    :maxdepth: -1

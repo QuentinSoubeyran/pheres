@@ -1,6 +1,8 @@
 Jsonable Classes
 ================
 
+**NOTE**: This tutorials needs to be rewritten
+
 The [`@jsonable` decorator](Jsonable-API) lets you easily create python classes that are serializable and deserializable in the JSON format. The API somewhat ressembles the API of the [`dataclasses`](https://docs.python.org/3/library/dataclasses.html) buitlin module. A "jsonable" is a class that has been decorated with *pheres*' `@jsonable` decorator.
 
 There are two main ways to use the decorator. One without type hint, to make *jsonable classes*, and three use with a type hint, to make *jsonable value*, *array*, and *object*. Those change how an instance serializes and deserializes to JSON. As we expect *jsonable classes* to be most useful, this usage is presented first.
