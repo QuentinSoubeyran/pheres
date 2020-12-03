@@ -9,7 +9,7 @@ Pheres
    :alt: Code style: black
 
 Pheres is an extension of python's `json` module, that is almost a drop-in replacement.
-It allows typed JSON decoding/encoding and features the `@jsonable <jsonable>`
+It allows typed JSON decoding/encoding and features the `@jsonable`
 that makes python classes automatically (de)serializable to JSON format.
 
 The name comes from greek mythology: Pheres is a son of Jason (JSON).
