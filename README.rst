@@ -49,8 +49,8 @@ The documentation is available on `github pages`__.
 Overview
 ========
 
-Pheres is typed and i, many places will require types.
-Those are specified with the objects from the builtin ``typing`` `module`__.
+Pheres is typed and will require types in many places.
+Types are specified with type hints from the builtin ``typing`` `module`__.
 
 **Note**: Starting with `Python 3.9`__, you can also use builtin types
 for generic type annotations thanks to `PEP 585`__.
