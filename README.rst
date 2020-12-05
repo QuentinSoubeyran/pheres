@@ -127,15 +127,31 @@ a class serializable and deserializable to JSON. It is compatible with
         def __iter__(self):
             return iter(self.contacts)
     
+    alice = People.from_json("""{
+        "name": "alice",
+        "surname": "",
+        "number": 9999999,
+        "contacts": [
+            {
+                "name": "Bob",
+                "surname": "",
+                "number": 12345678,
+                "contacts": []
+            }
+        ]
+    }""")
 
-    
-    database = ph.TypedJSONDecoder[list[People]].load("data/database.json")
+    print(alice.to_json())
+    assert alice == People.from_json(alice.to_json())
+    people_list = ph.dumps([alice])
+
+    database = ph.TypedJSONDecoder[list[People]].loads(people_list)
     database[0].phone("Bob")
 
 While this example is overly simple, it highlights the main features of ``@jsonable``:
 
-* Definition similar to those of `dataclasses.dataclass`, that can be combined
-* Different types of jsonable classes depending on the JSON representation
+* Definitions similar to those of, and compatible with, ``dataclasses.dataclass``
+* Different types of jsonable classes, depending on the JSON representation
 * The ability to nest jsonable classes together, and to create cyclic definitions
 
 .. __: https://quentinsoubeyran.github.io/pheres/api/api_jsonable.html#pheres._jsonable.jsonable
