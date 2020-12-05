@@ -7,7 +7,7 @@ Jsonable API
     :show-inheritance:
     :exclude-members: jsonable
 
-    .. autoclass:: jsonable(cls:type=None, /, auto_attrs:bool=True, after:Union[str, Iterable[str]]=())
+    .. autoclass:: jsonable(cls:type=None, /, after:Union[str, Iterable[str]]=(), internal:str=None, only_marked:bool=False)
         :members:
 
         .. attribute:: Value[T, ...]

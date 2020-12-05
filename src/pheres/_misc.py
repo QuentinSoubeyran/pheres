@@ -112,7 +112,7 @@ def expand(
 def compact(obj: JSONObject, *, sep=".") -> JSONObject:
     """
     Removes unnecessary levels in the JSON tree
-    
+
     Returns a new JSONObject where keys with only one element are merged
     with their parent key. Keys are converted to `str` objects. The returned
     value contains only dicts, even if the original JSON contained arrays.

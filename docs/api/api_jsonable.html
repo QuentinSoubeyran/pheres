@@ -172,7 +172,7 @@
 <p>Module for the jsonable interface</p>
 <dl class="py class">
 <dt id="pheres._jsonable.jsonable">
-<em class="property">class </em><code class="sig-prename descclassname">pheres._jsonable.</code><code class="sig-name descname">jsonable</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cls</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.9)">type</a></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="o">/</span></em>, <em class="sig-param"><span class="n">auto_attrs</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">after</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>Iterable<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">()</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._jsonable.jsonable" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">pheres._jsonable.</code><code class="sig-name descname">jsonable</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cls</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.9)">type</a></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="o">/</span></em>, <em class="sig-param"><span class="n">after</span><span class="p">:</span> <span class="n">Union<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">, </span>Iterable<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">()</span></em>, <em class="sig-param"><span class="n">internal</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">only_marked</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._jsonable.jsonable" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class decorator to make a class jsonable</p>
 <p id="jsonable-class">This decorator adds members to the decorated class to serialize or
 deserialize instance from JSON format. Class decorated this way are
@@ -202,10 +202,6 @@ It will raise an error if this is not the case.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>auto_attrs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – For jsonable object only. If <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a>, all
-annotated attributes are used. If <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">False</span></code></a>, only <em>marked</em>
-attributes are used. See <em>jsonable objects</em> below. Attributes
-lacking a PEP 526 annotation are always ignored.</p></li>
 <li><p><strong>after</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><em>Iterable</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>]</em><em>]</em>) – <p>Modify the decorated class
 only after the listed member become available in the <strong>class’
 module</strong>. This allows for circular definitions. When the class
@@ -218,6 +214,13 @@ such as <a class="reference external" href="https://attrs.org/en/stable/api.html
 one in the file, call <a class="reference internal" href="#pheres._jsonable.jsonable.decorate_delayed" title="pheres._jsonable.jsonable.decorate_delayed"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">jsonable.decorate_delayed</span></code></a> to modify
 it before usage.</p>
 </p></li>
+<li><p><strong>internal</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – For jsonable value, array of dict. Name of the
+attribute where the JSON value is stored, allowing Pheres
+to make add the <code class="docutils literal notranslate"><span class="pre">to_json</span></code> method to the decorated class</p></li>
+<li><p><strong>only_marked</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – For jsonable object only. If <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a>, all
+annotated attributes are used. If <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">False</span></code></a>, only <em>marked</em>
+attributes are used. See <em>jsonable objects</em> below. Attributes
+lacking a PEP 526 annotation are always ignored.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises</dt>
@@ -297,12 +300,12 @@ key-value pairs. The key-value paires are obtained from the
 class by inspecting PEP 526 annotations. Attributes must be
 annotated to be considered by <a class="reference internal" href="../index.html#pheres"><span class="std std-ref">Pheres</span></a>, then:</p>
 <ul class="simple">
-<li><p>If <code class="docutils literal notranslate"><span class="pre">auto_attrs</span></code> is <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a> (the default), all annotated
+<li><p>If <code class="docutils literal notranslate"><span class="pre">only_marked</span></code> is <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">False</span></code></a> (the default), all annotated
 attributes are used</p></li>
-<li><p>If <code class="docutils literal notranslate"><span class="pre">auto_attrs</span></code> is <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">False</span></code></a>, attributes must be marked for
+<li><p>If <code class="docutils literal notranslate"><span class="pre">only_marked</span></code> is <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">False</span></code></a>, attributes must be marked for
 use (see <a class="reference internal" href="#pheres._jsonable.Marked" title="pheres._jsonable.Marked"><code class="xref any py py-data docutils literal notranslate"><span class="pre">Marked</span></code></a> and <a class="reference internal" href="#pheres._jsonable.marked" title="pheres._jsonable.marked"><code class="xref any py py-func docutils literal notranslate"><span class="pre">marked</span></code></a>)</p></li>
 </ul>
-<p>Irrespective of the value of <code class="docutils literal notranslate"><span class="pre">auto_attrs</span></code>, <a class="reference internal" href="#pheres._jsonable.Marked" title="pheres._jsonable.Marked"><code class="xref any py py-data docutils literal notranslate"><span class="pre">Marked</span></code></a> and <a class="reference internal" href="#pheres._jsonable.marked" title="pheres._jsonable.marked"><code class="xref any py py-func docutils literal notranslate"><span class="pre">marked</span></code></a>
+<p>Irrespective of the value of <code class="docutils literal notranslate"><span class="pre">only_marked</span></code>, <a class="reference internal" href="#pheres._jsonable.Marked" title="pheres._jsonable.Marked"><code class="xref any py py-data docutils literal notranslate"><span class="pre">Marked</span></code></a> and <a class="reference internal" href="#pheres._jsonable.marked" title="pheres._jsonable.marked"><code class="xref any py py-func docutils literal notranslate"><span class="pre">marked</span></code></a>
 can always be used for refined control (see their documentation).</p>
 <p>If an attribute has a value in the class body, it is taken to be the
 default value of this attribute. The attribute becomes optional in
@@ -371,7 +374,7 @@ the decorator.</p>
 </dd>
 <dt>Arguments:</dt><dd><p>If specified, arguments must be provided <em>after</em> the type
 parametrization. <code class="docutils literal notranslate"><span class="pre">after</span></code> can be used for all jsonable
-classes, but <code class="docutils literal notranslate"><span class="pre">auto_attrs</span></code> only has an effect on jsonable
+classes, but <code class="docutils literal notranslate"><span class="pre">only_marked</span></code> only has an effect on jsonable
 objects.</p>
 </dd>
 </dl>
@@ -386,7 +389,7 @@ an object that may be re-used. This means that the following code is
 valid:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pheres</span> <span class="kn">import</span> <span class="n">jsonable</span><span class="p">,</span> <span class="n">Marked</span>
 
-<span class="n">my_decorator</span> <span class="o">=</span> <span class="n">jsonable</span><span class="p">(</span><span class="n">auto_attrs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">my_decorator</span> <span class="o">=</span> <span class="n">jsonable</span><span class="p">(</span><span class="n">only_marked</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="nd">@my_decorator</span>
 <span class="k">class</span> <span class="nc">MyClass</span><span class="p">:</span>
@@ -414,7 +417,7 @@ valid:</p>
 
 <dl class="py method">
 <dt id="pheres._jsonable.jsonable.decorate_delayed">
-<em class="property">classmethod </em><code class="sig-name descname">decorate_delayed</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pheres._jsonable.jsonable.decorate_delayed" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">decorate_delayed</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pheres._jsonable.jsonable.decorate_delayed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Modifies all delayed jsonables whose dependencies are now met</p>
 <p>You only need to call this if you do not use <a class="reference internal" href="#pheres._jsonable.jsonable" title="pheres._jsonable.jsonable"><code class="xref any py py-class docutils literal notranslate"><span class="pre">&#64;jsonable</span></code></a>
 after the dependencies are made available</p>

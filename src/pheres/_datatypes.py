@@ -62,10 +62,10 @@ class JsonableEnum(enum.Enum):
         OBJECT: for jsonable objects
     """
 
-    VALUE = enum.auto()
-    ARRAY = enum.auto()
-    DICT = enum.auto()
-    OBJECT = enum.auto()
+    VALUE = "value"
+    ARRAY = "array"
+    DICT = "dict"
+    OBJECT = "object"
 
 
 @attrs(frozen=True)

@@ -69,8 +69,8 @@ class Subscriptable:
 
     def __init__(self, func):
         self._func = func
-        #self.__doc__ = func.__doc__
-    
+        # self.__doc__ = func.__doc__
+
     def __call__(self):
         raise SyntaxError("Use brackets '[]' instead")
 
@@ -405,6 +405,8 @@ def get_args(tp, *, globalns=None, localns=None) -> Tuple:
 # Adapted version of typing._type_repr
 def type_repr(tp):
     """Return the repr() of objects, special casing types and tuples"""
+    from pheres._typing import JSONArray, JSONObject, JSONValue
+
     if isinstance(tp, tuple):
         return ", ".join(map(type_repr, tp))
     if isinstance(tp, type):
@@ -415,6 +417,12 @@ def type_repr(tp):
         return "..."
     if isinstance(tp, types.FunctionType):
         return tp.__name__
+    if tp is JSONValue:
+        return "JSONValue"
+    if tp is JSONArray:
+        return "JSONArray"
+    if tp is JSONObject:
+        return "JSONObject"
     return repr(tp)
 
 

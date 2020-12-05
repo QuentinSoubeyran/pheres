@@ -25,6 +25,7 @@ from typing import (
     get_origin,
     get_type_hints,
 )
+from warnings import warn
 
 import attr
 from attr import dataclass as attrs
@@ -42,7 +43,7 @@ from pheres._datatypes import (
     ValueData,
 )
 from pheres._decoder import TypedJSONDecoder, deserialize
-from pheres._exceptions import JsonableError, JsonAttrError
+from pheres._exceptions import JsonableError, JsonAttrError, PheresInternalError
 from pheres._typing import (
     JSONType,
     _normalize_hint,
@@ -56,6 +57,7 @@ from pheres._utils import (
     Subscriptable,
     TypeHint,
     TypeT,
+    Virtual,
     classproperty,
     get_args,
     get_class_namespaces,
@@ -71,7 +73,7 @@ __all__ = [
     "jsonable",
     "dump",
     "dumps",
-]   
+]
 
 
 class JsonableDummy:
@@ -82,7 +84,6 @@ class JsonableDummy:
     """
 
     Decoder: ClassVar[Type[UsableDecoder]] = UsableDecoder
-    
 
     @classmethod
     def from_json(cls: AnyClass, /, obj: Any) -> AnyClass:
@@ -116,21 +117,22 @@ def _from_json(cls: type, /, obj):
         return deserialize(obj, cls)
 
 
+def _to_json_factory(internal: str):
+    def to_json(self, with_defaults: bool = False) -> JSONType:
+        """
+        Serializes this instance to JSON
+        """
+        return getattr(self, internal)
+
+    return to_json
+
+
 ###################
 # JSONABLE VALUES #
 ###################
 
 
-def _value_to_json(self, with_defaults: bool = False):
-    """
-    Serialize the instance to a JSON python object
-    """
-    raise NotImplementedError(
-        "jsonable value classes must implement the to_json() method"
-    )
-
-
-def _decorate_value(cls: AnyClass, *, type_hint: TypeHint) -> AnyClass:
+def _decorate_value(cls: AnyClass, *, type_hint: TypeHint, internal: str) -> AnyClass:
     globalns, localns = get_class_namespaces(cls)
     type_hint = _normalize_hint(globalns, localns, type_hint)
     data = ValueData(type_hint)
@@ -138,10 +140,17 @@ def _decorate_value(cls: AnyClass, *, type_hint: TypeHint) -> AnyClass:
     for name, member in (
         ("Decoder", classproperty(_get_decoder)),
         ("from_json", classmethod(_from_json)),
-        ("to_json", _value_to_json),
     ):
         if not name in cls.__dict__:
             setattr(cls, name, member)
+    if internal:
+        if "to_json" in cls.__dict__:
+            raise JsonableError("Cannot override already-defined to_json() method")
+        setattr(cls, "to_json", _to_json_factory(internal))
+    elif not hasattr(cls, "to_json"):
+        raise JsonableError(
+            "jsonable value must implement to_json() or provide the 'internal' arg"
+        )
     return cls
 
 
@@ -150,16 +159,7 @@ def _decorate_value(cls: AnyClass, *, type_hint: TypeHint) -> AnyClass:
 ###################
 
 
-def _array_to_json(self, with_defaults: bool = False):
-    """
-    Serialize the instance to a JSON python object
-    """
-    raise NotImplementedError(
-        "jsonable array classes must implement the to_json() method"
-    )
-
-
-def _decorate_array(cls: AnyClass, *, type_hint: TypeHint) -> AnyClass:
+def _decorate_array(cls: AnyClass, *, type_hint: TypeHint, internal: str) -> AnyClass:
     globalns, localns = get_class_namespaces(cls)
     types = get_args(type_hint, globalns=globalns, localns=localns)
     data = ArrayData(types)
@@ -167,10 +167,17 @@ def _decorate_array(cls: AnyClass, *, type_hint: TypeHint) -> AnyClass:
     for name, member in (
         ("Decoder", classproperty(_get_decoder)),
         ("from_json", classmethod(_from_json)),
-        ("to_json", _array_to_json),
     ):
         if not name in cls.__dict__:
             setattr(cls, name, member)
+    if internal:
+        if "to_json" in cls.__dict__:
+            raise JsonableError("Cannot override already-defined to_json() method")
+        setattr(cls, "to_json", _to_json_factory(internal))
+    elif not hasattr(cls, "to_json"):
+        raise JsonableError(
+            "jsonable array must implement to_json() or provide the 'internal' arg"
+        )
     return cls
 
 
@@ -179,16 +186,7 @@ def _decorate_array(cls: AnyClass, *, type_hint: TypeHint) -> AnyClass:
 #################
 
 
-def _dict_to_json(self, with_defaults: bool = False):
-    """
-    Serialize the instance to a JSON python object
-    """
-    raise NotImplementedError(
-        "jsonable dict classes must implement the to_json() method"
-    )
-
-
-def _decorate_dict(cls: AnyClass, *, type_hint: TypeHint) -> AnyClass:
+def _decorate_dict(cls: AnyClass, *, type_hint: TypeHint, internal: str) -> AnyClass:
     globalns, localns = get_class_namespaces(cls)
     type_ = get_args(type_hint, globalns=globalns, localns=localns)[1]
     data = DictData(type_)
@@ -196,10 +194,17 @@ def _decorate_dict(cls: AnyClass, *, type_hint: TypeHint) -> AnyClass:
     for name, member in (
         ("Decoder", classproperty(_get_decoder)),
         ("from_json", classmethod(_from_json)),
-        ("to_json", _dict_to_json),
     ):
         if not name in cls.__dict__:
             setattr(cls, name, member)
+    if internal:
+        if "to_json" in cls.__dict__:
+            raise JsonableError("Cannot override already-defined to_json() method")
+        setattr(cls, "to_json", _to_json_factory(internal))
+    elif not hasattr(cls, "to_json"):
+        raise JsonableError(
+            "jsonable value must implement to_json() or provide the 'internal' arg"
+        )
     return cls
 
 
@@ -252,16 +257,16 @@ def marked(tp: TypeHint, /, **kwargs) -> TypeHint:
     return Annotated[tp, JsonMark(**kwargs)]
 
 
-def _get_jattrs(cls: type, auto_attrs: bool = True) -> Dict[str, JsonAttr]:
+def _get_jattrs(cls: type, only_marked: bool = False) -> Dict[str, JsonAttr]:
     attr_names = set(cls.__annotations__.keys())
     for parent in cls.__mro__[1:]:
         if is_jobject_class(parent):
             attr_names |= {
                 jattr.py_name for jattr in getattr(parent, PHERES_ATTR).attrs.values()
             }
-        elif jsonable._is_delayed(parent):
+        elif _jsonable.is_delayed(parent):
             raise JsonableError(
-                f"Cannot register jsonable object {cls.__name__} before its parent class {parent.__name__}"
+                f"Cannot decorate jsonable object {cls.__name__} before its parent class {parent.__name__}"
             )
     # Gather jsonized attributes
     jattrs = {}
@@ -280,9 +285,9 @@ def _get_jattrs(cls: type, auto_attrs: bool = True) -> Dict[str, JsonAttr]:
             if any(isinstance((found := arg), JsonMark) for arg in args):
                 name = found.key or name  # pylint: disable=undefined-variable
                 is_json_only = found.json_only  # pylint: disable=undefined-variable
-            elif not auto_attrs:
+            elif only_marked:
                 continue
-        elif not auto_attrs:
+        elif only_marked:
             continue
         # Check for name conflict
         if name in jattrs:
@@ -351,8 +356,8 @@ def _object_to_json(self, *, with_defaults: bool = False):
     return obj
 
 
-def _decorate_object(cls: AnyClass, *, auto_attrs: bool) -> AnyClass:
-    attrs = _get_jattrs(cls, auto_attrs=auto_attrs)
+def _decorate_object(cls: AnyClass, *, only_marked: bool) -> AnyClass:
+    attrs = _get_jattrs(cls, only_marked=only_marked)
     data = ObjectData(attrs)
     setattr(cls, PHERES_ATTR, data)
     _cleanup_object_class(cls)
@@ -377,15 +382,195 @@ _decorator_table = {
     JsonableEnum.OBJECT: _decorate_object,
 }
 
-_kwargs_table = {
-    JsonableEnum.VALUE: ("type_hint",),
-    JsonableEnum.ARRAY: ("type_hint",),
-    JsonableEnum.DICT: ("type_hint",),
-    JsonableEnum.OBJECT: ("auto_attrs",),
-}
-
 
 @attrs(frozen=True)
+class _jsonable:
+    """
+    Internal implementation of the jsonable decorator
+    """
+
+    _DELAYED: ClassVar[  # pylint: disable=unsubscriptable-object
+        Dict[ModuleType, Dict[str, FrozenSet[str]]]
+    ] = {}
+
+    _KWARGS_IN: ClassVar[  # pylint: disable=unsubscriptable-object
+        dict[JsonableEnum, set[str]]
+    ] = {
+        JsonableEnum.VALUE: {"after", "internal"},
+        JsonableEnum.ARRAY: {"after", "internal"},
+        JsonableEnum.DICT: {"after", "internal"},
+        JsonableEnum.OBJECT: {"after", "only_marked"},
+    }
+
+    _KWARGS_OUT: ClassVar[  # pylint: disable=unsubscriptable-object
+        dict[JsonableEnum, set[str]]
+    ] = {
+        JsonableEnum.VALUE: {"type_hint", "internal"},
+        JsonableEnum.ARRAY: {"type_hint", "internal"},
+        JsonableEnum.DICT: {"type_hint", "internal"},
+        JsonableEnum.OBJECT: {"only_marked"},
+    }
+
+    # Internal attributes
+    type_hint: TypeHint
+    kind: JsonableEnum
+    # Decorator arguments
+    after: Union[str, Iterable[str]] = ()  # pylint: disable=unsubscriptable-object
+    internal: str = None
+    only_marked: bool = False
+
+    @staticmethod
+    def _clean_tp_kind(
+        type_hint: TypeHint, kind: JsonableEnum
+    ) -> Tuple[TypeHint, JsonableEnum]:
+        """
+        Cleanup the type hint is any and infer the jsonable kind if not provided
+        """
+        if type_hint is None:
+            if not (kind is None or kind is JsonableEnum.OBJECT):
+                raise PheresInternalError(
+                    "%s kind is incompatible with type-hint %s" % (kind, type_hint)
+                )
+            return type_hint, JsonableEnum.OBJECT
+        if kind is None:
+            if isinstance(type_hint, tuple):
+                if len(type_hint) == 2 and type_hint[1] is Ellipsis:
+                    type_hint = List[type_hint[0]]
+                else:
+                    type_hint = Tuple[type_hint]
+                kind = JsonableEnum.ARRAY
+            elif isinstance((orig := get_origin(type_hint)), type):
+                if issubclass(orig, (list, tuple)):
+                    kind = JsonableEnum.ARRAY
+                elif issubclass(orig, dict):
+                    kind = JsonableEnum.DICT
+            else:
+                kind = JsonableEnum.VALUE
+        return type_hint, kind
+
+    @classmethod
+    def _clean_args(cls, kind: JsonableEnum, **kwargs) -> Dict[str, Any]:
+        """
+        Checks and clean the arguments of the decorator
+        """
+        used_args = cls._KWARGS_IN[kind]
+        if kwargs.keys() - used_args:
+            raise JsonableError(
+                f"Unused args {', '.join(kwargs.keys() - used_args)} for jsonable {kind._value_}"
+            )
+        if "after" in kwargs:
+            after = kwargs[after]
+            if isinstance(after, str):
+                after = frozenset((after,))
+            elif isinstance(after, Iterable):
+                for dep in after:
+                    if not isinstance(dep, str):
+                        raise TypeError("@jsonable dependencies must be str")
+                after = frozenset(after)
+            else:
+                raise TypeError(
+                    "@jsonable dependencies must be a str of an iterable of str"
+                )
+            kwargs["after"] = after
+        return kwargs
+
+    @classmethod
+    def _make(
+        cls,
+        type_hint: TypeHint = None,
+        kind: JsonableEnum = None,
+        cls_arg: type = None,
+        /,
+        **kwargs,
+    ):
+        """
+        Internal method to make a parametrized version of this decorator
+
+        Arguments:
+            cls: class the method was called on
+            type_hint: type hint to parametrize the decorator with
+            kind: type of jsonable object to produce
+            cls_arg: class to decorate
+            *args: positional arguments passed to the decorator by the user
+            **kwargs: keyword arguments passed to the decorator by the user
+        """
+        type_hint, kind = cls._clean_tp_kind(type_hint, kind)
+        kwargs = cls._clean_args(kind, **kwargs)
+        decorator = cls(type_hint=type_hint, kind=kind, **kwargs)
+        if cls_arg is not None:
+            return decorator(cls_arg)
+        return decorator
+
+    def __repr__(self):
+        return "%s%s%s(%s)" % (
+            "" if self.__module__ == "builtins" else f"{self.__module__}.",
+            self.__class__.__qualname__,
+            "" if self.type_hint is None else f"[{type_repr(self.type_hint)}]",
+            ", ".join(
+                [
+                    f"{attr}={getattr(self, attr)!r}"
+                    for attr in self._KWARGS_IN[self.kind]
+                ]
+            ),
+        )
+
+    def __call__(self, cls: AnyClass) -> AnyClass:
+        if not isinstance(cls, type):
+            raise TypeError("Can only decorate classes")
+        if attr.has(cls):
+            raise JsonableError(
+                "@jsonable must be the inner-most decorator when used with @attr.s"
+            )
+        if dataclasses.is_dataclass(cls):
+            raise JsonableError(
+                "@jsonable must be the inner-most decorator when used with @dataclass"
+            )
+        if is_jsonable_class(cls) or self.is_delayed(cls):
+            # dont' decorate or delay twice
+            return cls
+        decorator = _decorator_table[self.kind]
+        kwargs = {kwarg: getattr(self, kwarg) for kwarg in self._KWARGS_OUT[self.kind]}
+        if self.after:
+            setattr(
+                cls,
+                PHERES_ATTR,
+                DelayedData(functools.partial(decorator, **kwargs), self.kind),
+            )
+            self.delay(cls, self.after)
+        else:
+            cls = decorator(cls, **kwargs)
+        self.decorate_delayed()
+        return cls
+
+    @classmethod
+    def delay(cls, /, jsonable: AnyClass, deps: Iterable[str]) -> None:
+        module = inspect.getmodule(jsonable)
+        deps = frozenset(deps)
+        name = jsonable.__name__
+        cls._DELAYED.setdefault(module, {})[name] = deps
+
+    @classmethod
+    def is_delayed(cls, /, jsonable: AnyClass):
+        module = inspect.getmodule(jsonable)
+        return jsonable.__name__ in cls._DELAYED.get(module, {})
+
+    @classmethod
+    def decorate_delayed(cls):
+        decorated = {}
+        for module, cls_deps_map in cls._DELAYED.items():
+            for cls_name, dependencies in cls_deps_map.items():
+                if all(hasattr(module, deps) for deps in dependencies):
+                    kls = getattr(module, cls_name)
+                    data: DelayedData = getattr(kls, PHERES_ATTR)
+                    setattr(module, cls_name, data.func(kls))
+                    decorated.setdefault(module, []).append(cls_name)
+        for module, cls_list in decorated.items():
+            for cls_name in cls_list:
+                del cls._DELAYED[module][cls_name]
+                if not cls._DELAYED[module]:
+                    del cls._DELAYED[module]
+
+
 class jsonable:
     r"""
     Class decorator to make a class jsonable
@@ -414,7 +599,7 @@ class jsonable:
     There are four types of :ref:`jsonable class <jsonable-class>`\ es:
     `jsonable value <jsonable-value>`, `jsonable array <jsonable-array>`,
     `jsonable dict <jsonable-dict>` and `jsonable object <jsonable-object>`.
-    These jsonable class have different JSON representation and are 
+    These jsonable class have different JSON representation and are
     documented below.
 
     This class decorator is fully compatible with the `dataclasses`
@@ -423,10 +608,6 @@ class jsonable:
     It will raise an error if this is not the case.
 
     Arguments:
-        auto_attrs (bool): For jsonable object only. If `True`, all
-            annotated attributes are used. If `False`, only *marked*
-            attributes are used. See *jsonable objects* below. Attributes
-            lacking a PEP 526 annotation are always ignored.
         after (Union[str, Iterable[str]]): Modify the decorated class
             only after the listed member become available in the **class'
             module**. This allows for circular definitions. When the class
@@ -439,6 +620,13 @@ class jsonable:
             ``@jsonable`` decorator. If your class is the last decorated
             one in the file, call `jsonable.decorate_delayed` to modify
             it before usage.
+        internal (str): For jsonable value, array of dict. Name of the
+            attribute where the JSON value is stored, allowing Pheres
+            to make add the ``to_json`` method to the decorated class
+        only_marked (bool): For jsonable object only. If `True`, all
+            annotated attributes are used. If `False`, only *marked*
+            attributes are used. See *jsonable objects* below. Attributes
+            lacking a PEP 526 annotation are always ignored.
 
     Raises:
         TypeError: an argument has a wrong type
@@ -463,7 +651,7 @@ class jsonable:
         See the *Usage* section below for how to make jsonable values
 
     .. _jsonable-array:
-    
+
     Jsonable arrays:
         Jsonable arrays are represented by a JSON array. There are two kind
         of arrays, fixed-length arrays and arbitrary length arrays. To make
@@ -472,20 +660,20 @@ class jsonable:
 
         * have an ``__init__`` method that accept the call ``Class(*array)``,
           where ``array`` is the python list for the JSON array. This means:
-          
+
           * For fixed-length array, a signature ``__init__(self, v1, v2, ...)``
             with a fixed number of arguments is accepted
-          
+
           * For arbitrary length array, the number of arguments is not known
             in advance, so the signature must be similar to ``__init__(self,
             *array)`` (this signature is also valid for fixed-length arrays
             as it does accept the call above).
-        
+
         * implement the ``to_json(self)`` method, that returns the python
           `list` that represents the instance in JSON. This is because
           `pheres` cannot know what the class does with the values like
           it does with jsonable objects.
-        
+
         See the *Usage* section below for how to make jsonable arrays
 
     .. _jsonable-dict:
@@ -509,7 +697,7 @@ class jsonable:
           `dict` that represents the instance in JSON. This is because
           `pheres` cannot know what the class does with the key-value
           pairs like it does with jsonable objects.
-        
+
         See the *Usage* section below for how to make jsonable dicts
 
     .. _jsonable-object:
@@ -519,13 +707,13 @@ class jsonable:
         key-value pairs. The key-value paires are obtained from the
         class by inspecting PEP 526 annotations. Attributes must be
         annotated to be considered by `pheres`, then:
-        
-        * If ``auto_attrs`` is `True` (the default), all annotated
+
+        * If ``only_marked`` is `False` (the default), all annotated
           attributes are used
-        * If ``auto_attrs`` is `False`, attributes must be marked for
+        * If ``only_marked`` is `False`, attributes must be marked for
           use (see `Marked` and `marked`)
 
-        Irrespective of the value of ``auto_attrs``, `Marked` and `marked`
+        Irrespective of the value of ``only_marked``, `Marked` and `marked`
         can always be used for refined control (see their documentation).
 
         If an attribute has a value in the class body, it is taken to be the
@@ -561,7 +749,7 @@ class jsonable:
                 @jsonable.Value[T]
                 @jsonable.Array[T]
                 @jsonable.Dict[T]
-            
+
             The first forms encompasses the following three: If the
             passed type ``T`` is a JSON value, it will produce a jsonable
             value after decorating the class. If ``T`` is `typing.List`
@@ -604,9 +792,9 @@ class jsonable:
         Arguments:
             If specified, arguments must be provided *after* the type
             parametrization. ``after`` can be used for all jsonable
-            classes, but ``auto_attrs`` only has an effect on jsonable
+            classes, but ``only_marked`` only has an effect on jsonable
             objects.
-    
+
     Notes:
         ``@jsonable`` only add members that are not explicitely defined by the
         decorated class (inherited implementation are ignored). This means you
@@ -617,100 +805,28 @@ class jsonable:
         valid::
 
             from pheres import jsonable, Marked
-            
-            my_decorator = jsonable(auto_attrs=False)
+
+            my_decorator = jsonable(only_marked=True)
 
             @my_decorator
             class MyClass:
                 python: int
                 json: Marked[int]
     """
-    _DELAYED: ClassVar[  # pylint: disable=unsubscriptable-object
-        Dict[ModuleType, Dict[str, FrozenSet[str]]]
-    ] = {}
 
+    # This is not really a class, prevent subclassing and instanciation
+    def __init__(self, *args, **kwargs):
+        raise TypeError("@jsonable is not a class")
 
+    def __init_subclass__(self, *args, **kwargs):
+        raise TypeError("@jsonable is not a class")
 
-    _INIT_ARGS: ClassVar[Iterable[str]] = (  # pylint: disable=unsubscriptable-object
-        "auto_attrs",
-        "after",
-    )
-
-    auto_attrs: bool = True
-    after: Union[str, Iterable[str]] = ()  # pylint: disable=unsubscriptable-object
-    type_hint: TypeHint = attr.ib(init=False, default=None)
-    kind: JsonableEnum = attr.ib(init=False, default=JsonableEnum.OBJECT)
-
-    @classmethod
-    def _factory(
-        cls,
-        type_hint: TypeHint,
-        kind: JsonableEnum = None,
-        cls_arg: type = None,
-        /,
-        *args,
-        **kwargs,
-    ):
-        decorator = cls(*args, **kwargs)._parametrize(type_hint, kind=kind)
-        if cls_arg is not None:
-            return decorator(cls_arg)
-        return decorator
-
-    def __new__(cls, cls_arg=None, /, *args, **kwargs):
-        decorator = super().__new__(cls)
-        if cls_arg is not None:
-            # __init__ hasn't been called automatically
-            cls.__init__(decorator, *args, **kwargs)
-            # __init__ is skipped if the return value of __new__
-            # is not an instance of the class, so this is safe
-            return decorator(cls_arg)
-        return decorator
-
-    def __attrs_post_init__(self):
-        if isinstance(self.after, str):
-            after = frozenset((self.after,))
-        elif isinstance(self.after, Iterable):
-            for dep in self.after:
-                if not isinstance(dep, str):
-                    raise TypeError("@jsonable dependencies must be str")
-            after = frozenset(self.after)
-        else:
-            raise TypeError(
-                "@jsonable dependencies must be a str of an iterable of str"
-            )
-        self.__dict__["after"] = after
-
-    def _parametrize(self, type_hint: TypeHint, *, kind: JsonableEnum = None):
-        if self.type_hint is not None:
-            raise TypeError("Cannot parametrize @jsonable twice")
-        if kind is None:
-            # Guess the kind from the provided type-hint
-            if isinstance(type_hint, tuple):
-                if len(type_hint) == 2 and type_hint[1] is Ellipsis:
-                    type_hint = List[type_hint[0]]
-                else:
-                    type_hint = Tuple[type_hint]
-                kind = JsonableEnum.ARRAY
-            elif isinstance((orig := get_origin(type_hint)), type):
-                if issubclass(orig, (list, tuple)):
-                    kind = JsonableEnum.ARRAY
-                elif issubclass(orig, dict):
-                    kind = JsonableEnum.DICT
-            else:
-                kind = JsonableEnum.VALUE
-        self.__dict__["kind"] = kind
-        self.__dict__["type_hint"] = type_hint
-        return self
-
-    @classmethod
-    def __class_getitem__(cls, /, type_hint):
-        return functools.partial(cls._factory, type_hint)
-
+    # Shortcut syntaxes
     @Subscriptable
     def Value(tp):  # pylint: disable=no-self-argument
         tp = Union[tp]  # pylint: disable=unsubscriptable-object
         return functools.partial(
-            jsonable._factory,
+            _jsonable._make,
             tp,
             JsonableEnum.VALUE,
         )
@@ -725,84 +841,54 @@ class jsonable:
             tp = List[tp[0]]  # pylint: disable=unsubscriptable-object
         else:
             tp = Tuple[tp]
-        return functools.partial(jsonable._factory, tp, JsonableEnum.ARRAY)
+        return functools.partial(_jsonable._make, tp, JsonableEnum.ARRAY)
 
     @Subscriptable
     def Dict(tp):  # pylint: disable=no-self-argument
         tp = Dict[str, Union[tp]]  # pylint: disable=unsubscriptable-object
-        return functools.partial(jsonable._factory, tp, JsonableEnum.DICT)
+        return functools.partial(_jsonable._make, tp, JsonableEnum.DICT)
 
-    def __repr__(self):
-        return "%s%s%s(%s)" % (
-            "" if self.__module__ == "builtins" else f"{self.__module__}.",
-            self.__class__.__qualname__,
-            "" if self.type_hint is None else f"[{type_repr(self.type_hint)}]",
-            ", ".join(
-                [f"{attr}={getattr(self, attr)!r}" for attr in jsonable._INIT_ARGS]
-            ),
-        )
+    @classmethod
+    def __class_getitem__(cls, /, type_hint):
+        """
+        Makes this decorator parametrizable
 
-    def __call__(self, cls: AnyClass) -> AnyClass:
-        if not isinstance(cls, type):
-            raise TypeError("Can only decorate classes")
-        if attr.has(cls):
-            raise JsonableError(
-                "@jsonable must be the inner-most decorator when used with @attr.s"
-            )
-        if dataclasses.is_dataclass(cls):
-            raise JsonableError(
-                "@jsonable must be the inner-most decorator when used with @dataclass"
-            )
-        if is_jsonable_class(cls) or self._is_delayed(cls):
-            # dont' decorate or delay twice
-            return cls
-        decorator = _decorator_table[self.kind]
-        kwargs = {kwarg: getattr(self, kwarg) for kwarg in _kwargs_table[self.kind]}
-        if self.after:
-            setattr(
-                cls,
-                PHERES_ATTR,
-                DelayedData(functools.partial(decorator, **kwargs), self.kind),
-            )
-            self._delay(cls, self.after)
-        else:
-            cls = decorator(cls, **kwargs)
-        self.decorate_delayed()
-        return cls
-    
-    @classmethod
-    def _delay(cls, /, jsonable: AnyClass, deps: Iterable[str]) -> None:
-        module = inspect.getmodule(jsonable)
-        deps = frozenset(deps)
-        name = jsonable.__name__
-        cls._DELAYED.setdefault(module, {})[name] = deps
-    
-    @classmethod
-    def _is_delayed(cls, /, jsonable: AnyClass):
-        module = inspect.getmodule(jsonable)
-        return jsonable.__name__ in cls._DELAYED.get(module, {})
-    
-    @classmethod
-    def decorate_delayed(cls):
+        Arguments:
+            type_hint: type to parametrize this decorator with
+
+        Returns:
+            A parametrized version of this decorator
+        """
+        return functools.partial(_jsonable._make, type_hint, None)
+
+    def __new__(cls, cls_arg=None, /, **kwargs):
+        """
+        Creates a new instance of the class
+
+        This is overridden to allow the class to be used as a decorator without
+        empty parens, that is::
+
+            @jsonable
+            class A:
+                pass
+
+        is valid and has the same meaning as::
+
+            @jsonable()
+            class A:
+                pass
+        """
+        return _jsonable._make(None, None, cls_arg, **kwargs)
+
+    @staticmethod
+    def decorate_delayed():
         """
         Modifies all delayed jsonables whose dependencies are now met
 
         You only need to call this if you do not use `@jsonable <pheres._jsonable.jsonable>`
         after the dependencies are made available
         """
-        decorated = {}
-        for module, cls_deps_map in cls._DELAYED.items():
-            for cls_name, dependencies in cls_deps_map.items():
-                if all(hasattr(module, deps) for deps in dependencies):
-                    kls = getattr(module, cls_name)
-                    data: DelayedData = getattr(kls, PHERES_ATTR)
-                    setattr(module, cls_name, data.func(kls))
-                    decorated.setdefault(module, []).append(cls_name)
-        for module, cls_list in decorated.items():
-            for cls_name in cls_list:
-                del cls._DELAYED[module][cls_name]
-                if not cls._DELAYED[module]:
-                    del cls._DELAYED[module]
+        return _jsonable.decorate_delayed()
 
 
 #################

@@ -7,10 +7,10 @@ should not be catched. Please make a bug report if you ever encounter `PheresInt
 from __future__ import annotations
 
 import functools
+import graphlib
 import json
 from typing import Any, Union
 
-import graphlib
 from attr import attrib
 from attr import dataclass as attrs
 

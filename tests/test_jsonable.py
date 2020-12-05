@@ -20,9 +20,6 @@ class BaseTypes(JsonableDummy):
 
 
 def test_base_types():
-    assert BaseTypes.to_json is ph._jsonable._object_to_json
-    for jattr in BaseTypes.__pheres_data__.attrs.values():
-        print(jattr)
     obj = BaseTypes(None, True, 1, 1.0, "string")
     assert obj.to_json() == {
         "null": None,
@@ -299,13 +296,10 @@ def test_default_jsonables():
     assert obj == DefaultJSONableTypes.from_json(json.loads(ph.dumps(obj)))
 
 
-@jsonable.Value[int]  # pylint: disable=unsubscriptable-object
+@jsonable.Value[int](internal="value")  # pylint: disable=unsubscriptable-object
 class JsonableInt(JsonableDummy):
     def __init__(self, value):
         self.value = value
-
-    def to_json(self):
-        return self.value
 
     def __eq__(self, other):
         if isinstance(other, JsonableInt):
@@ -330,13 +324,10 @@ def test_jsonable_value():
         JsonableInt.from_json(r'"string"')
 
 
-@jsonable.Array[int, int, int] # pylint: disable=unsubscriptable-object
+@jsonable.Array[int, int, int](internal="array") # pylint: disable=unsubscriptable-object
 class JsonableArrayFixed(JsonableDummy):
     def __init__(self, *array):
         self.array = list(array)
-
-    def to_json(self):
-        return self.array
 
     def __eq__(self, other):
         if isinstance(other, JsonableArrayFixed):
@@ -364,13 +355,10 @@ def test_jsonable_array():
         JsonableArrayFixed.from_json(r'[1, 2, "string"]')
 
 
-@jsonable.Dict[int] # pylint: disable=unsubscriptable-object
+@jsonable.Dict[int](internal="d") # pylint: disable=unsubscriptable-object
 class JsonableDict(JsonableDummy):
     def __init__(self, d):
         self.d = d
-
-    def to_json(self):
-        return self.d
 
     def __eq__(self, other):
         if isinstance(other, JsonableDict):
@@ -388,7 +376,7 @@ def test_jsonable_object():
 
 
 @dataclass
-@jsonable(auto_attrs=False)
+@jsonable(only_marked=True)
 class PartialJsonable(JsonableDummy):
     both: marked(str)
     py_only: str = "py_only"
