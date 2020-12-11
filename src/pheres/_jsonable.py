@@ -46,7 +46,7 @@ from pheres._decoder import TypedJSONDecoder, deserialize
 from pheres._exceptions import JsonableError, JsonAttrError, PheresInternalError
 from pheres._typing import (
     JSONType,
-    _normalize_hint,
+    _normalize_factory,
     is_jobject_class,
     is_jobject_instance,
     is_jsonable_class,
@@ -133,8 +133,7 @@ def _to_json_factory(internal: str):
 
 
 def _decorate_value(cls: AnyClass, *, type_hint: TypeHint, internal: str) -> AnyClass:
-    globalns, localns = get_class_namespaces(cls)
-    type_hint = _normalize_hint(globalns, localns, type_hint)
+    type_hint = _normalize_factory(*get_class_namespaces(cls))(type_hint)
     data = ValueData(type_hint)
     setattr(cls, PHERES_ATTR, data)
     for name, member in (
@@ -317,7 +316,7 @@ def _get_jattrs(cls: type, only_marked: bool = False) -> Dict[str, JsonAttr]:
             cls_name=cls.__name__,
             name=name,
             py_name=py_name,
-            type=_normalize_hint(globalns, localns, tp),
+            type=_normalize_factory(globalns, localns)(tp),
             default=default,
             is_json_only=is_json_only,
             cls=cls,

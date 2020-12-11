@@ -13,31 +13,15 @@ import itertools
 import typing
 from abc import ABC
 from threading import RLock
-from typing import Any, Dict, List, Literal, Tuple, Type, TypeVar, Union, get_origin
+from typing import (Any, Callable, Dict, List, Literal, Tuple, Type, TypeVar,
+                    Union, get_origin)
 
-from pheres._datatypes import (
-    MISSING,
-    PHERES_ATTR,
-    ArrayData,
-    DictData,
-    ObjectData,
-    ValueData,
-)
-from pheres._exceptions import (
-    CycleError,
-    JSONValueError,
-    PheresInternalError,
-    TypeHintError,
-)
-from pheres._utils import (
-    AnyClass,
-    TypeHint,
-    Virtual,
-    get_args,
-    get_outer_namespaces,
-    on_success,
-    split,
-)
+from pheres._datatypes import (MISSING, PHERES_ATTR, ArrayData, DictData,
+                               ObjectData, ValueData)
+from pheres._exceptions import (CycleError, JSONValueError,
+                                PheresInternalError, TypeHintError)
+from pheres._utils import (AnyClass, Namespace, TypeHint, Virtual, get_args,
+                           get_outer_namespaces, on_success, split)
 
 __all__ = [
     # Constants
@@ -188,21 +172,18 @@ JSONType = Union[  # pylint: disable=unsubscriptable-object
 ########################
 
 
-# @functools.lru_cache
-def _normalize_hint(globalns, localns, tp: TypeHint):
+def _normalize_factory(globalns: Namespace, localns: Namespace) -> Callable[[TypeHint], TypeHint]:
     """
     Internal implementation of normalize_hint
     """
-    _get_args = functools.partial(get_args, localns=localns, globalns=globalns)
-    _normal = functools.partial(_normalize_hint, globalns, localns)
+    guard: set[TypeHint] = set()
+    _get_args = functools.partial(get_args, globalns=globalns, localns=localns)
 
-    with normalize_hint._lock:
-        # Recursive guard
-        if tp in normalize_hint._guard:
+    def _normalize(tp: TypeHint):
+        if tp in guard:
             return tp
-        old_guard = normalize_hint._guard
         try:
-            normalize_hint._guard = normalize_hint._guard | {tp}
+            guard.add(tp)
             # Base types
             if isinstance(tp, type):
                 if tp in (JsonableValue, JsonableArray, JsonableDict, JsonableObject):
@@ -219,7 +200,7 @@ def _normalize_hint(globalns, localns, tp: TypeHint):
             elif orig is Union:
                 others, lits = split(
                     lambda tp: get_origin(tp) is Literal,
-                    (_normal(tp) for tp in _get_args(tp)),
+                    (_normalize(tp) for tp in _get_args(tp)),
                 )
                 if lits:
                     lits = sum(map(get_args, lits), ())
@@ -234,16 +215,17 @@ def _normalize_hint(globalns, localns, tp: TypeHint):
             elif isinstance(orig, type) and issubclass(orig, _JSONArrayTypes):
                 args = _get_args(tp)
                 if orig is list or (len(args) == 2 and args[1] is Ellipsis):
-                    return List[_normal(args[0])]
-                return Tuple[tuple(_normal(arg) for arg in args)]
+                    return List[_normalize(args[0])] # type: ignore
+                return Tuple[tuple(_normalize(arg) for arg in args)]
             # Objects
             elif isinstance(orig, type) and issubclass(orig, _JSONObjectTypes):
                 args = _get_args(tp)
                 if args[0] is str:
-                    return Dict[str, _normal(args[1])]
+                    return Dict[str, _normalize(args[1])] # type: ignore
             raise TypeHintError(tp)  # handles all case that didn't return
         finally:
-            normalize_hint._guard = old_guard
+            guard.discard(tp)
+    return _normalize
 
 
 def normalize_hint(tp: TypeHint):
@@ -258,8 +240,7 @@ def normalize_hint(tp: TypeHint):
     Raises:
         TypeHintError: when tp or an inner type is not a valid JSON type
     """
-    globalns, localns = get_outer_namespaces()
-    return _normalize_hint(globalns, localns, tp)
+    return _normalize_factory(*get_outer_namespaces())(tp)
 
 
 normalize_hint._lock = RLock()
@@ -280,7 +261,7 @@ def is_json_type(type_hint: TypeHint) -> bool:
     """
     globalns, localns = get_outer_namespaces()
     try:
-        _normalize_hint(globalns, localns, type_hint)
+        _normalize_factory(globalns, localns)(type_hint)
         return True
     except TypeHintError:
         return False
@@ -635,6 +616,63 @@ def typeof(obj: JSONType) -> TypeHint:
     raise JSONValueError(obj)
 
 
+def _typecheck_factory(globalns: Namespace, localns: Namespace) -> Callable[[JSONType, TypeHint], bool]:
+    _get_args = functools.partial(get_args, globalns=globalns, localns=localns)
+    
+    def _check(value: JSONType, tp: TypeHint) -> bool:
+        # Jsonables & Values
+        if isinstance(tp, type):
+            if tp in _JSONValueTypes:
+                return isinstance(value, tp)
+            elif tp is JsonableValue:
+                return is_jvalue_instance(value)
+            elif tp is JsonableArray:
+                return is_jarray_instance(value)
+            elif tp is JsonableDict:
+                return is_jdict_instance(value)
+            elif tp is JsonableObject:
+                return is_jobject_instance(value)
+            elif is_jsonable_class(tp):
+                return isinstance(value, tp)
+        # Literal
+        elif (orig := get_origin(tp)) is Literal:
+            return value in _get_args(tp)
+        # Union
+        elif orig is Union:
+            return any(_check(value, arg) for arg in _get_args(tp))
+        # Arrays
+        elif orig in _JSONArrayTypes:
+            if not isinstance(value, _JSONArrayTypes):
+                return False
+            if orig is tuple:
+                args = _get_args(tp)
+                return len(value) == len(args) and all(
+                    _check(val, arg) for val, arg in zip(value, args)
+                )
+            elif orig is list:
+                tp = _get_args(tp)[0]
+                return all(_check(val, tp) for val in value)
+            raise PheresInternalError(
+                f"Unhandled array type {tp} in typecheck(). This is a bug"
+            )
+        # Objects
+        elif orig in _JSONObjectTypes:
+            if orig is dict:
+                if not isinstance(value, dict):
+                    return False
+                tp = _get_args(tp)[1]
+                return all(
+                    isinstance(key, str) and _check(val, tp)
+                    for key, val in value.items()
+                )
+            raise PheresInternalError(
+                f"Unhandled object type {tp} in typecheck(). This is a bug"
+            )
+        raise TypeHintError(tp)
+    
+    return _check
+
+
 def typecheck(value: JSONType, tp: TypeHint) -> bool:
     """Test if a JSON value matches a JSON type hint
 
@@ -651,52 +689,5 @@ def typecheck(value: JSONType, tp: TypeHint) -> bool:
     Raises:
         `TypeHintError`: the type hint could not be handled
     """
-    # Jsonables & Values
-    if isinstance(tp, type):
-        if tp in _JSONValueTypes:
-            return isinstance(value, tp)
-        elif tp is JsonableValue:
-            return is_jvalue_instance(value)
-        elif tp is JsonableArray:
-            return is_jarray_instance(value)
-        elif tp is JsonableDict:
-            return is_jdict_instance(value)
-        elif tp is JsonableObject:
-            return is_jobject_instance(value)
-        elif is_jsonable_class(tp):
-            return isinstance(value, tp)
-    # Literal
-    elif (orig := get_origin(tp)) is Literal:
-        return value in get_args(tp)
-    # Union
-    elif orig is Union:
-        return any(typecheck(value, arg) for arg in get_args(tp))
-    # Arrays
-    elif orig in _JSONArrayTypes:
-        if not isinstance(value, _JSONArrayTypes):
-            return False
-        if orig is tuple:
-            args = get_args(tp)
-            return len(value) == len(args) and all(
-                typecheck(val, arg) for val, arg in zip(value, args)
-            )
-        elif orig is list:
-            tp = get_args(tp)[0]
-            return all(typecheck(val, tp) for val in value)
-        raise PheresInternalError(
-            f"Unhandled array type {tp} in typecheck(). This is a bug"
-        )
-    # Objects
-    elif orig in _JSONObjectTypes:
-        if orig is dict:
-            if not isinstance(value, dict):
-                return False
-            tp = get_args(tp)[1]
-            return all(
-                isinstance(key, str) and typecheck(val, tp)
-                for key, val in value.items()
-            )
-        raise PheresInternalError(
-            f"Unhandled object type {tp} in typecheck(). This is a bug"
-        )
-    raise TypeHintError(tp)
+    return _typecheck_factory(*get_outer_namespaces())(value, tp)
+    

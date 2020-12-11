@@ -1,12 +1,14 @@
 # Builtins
-from dataclasses import dataclass, field
 import json
-from typing import Tuple, List, Union, Literal, Dict
+from dataclasses import dataclass, field
+from typing import Dict, List, Literal, Tuple, Union
+
 import pytest
 
-# thrid party import
-from pheres import jsonable, JsonableDummy, marked
 import pheres as ph
+
+# thrid party import
+from pheres import JsonableDummy, jsonable, marked
 
 
 @dataclass
@@ -35,13 +37,13 @@ def test_base_types():
     assert obj == BaseTypes.Decoder.loads(ph.dumps(obj))
     assert obj == BaseTypes.from_json(ph.dumps(obj))
     assert obj == BaseTypes.from_json(json.loads(ph.dumps(obj)))
-    #assert isinstance(ph.loads(ph.dumps(obj)), BaseTypes)
+    # assert isinstance(ph.loads(ph.dumps(obj)), BaseTypes)
 
 
 @dataclass
 @jsonable
 class ParamTypes(JsonableDummy):
-    literal: Literal[0, 1] # pylint: disable=unsubscriptable-object
+    literal: Literal[0, 1]  # pylint: disable=unsubscriptable-object
     array_fixed: Tuple[None, bool, int, float, str]
     array: List[int]
     obj: Dict[str, str]
@@ -61,13 +63,13 @@ def test_param_types():
     assert obj == ParamTypes.Decoder.loads(ph.dumps(obj))
     assert obj == ParamTypes.from_json(ph.dumps(obj))
     assert obj == ParamTypes.from_json(json.loads(ph.dumps(obj)))
-    #assert isinstance(ph.loads(ph.dumps(obj)), ParamTypes)
+    # assert isinstance(ph.loads(ph.dumps(obj)), ParamTypes)
 
 
 @dataclass
 @jsonable
 class DefaultBaseTypes(JsonableDummy):
-    type_: Literal["dbt"] # pylint: disable=unsubscriptable-object
+    type_: Literal["dbt"]  # pylint: disable=unsubscriptable-object
     null_d: None = None
     boolean_d: bool = False
     integer_d: int = 0
@@ -90,7 +92,7 @@ def test_default_bases():
     assert obj == DefaultBaseTypes.Decoder.loads(ph.dumps(obj))
     assert obj == DefaultBaseTypes.from_json(ph.dumps(obj))
     assert obj == DefaultBaseTypes.from_json(json.loads(ph.dumps(obj)))
-    #assert isinstance(ph.loads(ph.dumps(obj)), DefaultBaseTypes)
+    # assert isinstance(ph.loads(ph.dumps(obj)), DefaultBaseTypes)
 
     obj = DefaultBaseTypes(None, True, 1, 1.0, "string")
     assert obj.to_json() == {
@@ -114,14 +116,14 @@ def test_default_bases():
     assert obj == DefaultBaseTypes.Decoder.loads(ph.dumps(obj))
     assert obj == DefaultBaseTypes.from_json(ph.dumps(obj))
     assert obj == DefaultBaseTypes.from_json(json.loads(ph.dumps(obj)))
-    #assert isinstance(ph.loads(ph.dumps(obj)), DefaultBaseTypes)
+    # assert isinstance(ph.loads(ph.dumps(obj)), DefaultBaseTypes)
 
 
 # Test without dataclass
 @jsonable
 class _DefaultParamTypes(JsonableDummy):
-    type_: Literal["_dbt"] # pylint: disable=unsubscriptable-object
-    _literal_d: Literal[0, 1] = 0 # pylint: disable=unsubscriptable-object
+    type_: Literal["_dbt"]  # pylint: disable=unsubscriptable-object
+    _literal_d: Literal[0, 1] = 0  # pylint: disable=unsubscriptable-object
     _array_fixed_d: Tuple[None, bool, int, float, str] = lambda: [
         None,
         False,
@@ -142,8 +144,8 @@ class _DefaultParamTypes(JsonableDummy):
 @dataclass
 @jsonable
 class DefaultParamTypes(JsonableDummy):
-    type_: Literal["dpt"] # pylint: disable=unsubscriptable-object
-    literal_d: Literal[0, 1] = 0 # pylint: disable=unsubscriptable-object
+    type_: Literal["dpt"]  # pylint: disable=unsubscriptable-object
+    literal_d: Literal[0, 1] = 0  # pylint: disable=unsubscriptable-object
     array_fixed_d: Tuple[None, bool, int, float, str] = field(
         default_factory=lambda: [None, False, 0, 0.0, ""]
     )
@@ -165,7 +167,7 @@ def test_default_param():
     assert obj == DefaultParamTypes.Decoder.loads(ph.dumps(obj))
     assert obj == DefaultParamTypes.from_json(ph.dumps(obj))
     assert obj == DefaultParamTypes.from_json(json.loads(ph.dumps(obj)))
-    #assert isinstance(ph.loads(ph.dumps(obj)), DefaultParamTypes)
+    # assert isinstance(ph.loads(ph.dumps(obj)), DefaultParamTypes)
 
     obj = DefaultParamTypes(
         1, [None, True, 1, 1.0, "string"], [1, 2, 3], {"key": "value"}
@@ -190,7 +192,7 @@ def test_default_param():
     assert obj == DefaultParamTypes.Decoder.loads(ph.dumps(obj))
     assert obj == DefaultParamTypes.from_json(ph.dumps(obj))
     assert obj == DefaultParamTypes.from_json(json.loads(ph.dumps(obj)))
-    #assert isinstance(ph.loads(ph.dumps(obj)), DefaultParamTypes)
+    # assert isinstance(ph.loads(ph.dumps(obj)), DefaultParamTypes)
 
 
 @dataclass
@@ -324,7 +326,9 @@ def test_jsonable_value():
         JsonableInt.from_json(r'"string"')
 
 
-@jsonable.Array[int, int, int](internal="array") # pylint: disable=unsubscriptable-object
+@jsonable.Array[int, int, int](
+    internal="array"
+)  # pylint: disable=unsubscriptable-object
 class JsonableArrayFixed(JsonableDummy):
     def __init__(self, *array):
         self.array = list(array)
@@ -355,7 +359,7 @@ def test_jsonable_array():
         JsonableArrayFixed.from_json(r'[1, 2, "string"]')
 
 
-@jsonable.Dict[int](internal="d") # pylint: disable=unsubscriptable-object
+@jsonable.Dict[int](internal="d")  # pylint: disable=unsubscriptable-object
 class JsonableDict(JsonableDummy):
     def __init__(self, d):
         self.d = d

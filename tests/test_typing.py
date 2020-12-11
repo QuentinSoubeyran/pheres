@@ -1,8 +1,49 @@
+from pprint import pprint
+from string import printable
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
-from pheres import PheresError, JSONValue, JSONArray, JSONObject, JSONValueError
+from pheres import JSONValueError, PheresError, is_json, typecheck, typeof
 from pheres.types import *
+
+json_value = (
+    st.none() | st.booleans() | st.integers() | st.floats() | st.text(printable)
+)
+
+def json_any(size):
+    return st.recursive(
+        json_value,
+        lambda children: st.lists(children, max_size=10) | st.dictionaries(st.text(printable), children, max_size=10),
+        max_leaves=size
+    )
+json_array = st.lists(json_any(15), max_size=15)
+json_object = st.dictionaries(st.text(printable), json_any(15), max_size=15)
+
+@given(json_value)
+def test_json_values(value):
+    assert typeof(value) is JSONValue
+    assert typecheck(value, JSONValue)
+
+
+@given(json_array)
+def test_json_arrays(array):
+    assert typeof(array) is JSONArray
+    assert typecheck(array, JSONArray)
+
+
+@given(json_object)
+def test_json_objects(obj):
+    assert typeof(obj) is JSONObject
+    assert typecheck(obj, JSONObject)
+
+
+@given(json_any(25))
+def test_json_any(obj):
+    assert is_json(obj)
+    assert typecheck(obj, JSONType)
+
 
 test_cases = [
     (None, JSONValue),
@@ -17,10 +58,6 @@ test_cases = [
     ({"key": 0.0}, JSONObject),
 ]
 
-def test_typecheck():
-    from pheres import typecheck
-
-    assert typecheck(None, type(None))
 
 def test_typeof():
     from pheres import typeof
@@ -35,7 +72,7 @@ def test_typeof():
 
 
 def test_is_json():
-    from pheres import is_json, CycleError
+    from pheres import CycleError, is_json
 
     for value, jtype in test_cases:
         print(

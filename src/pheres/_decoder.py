@@ -61,7 +61,7 @@ from pheres._typing import (
     JSONValue,
     _JSONArrayTypes,
     _JSONObjectTypes,
-    _normalize_hint,
+    _normalize_factory,
     is_jarray_class,
     is_jdict_class,
     is_jobject_class,
@@ -864,11 +864,11 @@ class TypedJSONDecoder(ABC, UsableDecoder):
         """
         if is_jsonable_class(tp):
             globalns, localns = get_class_namespaces(get_updated_class(tp))
-            tp = _normalize_hint(globalns, localns, tp)
+            tp = _normalize_factory(globalns, localns)(tp)
             globalns, localns = None, None
         else:
             globalns, localns = get_outer_namespaces()
-            tp = _normalize_hint(globalns, localns, tp)
+            tp = _normalize_factory(globalns, localns)(tp)
         return cls._class_getitem_cache(globalns, localns, tp)
 
     def __init__(self, *args, **kwargs):

@@ -9,6 +9,7 @@ import json
 import types
 import typing
 from contextlib import contextmanager
+from types import FrameType
 from typing import (
     Annotated,
     Any,
@@ -16,25 +17,29 @@ from typing import (
     Generic,
     Iterable,
     List,
+    Optional,
     Tuple,
     Type,
     TypeVar,
     Union,
+    overload,
 )
 
 # Type Aliases
 AnyClass = TypeVar("AnyClass", bound=type)
 TypeHint = Union[  # pylint: disable=unsubscriptable-object
-    type,
+    Type[type],
     Type[Any],
     Type[TypeVar],
-    type(Generic),
+    # Type[Generic],
     Type[Annotated],
     Type[Tuple],
     Type[Callable],
 ]
+Namespace = dict[str, Any]
 TypeT = TypeVar("TypeT", *typing.get_args(TypeHint))
 U = TypeVar("U")
+V = TypeVar("V")
 
 
 class Virtual:
@@ -53,7 +58,7 @@ class Virtual:
         super().__init_subclass__(*args, **kwargs)
 
 
-class Subscriptable:
+class Subscriptable(Generic[U, V]):
     """
     Decorator to make a subscriptable instance from a __getitem__ function
 
@@ -67,14 +72,14 @@ class Subscriptable:
 
     __slots__ = ("_func",)
 
-    def __init__(self, func):
+    def __init__(self, func: Callable[[U], V]) -> None:
         self._func = func
         # self.__doc__ = func.__doc__
 
     def __call__(self):
         raise SyntaxError("Use brackets '[]' instead")
 
-    def __getitem__(self, arg):
+    def __getitem__(self, arg: U) -> V:
         return self._func(arg)
 
 
@@ -84,7 +89,7 @@ def append_doc(s: str) -> Callable[[U], U]:
     """
 
     def append(obj: U) -> U:
-        obj.__doc__ += s
+        obj.__doc__ = (obj.__doc__ if obj.__doc__ else "") + s
         return obj
 
     return append
@@ -92,16 +97,26 @@ def append_doc(s: str) -> Callable[[U], U]:
 
 # from https://stackoverflow.com/questions/5189699/how-to-make-a-class-property
 class ClassPropertyDescriptor:
-    def __init__(self, fget, fset=None):
+    """
+    Descriptor for class properties
+    """
+
+    __slots__ = ("fget", "fset")
+
+    def __init__(
+        self,
+        fget: Union[classmethod, staticmethod],
+        fset: Union[classmethod, staticmethod] = None,
+    ):
         self.fget = fget
         self.fset = fset
 
-    def __get__(self, obj, cls=None):
+    def __get__(self, obj: U, cls: Type[U] = None) -> V:
         if cls is None:
             cls = type(obj)
         return self.fget.__get__(obj, cls)()
 
-    def __set__(self, obj, value):
+    def __set__(self, obj: U, value: V):
         if not self.fset:
             raise AttributeError("can't set attribute")
         type_ = type(obj)
@@ -120,15 +135,30 @@ class ClassPropertyDescriptor:
         return self
 
 
-def classproperty(func):
+def classproperty(
+    func: Union[Callable, classmethod, staticmethod]
+) -> ClassPropertyDescriptor:
     if not isinstance(func, (classmethod, staticmethod)):
         func = classmethod(func)
-
     return ClassPropertyDescriptor(func)
 
 
+@overload
 def autoformat(
-    cls,
+    cls: None, /, params: Union[str, Iterable[str]] = ("message", "msg")
+) -> Callable[[Type[U]], Type[U]]:
+    ...
+
+
+@overload
+def autoformat(
+    cls: Type[U], /, params: Union[str, Iterable[str]] = ("message", "msg")
+) -> Type[U]:
+    ...
+
+
+def autoformat(
+    cls: Type[U] = None,
     /,
     params: Union[str, Iterable[str]] = (  # pylint: disable=unsubscriptable-object
         "message",
@@ -158,12 +188,16 @@ def autoformat(
     """
     if isinstance(params, str):
         params = (params,)
-    init = cls.__init__
-    signature = inspect.signature(init)
+
+    if cls is None:
+        return functools.partial(autoformat, params=params)
+
+    orig_init = cls.__init__
+    signature = inspect.signature(orig_init)
     params = signature.parameters.keys() & set(params)
 
-    @functools.wraps(init)
-    def __init__(*args, **kwargs):
+    @functools.wraps(orig_init)
+    def init(*args, **kwargs):
         bounds = signature.bind(*args, **kwargs)
         bounds.apply_defaults()
         pre_formatted = {
@@ -177,22 +211,22 @@ def autoformat(
         }
         for name, arg in formatted.items():
             bounds.arguments[name] = arg
-        return init(*bounds.args, **bounds.kwargs)
+        return orig_init(*bounds.args, **bounds.kwargs)
 
-    # __init__.__signature__ = signature
-    cls.__init__ = __init__
+    # init.__signature__ = signature
+    setattr(cls, "__init__", init)
     return cls
 
 
 class Variable(str):
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self
 
 
-def _sig_without(sig: inspect.Signature, param: Union[int, str]):
+def _sig_without(sig: inspect.Signature, param: Union[int, str]) -> inspect.Signature:
     """Removes a parameter from a Signature object
 
     If param is an int, remove the parameter at that position, else
@@ -206,7 +240,7 @@ def _sig_without(sig: inspect.Signature, param: Union[int, str]):
     return sig.replace(parameters=params)
 
 
-def _sig_merge(lsig: inspect.Signature, rsig: inspect.Signature):
+def _sig_merge(lsig: inspect.Signature, rsig: inspect.Signature) -> inspect.Signature:
     """Merges two signature object, dropping the return annotations"""
     return inspect.Signature(
         sorted(
@@ -216,11 +250,11 @@ def _sig_merge(lsig: inspect.Signature, rsig: inspect.Signature):
     )
 
 
-def _sig_to_def(sig: inspect.Signature):
+def _sig_to_def(sig: inspect.Signature) -> str:
     return str(sig).split("->", 1)[0].strip()[1:-1]
 
 
-def _sig_to_call(sig: inspect.Signature):
+def _sig_to_call(sig: inspect.Signature) -> str:
     l = []
     for p in sig.parameters.values():
         if p.kind is inspect.Parameter.KEYWORD_ONLY:
@@ -230,7 +264,7 @@ def _sig_to_call(sig: inspect.Signature):
     return ", ".join(l)
 
 
-def post_init(cls):
+def post_init(cls: Type[U]) -> Type[U]:
     """
     Class decorator to automatically support __post_init__() on classes
 
@@ -249,7 +283,9 @@ def post_init(cls):
     previous = [(cls, "__init__", sig)]
     for parent in reversed(cls.__mro__):
         if hasattr(parent, "__post_init__"):
-            post_sig = _sig_without(inspect.signature(parent.__post_init__), 0)
+            post_sig = _sig_without(
+                inspect.signature(getattr(parent, "__post_init__")), 0
+            )
             try:
                 sig = _sig_merge(sig, post_sig)
             except Exception as err:
@@ -292,19 +328,19 @@ def post_init(cls):
         params[i] = p
     new_sig = inspect.Signature(params)
     # Build the new __init__ source code
-    self = "self" if "self" not in sig.parameters else "__post_init_self"
+    self_ = "self" if "self" not in sig.parameters else "__post_init_self"
     init_lines = [
-        f"def __init__({self}, {_sig_to_def(new_sig)}) -> None:",
-        f"__original_init({self}, {_sig_to_call(init_sig)})",
+        f"def __init__({self_}, {_sig_to_def(new_sig)}) -> None:",
+        f"__original_init({self_}, {_sig_to_call(init_sig)})",
     ]
     for parent, method, psig in previous[1:]:
         if hasattr(parent, "__post_init__"):
             if parent is not cls:
                 init_lines.append(
-                    f"super({parent.__qualname__}, {self}).{method}({_sig_to_call(psig)})"
+                    f"super({parent.__qualname__}, {self_}).{method}({_sig_to_call(psig)})"
                 )
             else:
-                init_lines.append(f"{self}.{method}({_sig_to_call(psig)})")
+                init_lines.append(f"{self_}.{method}({_sig_to_call(psig)})")
     init_src = "\n  ".join(init_lines)
     # Build the factory function source code
     local_vars = ", ".join(localns.keys())
@@ -315,12 +351,14 @@ def post_init(cls):
     )
     # Create new __init__ with the factory
     globalns = inspect.getmodule(cls).__dict__
-    exec(factory_src, globalns, (ns := {}))
-    cls.__init__ = ns["__make_init__"](cls.__init__, **localns)
-    self_param = inspect.Parameter(self, inspect.Parameter.POSITIONAL_ONLY)
-    cls.__init__.__signature__ = inspect.Signature(
+    ns: dict[str, Any] = {}
+    exec(factory_src, globalns, ns)
+    init = ns["__make_init__"](cls.__init__, **localns)
+    self_param = inspect.Parameter(self_, inspect.Parameter.POSITIONAL_ONLY)
+    init.__signature__ = inspect.Signature(
         parameters=[self_param] + list(sig.parameters.values()), return_annotation=None
     )
+    setattr(cls, "__init__", init)
     return cls
 
 
@@ -380,30 +418,42 @@ def sync_filter(func, *iterables):
     )
 
 
-def get_outer_frame():
-    return inspect.currentframe().f_back.f_back
+def get_outer_frame() -> Optional[FrameType]:
+    frame = inspect.currentframe()
+    if frame is not None:
+        frame = frame.f_back
+        if frame is not None:
+            return frame.f_back
 
 
-def get_outer_namespaces() -> Tuple:
+def get_outer_namespaces() -> Tuple[Namespace, Namespace]:
     """
     Get the globals and locals from the context that called the function
     calling this utility
 
-    Returns
+    Returns:
         globals, locals
     """
-    frame = inspect.currentframe().f_back.f_back
-    return frame.f_globals, frame.f_locals
+    frame = inspect.currentframe()
+    if frame:
+        frame = frame.f_back
+        if frame:
+            frame = frame.f_back
+            if frame:
+                return frame.f_globals or {}, frame.f_locals or {}
+    return {}, {}
 
 
-def get_args(tp, *, globalns=None, localns=None) -> Tuple:
+def get_args(
+    tp: TypeHint, *, globalns: Namespace = None, localns: Namespace = None
+) -> Tuple[TypeHint, ...]:
     if globalns is not None or localns is not None:
         return typing.get_args(typing._eval_type(tp, globalns, localns))
     return typing.get_args(tp)
 
 
 # Adapted version of typing._type_repr
-def type_repr(tp):
+def type_repr(tp) -> str:
     """Return the repr() of objects, special casing types and tuples"""
     from pheres._typing import JSONArray, JSONObject, JSONValue
 
@@ -426,11 +476,17 @@ def type_repr(tp):
     return repr(tp)
 
 
-def get_class_namespaces(cls):
+def get_class_namespaces(cls: type) -> tuple[Namespace, Namespace]:
+    """
+    Return the module a class is defined in and its internal dictionary
+
+    Returns:
+        globals, locals
+    """
     return inspect.getmodule(cls).__dict__, cls.__dict__ | {cls.__name__: cls}
 
 
-def get_updated_class(cls):
+def get_updated_class(cls: AnyClass) -> AnyClass:
     module = inspect.getmodule(cls)
     if module is not None:
         return getattr(module, cls.__name__)

@@ -92,8 +92,8 @@ class ArrayData:
     """
 
     types: tuple[TypeHint]
-    is_fixed: bool = attrib(init=False, default=MISSING)
-    type_hint: TypeHint = attrib(init=False, default=MISSING)
+    is_fixed: Union[_MISSING, bool] = attrib(init=False, default=MISSING)
+    type_hint: Union[_MISSING, TypeHint] = attrib(init=False, default=MISSING)
 
     def __attrs_post_init__(self):
         if len(self.types) == 2 and self.types[1] is Ellipsis:
@@ -140,9 +140,9 @@ class JsonAttr:
     py_name: str
     type: TypeHint
     default: Any = attrib(default=MISSING)
-    is_json_only: bool = attrib(default=MISSING)
+    is_json_only: Union[_MISSING, bool] = attrib(default=MISSING)
 
-    def __post_init__(self, *, cls=None):
+    def __post_init__(self, *, cls: type = None):
         from pheres._typing import is_json, typecheck
 
         if cls is None:

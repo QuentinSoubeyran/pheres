@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 import pytest
 
 # from pheres.utils import slotted_dataclass
