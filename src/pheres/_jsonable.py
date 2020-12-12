@@ -59,6 +59,7 @@ from pheres._utils import (
     TypeT,
     Virtual,
     classproperty,
+    docstring,
     get_args,
     get_class_namespaces,
     get_updated_class,
@@ -71,6 +72,7 @@ __all__ = [
     "Marked",
     "marked",
     "jsonable",
+    "JSONableEncoder",
     "dump",
     "dumps",
 ]
@@ -897,20 +899,37 @@ class jsonable:
 
 class JSONableEncoder(json.JSONEncoder):
     """
-    JSONEncoder subclass that supports JSONable classes
+    JSONEncoder subclass that supports jsonable classes
     """
 
     def default(self, obj: object):
+        """
+        Overrides `json.JSONEncoder.default` to support jsonable classes
+        """
         if is_jsonable_instance(obj):
             return obj.to_json()
         return super().default(obj)
 
 
+@docstring(
+    pre="""
+        Simple wrapper around `json.dump` that uses `JSONableEncoder` as the default
+        encoder.
+        
+        Wrapped function docstring:\n    """
+)
 @functools.wraps(json.dump)
 def dump(*args, cls=JSONableEncoder, **kwargs):
     return json.dump(*args, cls=cls, **kwargs)
 
 
+@docstring(
+    pre="""
+        Simple wrapper around `json.dumps` that uses `JSONableEncoder` as the default
+        encoder.
+        
+        Wrapped function docstring:\n    """
+)
 @functools.wraps(json.dumps)
 def dumps(*args, cls=JSONableEncoder, **kwargs):
     return json.dumps(*args, cls=cls, **kwargs)

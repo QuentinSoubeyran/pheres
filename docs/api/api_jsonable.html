@@ -501,10 +501,26 @@ a runtime definition</p>
 </div>
 </dd></dl>
 
+<dl class="py class">
+<dt id="pheres._jsonable.JSONableEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">pheres._jsonable.</code><code class="sig-name descname">JSONableEncoder</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">skipkeys</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ensure_ascii</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">check_circular</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">allow_nan</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">sort_keys</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">indent</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">separators</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">default</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._jsonable.JSONableEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">json.encoder.JSONEncoder</span></code></p>
+<p>JSONEncoder subclass that supports jsonable classes</p>
+<dl class="py method">
+<dt id="pheres._jsonable.JSONableEncoder.default">
+<code class="sig-name descname">default</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)">object</a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._jsonable.JSONableEncoder.default" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overrides <a class="reference external" href="https://docs.python.org/3/library/json.html#json.JSONEncoder.default" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">json.JSONEncoder.default</span></code></a> to support jsonable classes</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py function">
 <dt id="pheres._jsonable.dump">
 <code class="sig-prename descclassname">pheres._jsonable.</code><code class="sig-name descname">dump</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span></em>, <em class="sig-param"><span class="n">fp</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">skipkeys</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ensure_ascii</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">check_circular</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">allow_nan</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">cls</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">indent</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">separators</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">default</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">sort_keys</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kw</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._jsonable.dump" title="Permalink to this definition">¶</a></dt>
-<dd><p>Serialize <code class="docutils literal notranslate"><span class="pre">obj</span></code> as a JSON formatted stream to <code class="docutils literal notranslate"><span class="pre">fp</span></code> (a
+<dd><p>Simple wrapper around <a class="reference external" href="https://docs.python.org/3/library/json.html#json.dump" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">json.dump</span></code></a> that uses <a class="reference internal" href="#pheres._jsonable.JSONableEncoder" title="pheres._jsonable.JSONableEncoder"><code class="xref any py py-class docutils literal notranslate"><span class="pre">JSONableEncoder</span></code></a> as the default
+encoder.</p>
+<dl>
+<dt>Wrapped function docstring:</dt><dd><p>Serialize <code class="docutils literal notranslate"><span class="pre">obj</span></code> as a JSON formatted stream to <code class="docutils literal notranslate"><span class="pre">fp</span></code> (a
 <code class="docutils literal notranslate"><span class="pre">.write()</span></code>-supporting file-like object).</p>
 <p>If <code class="docutils literal notranslate"><span class="pre">skipkeys</span></code> is true then <code class="docutils literal notranslate"><span class="pre">dict</span></code> keys that are not basic types
 (<code class="docutils literal notranslate"><span class="pre">str</span></code>, <code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, <code class="docutils literal notranslate"><span class="pre">bool</span></code>, <code class="docutils literal notranslate"><span class="pre">None</span></code>) will be skipped
@@ -534,12 +550,17 @@ dictionaries will be sorted by key.</p>
 <p>To use a custom <code class="docutils literal notranslate"><span class="pre">JSONEncoder</span></code> subclass (e.g. one that overrides the
 <code class="docutils literal notranslate"><span class="pre">.default()</span></code> method to serialize additional types), specify it with
 the <code class="docutils literal notranslate"><span class="pre">cls</span></code> kwarg; otherwise <code class="docutils literal notranslate"><span class="pre">JSONEncoder</span></code> is used.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt id="pheres._jsonable.dumps">
 <code class="sig-prename descclassname">pheres._jsonable.</code><code class="sig-name descname">dumps</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">skipkeys</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ensure_ascii</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">check_circular</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">allow_nan</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">cls</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">indent</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">separators</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">default</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">sort_keys</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kw</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pheres._jsonable.dumps" title="Permalink to this definition">¶</a></dt>
-<dd><p>Serialize <code class="docutils literal notranslate"><span class="pre">obj</span></code> to a JSON formatted <code class="docutils literal notranslate"><span class="pre">str</span></code>.</p>
+<dd><p>Simple wrapper around <a class="reference external" href="https://docs.python.org/3/library/json.html#json.dumps" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">json.dumps</span></code></a> that uses <a class="reference internal" href="#pheres._jsonable.JSONableEncoder" title="pheres._jsonable.JSONableEncoder"><code class="xref any py py-class docutils literal notranslate"><span class="pre">JSONableEncoder</span></code></a> as the default
+encoder.</p>
+<dl>
+<dt>Wrapped function docstring:</dt><dd><p>Serialize <code class="docutils literal notranslate"><span class="pre">obj</span></code> to a JSON formatted <code class="docutils literal notranslate"><span class="pre">str</span></code>.</p>
 <p>If <code class="docutils literal notranslate"><span class="pre">skipkeys</span></code> is true then <code class="docutils literal notranslate"><span class="pre">dict</span></code> keys that are not basic types
 (<code class="docutils literal notranslate"><span class="pre">str</span></code>, <code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, <code class="docutils literal notranslate"><span class="pre">bool</span></code>, <code class="docutils literal notranslate"><span class="pre">None</span></code>) will be skipped
 instead of raising a <code class="docutils literal notranslate"><span class="pre">TypeError</span></code>.</p>
@@ -568,6 +589,8 @@ dictionaries will be sorted by key.</p>
 <p>To use a custom <code class="docutils literal notranslate"><span class="pre">JSONEncoder</span></code> subclass (e.g. one that overrides the
 <code class="docutils literal notranslate"><span class="pre">.default()</span></code> method to serialize additional types), specify it with
 the <code class="docutils literal notranslate"><span class="pre">cls</span></code> kwarg; otherwise <code class="docutils literal notranslate"><span class="pre">JSONEncoder</span></code> is used.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </div>

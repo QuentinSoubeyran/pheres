@@ -1,6 +1,6 @@
 import setuptools
 
-with open("README.md", "r") as f:
+with open("README.rst", "r") as f:
     readme = f.read()
 
 setuptools.setup(
@@ -9,6 +9,7 @@ setuptools.setup(
     version="2.0a1",
     packages=setuptools.find_packages("src"),
     package_dir={"": "src"},
+    package_data={"pheres": ["py.typed"]},
     python_requires="~=3.9",
     install_requires=[
         "attrs>=20.1.0"
@@ -19,7 +20,7 @@ setuptools.setup(
     author_email="45202794+QuentinSoubeyran@users.noreply.github.com",
     description="JSON conversions in a decorator",
     long_description=readme,
-    long_description_content_type="text/markdown", # text/x-rst
+    long_description_content_type="text/x-rst",
     url="https://github.com/QuentinSoubeyran/pheres",
     project_urls={
         "Documentation": r"https://github.com/QuentinSoubeyran/pheres/wiki",

@@ -13,7 +13,7 @@ from copy import deepcopy
 from types import ModuleType
 from typing import Any, Callable, ClassVar, Iterable, Literal, Union, get_origin
 
-from attr import Factory, attrib
+from attr import attrib
 from attr import dataclass as attrs
 
 from pheres._exceptions import (

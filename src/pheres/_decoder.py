@@ -73,7 +73,7 @@ from pheres._typing import (
 )
 from pheres._utils import (
     TypeHint,
-    append_doc,
+    docstring,
     get_args,
     get_class_namespaces,
     get_outer_namespaces,
@@ -804,9 +804,6 @@ class ParametrizedTypedJSONDecoderMeta(ABCMeta):
         return f"TypedJSONDecoder[{tp!r}]"
 
 
-_private = append_doc("\n:meta private:")
-
-
 class TypedJSONDecoder(ABC, UsableDecoder):
     """
     `json.JSONDecoder` subclass for typed JSON decoding
@@ -878,7 +875,7 @@ class TypedJSONDecoder(ABC, UsableDecoder):
         self.parse_array = JSONArrayParser
         self.scan_once = make_string_scanner(self)
 
-    @_private
+    @docstring(post="\n:meta private:")
     @functools.wraps(JSONDecoder.raw_decode)
     def raw_decode(self, s, idx=0):
         globalns, localns = self.globalns, self.localns  # pylint: disable=no-member
@@ -903,23 +900,29 @@ class TypedJSONDecoder(ABC, UsableDecoder):
         return obj, end
 
     @classmethod
+    @docstring(
+        pre="""
+            Thin wrapper around `json.load` that use this class as the ``cls`` argument.
+            The `TypedJSONDecoder` must be parametrized.
+            
+            Wrapped function docstring:\n    """
+    )
+    @functools.wraps(json.load)
     def load(cls, *args, **kwargs):
-        """
-        Thin wrapper around `json.load` that use this class as the ``cls`` argument
-
-        The TypedJSONDecoder must be parametrized
-        """
         if cls is TypedJSONDecoder:
             raise TypeError(f"You must parametrize {cls.__name__} before using it")
         return json.load(*args, cls=cls, **kwargs)
 
     @classmethod
+    @docstring(
+        pre="""
+        Thin wrapper around `json.loads` that use this class as the ``cls`` argument.
+        The TypedJSONDecoder must be parametrized.
+        
+        Wrapped function docstring:\n    """
+    )
+    @functools.wraps(json.loads)
     def loads(cls, *args, **kwargs):
-        """
-        Thin wrapper around `json.loads` that use this class as the ``cls`` argument
-
-        The TypedJSONDecoder must be parametrized
-        """
         if cls is TypedJSONDecoder:
             raise TypeError(f"You must parametrize {cls.__name__} before using it")
         return json.loads(*args, cls=cls, **kwargs)
@@ -927,10 +930,10 @@ class TypedJSONDecoder(ABC, UsableDecoder):
 
 def deserialize(obj: JSONObject, type_hint: TypeHint) -> JSONObject:
     """
-    Deserializes a python object representing a JSON to a Type Hint
+    Deserializes a python object representing a JSON  to a given type
 
-    This is the equivalent of TypedJSONDecoder for JSON object that were
-    already loaded with json.loads()
+    This is the equivalent of `TypedJSONDecoder` for JSON object that were
+    already loaded with `json.loads`.
 
     Args:
         obj: the object to deserialize
@@ -938,7 +941,7 @@ def deserialize(obj: JSONObject, type_hint: TypeHint) -> JSONObject:
 
     Returns:
         A `JSONObject`. It might not be equal to the original object, because
-        JSONable serialization are converted to a proper class instance
+        serialized Jsonable are converted to a proper class instance
 
     Raises:
         `TypedJSONDecodeError`: ``obj`` cannot be deserialized to type_hint

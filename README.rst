@@ -8,20 +8,43 @@ Pheres
    :target: https://github.com/psf/black
    :alt: Code style: black
 
-Pheres is an extension of python's ``json`` module, that is almost a drop-in replacement.
-It allows typed JSON decoding/encoding and features the ``@jsonable`` `decorator`__
-that makes python classes (de)serializable to JSON format.
+Pheres is a typed extension of python's ``json`` module.
+By typed, I mean that it can typecheck values at runtime.
+It provides:
+
+* typed JSON decoding with ``TypedJSONDecoder`` (`link`__)
+* JSON type analysis with ``typeof`` (`link`__)
+* runtime typechecking with ``typecheck`` (`link`__)
+* easy typechecked conversion between python objects, custom classes and JSON str or files
+  with the ``@jsonable`` decorator  (`link`__)
 
 The name comes from greek mythology: Pheres is a son of Jason (JSON).
 
 For more information, refer to the `documentation`__.
 
-**NOTE**: Pheres is currently in *alpha*. There are planned features not
-yet implemented, tests are far from complete so features may have bugs, and
-the API might change. Please report bugs and suggestions on the `bug tracker`__.
-
+.. __: https://quentinsoubeyran.github.io/pheres/api/api_decoder.html#pheres._decoder.TypedJSONDecoder
+.. __: https://quentinsoubeyran.github.io/pheres/api/api_typing.html#pheres._typing.typecheck
+.. __: https://quentinsoubeyran.github.io/pheres/api/api_typing.html#pheres._typing.typeof
 .. __: https://quentinsoubeyran.github.io/pheres/api/api_jsonable.html#pheres._jsonable.jsonable
 .. __: https://quentinsoubeyran.github.io/pheres/
+
+Development status
+==================
+
+Pheres is currently in *alpha*.
+This is essentially a personal project I'm using to learn to do (hopefully) better code,
+and python tools I find interesting (``typing`` module, ``mypy``, ``pytest``,
+``hypothesis``, ``black`` ...).
+This means that:
+
+* features are incomplete and new features may appear
+* type annotations are not complete
+* the API might change (but I try to avoid that)
+* the tests are incomplete
+* there may be bugs
+
+If you find bugs or have suggestions, you are welcome to report them on the  `bug tracker`__.
+
 .. __: https://github.com/QuentinSoubeyran/pheres/issues
 
 Installation

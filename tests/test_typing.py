@@ -1,46 +1,34 @@
 from pprint import pprint
-from string import printable
 
 import pytest
 from hypothesis import given
-from hypothesis import strategies as st
 
 from pheres import JSONValueError, PheresError, is_json, typecheck, typeof
 from pheres.types import *
 
-json_value = (
-    st.none() | st.booleans() | st.integers() | st.floats() | st.text(printable)
-)
+from .strategies import json_arrays, json_objects, json_value, jsons
 
-def json_any(size):
-    return st.recursive(
-        json_value,
-        lambda children: st.lists(children, max_size=10) | st.dictionaries(st.text(printable), children, max_size=10),
-        max_leaves=size
-    )
-json_array = st.lists(json_any(15), max_size=15)
-json_object = st.dictionaries(st.text(printable), json_any(15), max_size=15)
 
 @given(json_value)
-def test_json_values(value):
+def test_json_values(value: JSONValue) -> None:
     assert typeof(value) is JSONValue
     assert typecheck(value, JSONValue)
 
 
-@given(json_array)
-def test_json_arrays(array):
+@given(json_arrays())
+def test_json_arrays(array: JSONArray) -> None:
     assert typeof(array) is JSONArray
     assert typecheck(array, JSONArray)
 
 
-@given(json_object)
-def test_json_objects(obj):
+@given(json_objects())
+def test_json_objects(obj: JSONObject) -> None:
     assert typeof(obj) is JSONObject
     assert typecheck(obj, JSONObject)
 
 
-@given(json_any(25))
-def test_json_any(obj):
+@given(jsons())
+def test_json_any(obj: JSONType) -> None:
     assert is_json(obj)
     assert typecheck(obj, JSONType)
 

@@ -13,15 +13,43 @@ import itertools
 import typing
 from abc import ABC
 from threading import RLock
-from typing import (Any, Callable, Dict, List, Literal, Tuple, Type, TypeVar,
-                    Union, get_origin)
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    get_origin,
+)
 
-from pheres._datatypes import (MISSING, PHERES_ATTR, ArrayData, DictData,
-                               ObjectData, ValueData)
-from pheres._exceptions import (CycleError, JSONValueError,
-                                PheresInternalError, TypeHintError)
-from pheres._utils import (AnyClass, Namespace, TypeHint, Virtual, get_args,
-                           get_outer_namespaces, on_success, split)
+from pheres._datatypes import (
+    MISSING,
+    PHERES_ATTR,
+    ArrayData,
+    DictData,
+    ObjectData,
+    ValueData,
+)
+from pheres._exceptions import (
+    CycleError,
+    JSONValueError,
+    PheresInternalError,
+    TypeHintError,
+)
+from pheres._utils import (
+    AnyClass,
+    Namespace,
+    TypeHint,
+    Virtual,
+    get_args,
+    get_outer_namespaces,
+    on_success,
+    split,
+)
 
 __all__ = [
     # Constants
@@ -149,19 +177,19 @@ class JsonableObject(ABC, Virtual):
 # JSON TYPE HINTS #
 ###################
 
-JSONValue = Union[  # pylint: disable=unsubscriptable-object
+JSONValue: Any = Union[  # pylint: disable=unsubscriptable-object
     None, bool, int, float, str, JsonableValue
 ]
 """Type hint for JSON values (as defined in the JSON specification)"""
-JSONArray = Union[  # pylint: disable=unsubscriptable-object
+JSONArray: Any = Union[  # pylint: disable=unsubscriptable-object
     List["JSONType"], JsonableArray
 ]
 """Type hint for JSON Arrays (as defined in the JSON specification)"""
-JSONObject = Union[  # pylint: disable=unsubscriptable-object
+JSONObject: Any = Union[  # pylint: disable=unsubscriptable-object
     Dict[str, "JSONType"], JsonableDict, JsonableObject
 ]
 """Type hint for JSON Object (as defined in the JSON specification)"""
-JSONType = Union[  # pylint: disable=unsubscriptable-object
+JSONType: Any = Union[  # pylint: disable=unsubscriptable-object
     JSONValue, JSONArray, JSONObject
 ]
 """Type hint for any JSON"""
@@ -172,7 +200,9 @@ JSONType = Union[  # pylint: disable=unsubscriptable-object
 ########################
 
 
-def _normalize_factory(globalns: Namespace, localns: Namespace) -> Callable[[TypeHint], TypeHint]:
+def _normalize_factory(
+    globalns: Namespace, localns: Namespace
+) -> Callable[[TypeHint], TypeHint]:
     """
     Internal implementation of normalize_hint
     """
@@ -215,16 +245,17 @@ def _normalize_factory(globalns: Namespace, localns: Namespace) -> Callable[[Typ
             elif isinstance(orig, type) and issubclass(orig, _JSONArrayTypes):
                 args = _get_args(tp)
                 if orig is list or (len(args) == 2 and args[1] is Ellipsis):
-                    return List[_normalize(args[0])] # type: ignore
+                    return List[_normalize(args[0])]  # type: ignore
                 return Tuple[tuple(_normalize(arg) for arg in args)]
             # Objects
             elif isinstance(orig, type) and issubclass(orig, _JSONObjectTypes):
                 args = _get_args(tp)
                 if args[0] is str:
-                    return Dict[str, _normalize(args[1])] # type: ignore
+                    return Dict[str, _normalize(args[1])]  # type: ignore
             raise TypeHintError(tp)  # handles all case that didn't return
         finally:
             guard.discard(tp)
+
     return _normalize
 
 
@@ -616,9 +647,11 @@ def typeof(obj: JSONType) -> TypeHint:
     raise JSONValueError(obj)
 
 
-def _typecheck_factory(globalns: Namespace, localns: Namespace) -> Callable[[JSONType, TypeHint], bool]:
+def _typecheck_factory(
+    globalns: Namespace, localns: Namespace
+) -> Callable[[JSONType, TypeHint], bool]:
     _get_args = functools.partial(get_args, globalns=globalns, localns=localns)
-    
+
     def _check(value: JSONType, tp: TypeHint) -> bool:
         # Jsonables & Values
         if isinstance(tp, type):
@@ -669,7 +702,7 @@ def _typecheck_factory(globalns: Namespace, localns: Namespace) -> Callable[[JSO
                 f"Unhandled object type {tp} in typecheck(). This is a bug"
             )
         raise TypeHintError(tp)
-    
+
     return _check
 
 
@@ -690,4 +723,3 @@ def typecheck(value: JSONType, tp: TypeHint) -> bool:
         `TypeHintError`: the type hint could not be handled
     """
     return _typecheck_factory(*get_outer_namespaces())(value, tp)
-    

@@ -6,6 +6,7 @@ from __future__ import annotations
 import functools
 import inspect
 import json
+import re
 import types
 import typing
 from contextlib import contextmanager
@@ -17,6 +18,7 @@ from typing import (
     Generic,
     Iterable,
     List,
+    Literal,
     Optional,
     Tuple,
     Type,
@@ -83,16 +85,36 @@ class Subscriptable(Generic[U, V]):
         return self._func(arg)
 
 
-def append_doc(s: str) -> Callable[[U], U]:
+def docstring(
+    docstring: str = None, *, pre: str = None, post: str = None
+) -> Callable[[U], U]:
     """
-    Decorator appending in-place to the docstring of the decorated object
+    Decorator to modify the docstring of an object.
+
+    For all provided strings, unused empty lines are removed, and the indentation
+    of the first non-empty line is removed from all lines if possible. This allows
+    better indentation when used as a decorator.
+
+    Unused empty lines means initial enpty lines for ``pre``, and final empty lines
+    for ``post``.
+
+    Arguments:
+        docstring: replaces the docstring of the object
+        pre: adds the string at the start of the object original docstring
+        post: adds the strings at the end of the object original docstring
     """
 
-    def append(obj: U) -> U:
-        obj.__doc__ = (obj.__doc__ if obj.__doc__ else "") + s
+    def edit_docstring(obj: U) -> U:
+        obj.__doc__ = "".join(
+            (
+                clean_docstring(pre or "", unused="pre"),
+                clean_docstring(docstring or (obj.__doc__ or "")),
+                clean_docstring(post or "", unused="post"),
+            )
+        )
         return obj
 
-    return append
+    return edit_docstring
 
 
 # from https://stackoverflow.com/questions/5189699/how-to-make-a-class-property
@@ -385,6 +407,38 @@ def on_success(func, *args, yield_=None, **kwargs):
         raise
     else:
         func(*args, **kwargs)
+
+
+def clean_docstring(doc: str, unused: Literal["pre", "post"] = None) -> str:
+    """
+    Removes initial empty lines and shared indentation
+
+    Arguments:
+        doc: docstring to clean up
+        unused: whether to remove statring or endind empty lines
+    Returns:
+        The cleaned docstring
+    """
+    doc = doc.split("\n")
+    if unused == "pre":
+        try:
+            index = next(i for i, l in enumerate(doc) if l.strip())
+            doc = doc[index:]
+        except StopIteration:
+            doc = []
+    elif unused == "post":
+        try:
+            index = next(i for i, l in enumerate(reversed(doc)) if l.strip())
+            doc = doc[: len(doc) - index]
+        except StopIteration:
+            doc = []
+    if doc:
+        first_line = doc[0]
+        index = len(first_line) - len(first_line.lstrip())
+        indent = first_line[:index]
+        if all(l.startswith(indent) for l in doc if l.strip()):
+            doc = [(l[index:] if l.strip() else l) for l in doc]
+    return "\n".join(doc)
 
 
 def split(func, iterable):
