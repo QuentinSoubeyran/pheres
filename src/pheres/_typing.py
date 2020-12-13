@@ -233,7 +233,7 @@ def _normalize_factory(
             elif orig is Union:
                 others, lits = split(
                     lambda tp: get_origin(tp) is Literal,
-                    (_normalize(tp) for tp in _get_args(tp)),
+                    (_normalize(t) for t in _get_args(tp)),
                 )
                 if lits:
                     lits = sum(map(get_args, lits), ())

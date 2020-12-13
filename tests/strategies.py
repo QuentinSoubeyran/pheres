@@ -192,6 +192,7 @@ def _typed_jsons(draw, max_size: int = 5, max_leaves: int = 30):
     example = draw(strategy)
     return tp, example
 
+
 def typed_jsons(max_size: int = 5, max_leaves: int = 30):
     """
     Returns a strategy that produces a JSON type hint and an example JSON

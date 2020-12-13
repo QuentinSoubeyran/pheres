@@ -12,7 +12,7 @@ from pheres import (
     typecheck,
     typeof,
 )
-from pheres.types import * # pylint: disable=unused-wildcard-import
+from pheres.types import *  # pylint: disable=unused-wildcard-import
 
 from .strategies import (
     json_arrays,
@@ -34,17 +34,21 @@ def test_typecheck_pairs(tp_ex) -> None:
     tp, ex = tp_ex
     assert typecheck(ex, tp)
 
+
 @given(json_value)
 def test_typecheck_values(value: JSONValue) -> None:
     assert typecheck(value, JSONValue)
+
 
 @given(json_arrays())
 def test_typecheck_arrays(array: JSONArray) -> None:
     assert typecheck(array, JSONArray)
 
+
 @given(json_objects())
 def test_typecheck_objects(obj: JSONObject) -> None:
     assert typecheck(obj, JSONObject)
+
 
 @given(jsons())
 def test_typecheck_any(obj: JSONType) -> None:
@@ -54,7 +58,7 @@ def test_typecheck_any(obj: JSONType) -> None:
 @given(json_value)
 def test_typeof_values(value: JSONValue) -> None:
     assert typeof(value) is JSONValue
-    
+
 
 @given(json_arrays())
 def test_typeof_arrays(array: JSONArray) -> None:
@@ -64,6 +68,7 @@ def test_typeof_arrays(array: JSONArray) -> None:
 @given(json_objects())
 def test_typeof_objects(obj: JSONObject) -> None:
     assert typeof(obj) is JSONObject
+
 
 @given(jsons())
 def test_typeof_any(obj: JSONType) -> None:

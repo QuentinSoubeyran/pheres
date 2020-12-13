@@ -453,8 +453,7 @@ def split(func, iterable):
         func(e) return false, the second with element of the iterable that are True
     """
     falsy, truthy = [], []
-    it = iter(iterable)
-    for e in it:
+    for e in iterable:
         if func(e):
             truthy.append(e)
         else:
