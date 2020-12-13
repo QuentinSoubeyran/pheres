@@ -6,7 +6,7 @@ with open("README.rst", "r") as f:
 setuptools.setup(
     # Package
     name="pheres",
-    version="2.0a1",
+    version="2.0a2",
     packages=setuptools.find_packages("src"),
     package_dir={"": "src"},
     package_data={"pheres": ["py.typed"]},

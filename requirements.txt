@@ -3,7 +3,7 @@ attrs>=20.1.0
 
 # Formatting
 ## Black hasn't published a version that can format python3.9 code
-## so we use the source for new
+## so we use the source for now
 git+https://github.com/psf/black
 isort>=5.4.2
 pylint
@@ -17,3 +17,8 @@ hypothesis>=5.37.0
 git+https://github.com/sphinx-doc/sphinx@3.x
 sphinx-rtd-theme
 recommonmark
+
+# Release
+setuptools
+wheel
+twine

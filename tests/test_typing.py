@@ -3,34 +3,71 @@ from pprint import pprint
 import pytest
 from hypothesis import given
 
-from pheres import JSONValueError, PheresError, is_json, typecheck, typeof
-from pheres.types import *
+from pheres import (
+    JSONValueError,
+    PheresError,
+    is_json,
+    is_json_type,
+    normalize_hint,
+    typecheck,
+    typeof,
+)
+from pheres.types import * # pylint: disable=unused-wildcard-import
 
-from .strategies import json_arrays, json_objects, json_value, jsons
+from .strategies import (
+    json_arrays,
+    json_objects,
+    json_types,
+    json_value,
+    jsons,
+    typed_jsons,
+)
+
+
+@given(json_types())
+def test_is_json(tp) -> None:
+    assert is_json_type(tp)
+
+
+@given(typed_jsons())
+def test_typecheck_pairs(tp_ex) -> None:
+    tp, ex = tp_ex
+    assert typecheck(ex, tp)
+
+@given(json_value)
+def test_typecheck_values(value: JSONValue) -> None:
+    assert typecheck(value, JSONValue)
+
+@given(json_arrays())
+def test_typecheck_arrays(array: JSONArray) -> None:
+    assert typecheck(array, JSONArray)
+
+@given(json_objects())
+def test_typecheck_objects(obj: JSONObject) -> None:
+    assert typecheck(obj, JSONObject)
+
+@given(jsons())
+def test_typecheck_any(obj: JSONType) -> None:
+    assert typecheck(obj, JSONType)
 
 
 @given(json_value)
-def test_json_values(value: JSONValue) -> None:
+def test_typeof_values(value: JSONValue) -> None:
     assert typeof(value) is JSONValue
-    assert typecheck(value, JSONValue)
-
+    
 
 @given(json_arrays())
-def test_json_arrays(array: JSONArray) -> None:
+def test_typeof_arrays(array: JSONArray) -> None:
     assert typeof(array) is JSONArray
-    assert typecheck(array, JSONArray)
 
 
 @given(json_objects())
-def test_json_objects(obj: JSONObject) -> None:
+def test_typeof_objects(obj: JSONObject) -> None:
     assert typeof(obj) is JSONObject
-    assert typecheck(obj, JSONObject)
-
 
 @given(jsons())
-def test_json_any(obj: JSONType) -> None:
+def test_typeof_any(obj: JSONType) -> None:
     assert is_json(obj)
-    assert typecheck(obj, JSONType)
 
 
 test_cases = [

@@ -214,6 +214,9 @@ def _normalize_factory(
             return tp
         try:
             guard.add(tp)
+            # Prevent recursion
+            if tp in (JSONArray, JSONObject, JSONType):
+                return tp
             # Base types
             if isinstance(tp, type):
                 if tp in (JsonableValue, JsonableArray, JsonableDict, JsonableObject):
@@ -722,4 +725,6 @@ def typecheck(value: JSONType, tp: TypeHint) -> bool:
     Raises:
         `TypeHintError`: the type hint could not be handled
     """
-    return _typecheck_factory(*get_outer_namespaces())(value, tp)
+    namespaces = get_outer_namespaces()
+    tp = _normalize_factory(*namespaces)(tp)
+    return _typecheck_factory(*namespaces)(value, tp)
