@@ -14,7 +14,7 @@ from typing import Any, Union
 from attr import attrib
 from attr import dataclass as attrs
 
-from pheres._utils import TypeHint, autoformat
+from pheres.utils import TypeHint, autoformat
 
 exception = functools.partial(attrs, auto_exc=True)
 

@@ -26,7 +26,7 @@ from typing import (
     get_origin,
 )
 
-from pheres._datatypes import (
+from pheres.datatypes import (
     MISSING,
     PHERES_ATTR,
     ArrayData,
@@ -34,18 +34,18 @@ from pheres._datatypes import (
     ObjectData,
     ValueData,
 )
-from pheres._exceptions import (
+from pheres.exceptions import (
     CycleError,
     JSONValueError,
     PheresInternalError,
     TypeHintError,
 )
-from pheres._utils import (
+from pheres.utils import (
     AnyClass,
     Namespace,
     TypeHint,
     Virtual,
-    get_args,
+    get_eval_args,
     get_outer_namespaces,
     on_success,
     split,
@@ -207,7 +207,7 @@ def _normalize_factory(
     Internal implementation of normalize_hint
     """
     guard: set[TypeHint] = set()
-    _get_args = functools.partial(get_args, globalns=globalns, localns=localns)
+    _get_args = functools.partial(get_eval_args, globalns=globalns, localns=localns)
 
     def _normalize(tp: TypeHint):
         if tp in guard:
@@ -236,7 +236,7 @@ def _normalize_factory(
                     (_normalize(t) for t in _get_args(tp)),
                 )
                 if lits:
-                    lits = sum(map(get_args, lits), ())
+                    lits = sum(map(get_eval_args, lits), ())
                     return Union[  # pylint: disable=unsubscriptable-object
                         (
                             Literal[lits],  # pylint: disable=unsubscriptable-object
@@ -336,8 +336,8 @@ def find_collision(ltp: TypeHint, rtp: TypeHint) -> bool:
 
     lorig = get_origin(ltp)
     rorig = get_origin(rtp)
-    largs = get_args(ltp)
-    rargs = get_args(rtp)
+    largs = get_eval_args(ltp)
+    rargs = get_eval_args(rtp)
 
     # Literals
     if lorig is Literal or rorig is Literal:
@@ -653,7 +653,7 @@ def typeof(obj: JSONType) -> TypeHint:
 def _typecheck_factory(
     globalns: Namespace, localns: Namespace
 ) -> Callable[[JSONType, TypeHint], bool]:
-    _get_args = functools.partial(get_args, globalns=globalns, localns=localns)
+    _get_args = functools.partial(get_eval_args, globalns=globalns, localns=localns)
 
     def _check(value: JSONType, tp: TypeHint) -> bool:
         # Jsonables & Values

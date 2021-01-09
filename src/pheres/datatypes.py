@@ -10,30 +10,29 @@ import functools
 import inspect
 import json
 from copy import deepcopy
+from pathlib import Path
 from types import ModuleType
 from typing import Any, Callable, ClassVar, Iterable, Literal, Union, get_origin
 
 from attr import attrib
 from attr import dataclass as attrs
 
-from pheres._exceptions import (
+from pheres.exceptions import (
     JsonAttrError,
     JsonAttrTypeError,
     JsonAttrValueError,
     PheresInternalError,
 )
-from pheres._utils import AnyClass, TypeHint, get_args, get_class_namespaces, post_init
+from pheres.utils import (
+    Virtual,
+    TypeHint,
+    get_class_namespaces,
+    get_eval_args,
+    post_init,
+    docstring
+)
 
 PHERES_ATTR = "__pheres_data__"
-
-
-class _MISSING:
-    def __repr__(self):
-        return "MISSING"
-
-
-MISSING = _MISSING()
-"""Sentinel object used when `None` cannot be used"""
 
 __all__ = [
     "MISSING",
@@ -45,6 +44,27 @@ __all__ = [
     "DelayedData",
     "UsableDecoder",
 ]
+
+
+class _MISSING_CLS(Virtual):
+    __slots__ = ()
+
+    _instance_: _MISSING_CLS = None
+
+    def __new__(cls):
+        if cls._instance_ is None:
+            cls._instance_ = super().__new__(cls)
+        return cls._instance_
+    
+    def __bool__(self):
+        return False
+
+    def __repr__(self):
+        return "MISSING"
+
+
+MISSING = _MISSING_CLS()
+"""Sentinel object used when `None` cannot be used"""
 
 
 class JsonableEnum(enum.Enum):
@@ -91,9 +111,9 @@ class ArrayData:
     Exposed for used with `issubclass`
     """
 
-    types: tuple[TypeHint]
-    is_fixed: Union[_MISSING, bool] = attrib(init=False, default=MISSING)
-    type_hint: Union[_MISSING, TypeHint] = attrib(init=False, default=MISSING)
+    types: tuple[TypeHint, ...]
+    is_fixed: Union[_MISSING_CLS, bool] = attrib(init=False, default=MISSING)
+    type_hint: Union[_MISSING_CLS, TypeHint] = attrib(init=False, default=MISSING)
 
     def __attrs_post_init__(self):
         if len(self.types) == 2 and self.types[1] is Ellipsis:
@@ -140,10 +160,10 @@ class JsonAttr:
     py_name: str
     type: TypeHint
     default: Any = attrib(default=MISSING)
-    is_json_only: Union[_MISSING, bool] = attrib(default=MISSING)
+    is_json_only: Union[_MISSING_CLS, bool] = attrib(default=MISSING)
 
     def __post_init__(self, *, cls: type = None):
-        from pheres._typing import is_json, typecheck
+        from pheres.typing import is_json, typecheck
 
         if cls is None:
             raise ValueError("Missing parent class")
@@ -160,7 +180,11 @@ class JsonAttr:
             if (
                 get_origin(self.type) is Literal
                 and len(
-                    (args := get_args(self.type, globalns=globalns, localns=localns))
+                    (
+                        args := get_eval_args(
+                            self.type, globalns=globalns, localns=localns
+                        )
+                    )
                 )
                 == 1
             ):
@@ -238,6 +262,13 @@ class UsableDecoder(json.JSONDecoder):
     """
 
     @classmethod
+    @docstring(
+        pre="""
+        Thin wrapper around `json.load` that use this class as the ``cls`` argument.
+        
+        Wrapped function docstring:\n    """
+    )
+    @functools.wraps(json.load)
     def load(cls, *args, **kwargs):
         """
         Thin wrapper around `json.load` that use this class as the default ``cls`` argument
@@ -245,8 +276,12 @@ class UsableDecoder(json.JSONDecoder):
         return json.load(*args, cls=cls, **kwargs)
 
     @classmethod
+    @docstring(
+        pre="""
+        Thin wrapper around `json.loads` that use this class as the ``cls`` argument.
+        
+        Wrapped function docstring:\n    """
+    )
+    @functools.wraps(json.loads)
     def loads(cls, *args, **kwargs):
-        """
-        Thin wrapper around `json.loads` that use this class as the default ``cls`` argument
-        """
         return json.loads(*args, cls=cls, **kwargs)

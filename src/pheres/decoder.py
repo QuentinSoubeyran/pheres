@@ -13,6 +13,7 @@
 # The PSL authorize such derivative work (see PYTHON-LICENSE file)
 from __future__ import annotations
 
+import re
 import functools
 import json
 import types
@@ -33,28 +34,28 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    get_args,
     get_origin,
     get_type_hints,
     overload,
 )
+from pathlib import Path
 
-from attr import attrib
-from attr import dataclass as attrs
-from attr import evolve
+import attr
 
-from pheres._datatypes import (
+from pheres.datatypes import (
     MISSING,
     PHERES_ATTR,
-    AnyClass,
     ArrayData,
     DictData,
     ObjectData,
     UsableDecoder,
     ValueData,
 )
-from pheres._exceptions import PheresInternalError, TypedJSONDecodeError
-from pheres._misc import FlatKey
-from pheres._typing import (
+import pheres.jsontypes as jt
+from pheres.exceptions import PheresInternalError, TypedJSONDecodeError
+from pheres.misc import FlatKey
+from pheres.typing import (
     JSONArray,
     JSONObject,
     JSONType,
@@ -71,11 +72,11 @@ from pheres._typing import (
     typecheck,
     typeof,
 )
-from pheres._utils import (
+from pheres.utils import (
     TypeHint,
     docstring,
-    get_args,
     get_class_namespaces,
+    get_eval_args,
     get_outer_namespaces,
     get_updated_class,
     sync_filter,
@@ -103,22 +104,23 @@ TypeFilter = Callable[[TypeHint, TypeOrig, TypeArgs], bool]
 ##################
 # MODULE HELPERS #
 ##################
-def _make_value(cls: AnyClass, value):
+
+def _make_value(cls: type, value):
     cls = get_updated_class(cls)
     return cls(value)
 
 
-def _make_array(cls: AnyClass, array):
+def _make_array(cls: type, array):
     cls = get_updated_class(cls)
     return cls(*array)
 
 
-def _make_dict(cls: AnyClass, dct):
+def _make_dict(cls: type, dct):
     cls = get_updated_class(cls)
     return cls(dct)
 
 
-def _make_object(cls: AnyClass, obj):
+def _make_object(cls: type, obj):
     cls = get_updated_class(cls)
     data: ObjectData = getattr(cls, PHERES_ATTR)
     return cls(
@@ -131,8 +133,7 @@ def _make_object(cls: AnyClass, obj):
         }
     )
 
-
-@attrs(frozen=True)
+@attr.dataclass(frozen=True)
 class DecodeContext:
     """
     Internal class to keep tracks of types during typed decoding
@@ -145,7 +146,7 @@ class DecodeContext:
     globalns: Dict
     localns: Dict
     types: TypeTuple
-    get_args: Callable[[TypeHint], Tuple[TypeHint]] = None
+    get_eval_args: Callable[[TypeHint], Tuple[TypeHint]] = None
     origs: OrigTuple = None
     args: ArgsTuple = None
     parent: Optional["DecodeContext"] = None  # pylint: disable=unsubscriptable-object
@@ -161,14 +162,14 @@ class DecodeContext:
 
     def __attrs_post_init__(self, /):
         # cache types origins and arguments for performance
-        if self.get_args is None:
-            self.__dict__["get_args"] = functools.partial(
-                get_args, globalns=self.globalns, localns=self.localns
+        if self.get_eval_args is None:
+            self.__dict__["get_eval_args"] = functools.partial(
+                get_eval_args, globalns=self.globalns, localns=self.localns
             )
         if self.origs is None:
             self.__dict__["origs"] = tuple(get_origin(tp) for tp in self.types)
         if self.args is None:
-            self.__dict__["args"] = tuple(self.get_args(tp) for tp in self.types)
+            self.__dict__["args"] = tuple(self.get_eval_args(tp) for tp in self.types)
         if self.parent is not None and self.pkey is None:
             raise ValueError("DecodeContext with a parent must be given a parent key")
 
@@ -199,7 +200,7 @@ class DecodeContext:
                 doc=self.doc,
                 pos=self.pos if err_pos is MISSING else err_pos,
             )
-        return evolve(self, types=types, origs=origs, args=args)
+        return attr.evolve(self, types=types, origs=origs, args=args)
 
     def get_array_subtypes(self, /, index: int) -> TypeTuple:
         subtypes = []
@@ -216,7 +217,7 @@ class DecodeContext:
             if found is MISSING:
                 raise PheresInternalError(f"Unhandled Array type {tp}")
             elif get_origin(found) is Union:
-                subtypes.extend(self.get_args(found))
+                subtypes.extend(self.get_eval_args(found))
             else:
                 subtypes.append(found)
         return tuple(subtypes)
@@ -235,7 +236,7 @@ class DecodeContext:
             else:
                 raise PheresInternalError(f"Unhandled Object type {tp}")
             if get_origin(tp) is Union:
-                subtypes.extend(self.get_args(tp))
+                subtypes.extend(self.get_eval_args(tp))
             else:
                 subtypes.append(tp)
         return tuple(subtypes)
@@ -344,7 +345,7 @@ class DecodeContext:
             globalns=self.globalns,
             localns=self.localns,
             types=parent.get_array_subtypes(index),
-            get_args=self.get_args,
+            get_eval_args=self.get_eval_args,
             parent=parent,
             pkey=index,
         )
@@ -366,7 +367,7 @@ class DecodeContext:
             globalns=self.globalns,
             localns=self.localns,
             types=parent.get_object_subtypes(key),
-            get_args=self.get_args,
+            get_eval_args=self.get_eval_args,
             parent=parent,
             pkey=key,
         )
@@ -495,7 +496,7 @@ class DecodeContext:
 ############################
 
 # Original Source code at:
-# https://github.com/python/cpython/blob/3.8/Lib/json/decoder.py
+# https://github.com/python/cpython/blob/3.8/Lib/json/scanner.py
 def make_string_scanner(
     context: JSONDecoder,
 ) -> Callable[[str, int, DecodeContext], Tuple[JSONType, int, DecodeContext]]:
@@ -520,7 +521,8 @@ def make_string_scanner(
             raise StopIteration(idx) from None
 
         if nextchar == '"':
-            return ctx.typecheck_value(*parse_string(string, idx + 1, strict), idx)
+            s, end = parse_string(string, idx + 1, strict)
+            return ctx.typecheck_value(s, end, idx)
         elif nextchar == "{":
             return parse_object(
                 (string, idx + 1),
@@ -567,11 +569,15 @@ def make_string_scanner(
 
     return scan_once
 
+WHITESPACE = re.compile("([ \t\r]*\n)*([ \t\n\r]*)")
 
 # Original Source code at:
 # https://github.com/python/cpython/blob/3.8/Lib/json/decoder.py
 def JSONObjectParser(
-    s_and_end: Tuple[str, int],
+    s: str,
+    end: int,
+    lineno: int,
+    colno: int,
     strict: bool,
     scan_once: Callable[[str, int, DecodeContext], Tuple[object, int, DecodeContext]],
     ctx: DecodeContext,
@@ -580,8 +586,8 @@ def JSONObjectParser(
     memo: Optional[dict] = None,  # pylint: disable=unsubscriptable-object
     _w: Callable = WHITESPACE.match,
     _ws: str = WHITESPACE_STR,
+    src: Optional[Path] = None # pylint: disable=unsubscriptable-object
 ) -> Tuple[JSONObject, int, DecodeContext]:
-    s, end = s_and_end
     pairs = []
     pairs_append = pairs.append
     # Backwards compatibility
@@ -594,16 +600,24 @@ def JSONObjectParser(
     # Normally we expect nextchar == '"'
     if nextchar != '"':
         if nextchar in _ws:
-            end = _w(s, end).end()
+            m = _w(s, end)
+            count = s.count('\n', end, m.end())
+            lineno += count
+            colno = (0 if count else colno) + len(m[2])
+            end = m.end()
             nextchar = s[end : end + 1]
         # Trivial empty object
         if nextchar == "}":
             if object_pairs_hook is not None:
                 result = object_pairs_hook(pairs)
+                if src:
+                    result = jt.Object(result, sources=jt.FileSource(src, lineno, colno))
                 return ctx.typecheck_object(result, end + 1)
             pairs = {}
             if object_hook is not None:
                 pairs = object_hook(pairs)
+                if src:
+                    pairs = jt.Object(result, sources=jt.FileSource(src, lineno, colno))
             return ctx.typecheck_object(pairs, end + 1)
         elif nextchar != '"':
             raise JSONDecodeError(
@@ -612,14 +626,22 @@ def JSONObjectParser(
     end += 1
     while True:
         key_start = end - 1
-        key, end = scanstring(s, end, strict)
+        key, _end = scanstring(s, end, strict)
+        count = s.count("\n", end, _end)
+        lineno += count
+        colno = (0 if count else colno) + _end - s.rfind("\n", end, _end)
         key = memo_get(key, key)
         # To skip some function call overhead we optimize the fast paths where
         # the JSON key separator is ": " or just ":".
         if s[end : end + 1] != ":":
-            end = _w(s, end).end()
+            m = _w(s, end)
+            count = s.count('\n', end, m.end())
+            lineno += count
+            colno = (0 if count else colno) + len(m[2])
+            end = m.end()
             if s[end : end + 1] != ":":
                 raise JSONDecodeError("Expecting ':' delimiter", s, end)
+        ## TODO: continue tracking lineno & colno from here
         end += 1
 
         try:

@@ -1,5 +1,5 @@
 """
-Various internal utilities for Pheres
+Various utilities used in pheres
 """
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from typing import (
     Iterable,
     List,
     Literal,
+    NoReturn,
     Optional,
     Tuple,
     Type,
@@ -27,8 +28,18 @@ from typing import (
     overload,
 )
 
+__all__ = [
+    # Decorators
+    "subscriptable",
+    "docstring",
+    "classproperty",
+    "autoformat",
+    # functions
+    "split",
+    "sync_filter",
+]
+
 # Type Aliases
-AnyClass = TypeVar("AnyClass", bound=type)
 TypeHint = Union[  # pylint: disable=unsubscriptable-object
     Type[type],
     Type[Any],
@@ -42,6 +53,9 @@ Namespace = dict[str, Any]
 TypeT = TypeVar("TypeT", *typing.get_args(TypeHint))
 U = TypeVar("U")
 V = TypeVar("V")
+
+OneOrMore = Union[U, Iterable[U]]  # pylint: disable=unsubscriptable-object
+NoneOrMore = Optional[OneOrMore[U]]  # pylint: disable=unsubscriptable-object
 
 
 class Virtual:
@@ -61,28 +75,46 @@ class Virtual:
 
 
 class Subscriptable(Generic[U, V]):
-    """
-    Decorator to make a subscriptable instance from a __getitem__ function
 
-    Usage:
-        @Subscriptable
-        def my_subscriptable(key):
-            return key
-
-    assert my_subscriptable[8] == 8
-    """
-
-    __slots__ = ("_func",)
+    __slots__ = ("func", "__doc__")
 
     def __init__(self, func: Callable[[U], V]) -> None:
-        self._func = func
-        # self.__doc__ = func.__doc__
+        """
+        Function decorator to make a subscriptable object from its ``__getitem__`` method
 
-    def __call__(self):
-        raise SyntaxError("Use brackets '[]' instead")
+        Args:
+            func: callable to use as ``__getitem__`
+
+        Returns:
+            An object that can be subscribed to call ``func``
+
+        Notes:
+            `func` should not include ``self`` as a first argument
+
+        Usage::
+
+            @Subscriptable
+            def my_subscriptable(key):
+                return key
+
+            assert my_subscriptable[8] == 8
+        """
+        self.func = func
+        self.__doc__ = getattr(func, "__doc__", None)
+
+    def __repr__(self):
+        cls = type(self)
+        return "%s%s(%s)" % (
+            "" if cls.__module__ == "__main__" else cls.__module__ + ".",
+            cls.__qualname__,
+            repr(self.func),
+        )
+
+    def __call__(self) -> NoReturn:
+        raise TypeError(f"{self} is not callable, use subscription ('obj[]') instead")
 
     def __getitem__(self, arg: U) -> V:
-        return self._func(arg)
+        return self.func(arg)
 
 
 def docstring(
@@ -93,7 +125,7 @@ def docstring(
 
     For all provided strings, unused empty lines are removed, and the indentation
     of the first non-empty line is removed from all lines if possible. This allows
-    better indentation when used as a decorator.
+    prettier code indentation when `doctsirng` is used as a decorator.
 
     Unused empty lines means initial enpty lines for ``pre``, and final empty lines
     for ``post``.
@@ -160,6 +192,11 @@ class ClassPropertyDescriptor:
 def classproperty(
     func: Union[Callable, classmethod, staticmethod]
 ) -> ClassPropertyDescriptor:
+    """
+    Decorator to make a class property
+
+    This is similar to the builtin `property` but operates on class
+    """
     if not isinstance(func, (classmethod, staticmethod)):
         func = classmethod(func)
     return ClassPropertyDescriptor(func)
@@ -168,19 +205,19 @@ def classproperty(
 @overload
 def autoformat(
     cls: None, /, params: Union[str, Iterable[str]] = ("message", "msg")
-) -> Callable[[Type[U]], Type[U]]:
+) -> Callable[[type], type]:
     ...
 
 
 @overload
 def autoformat(
-    cls: Type[U], /, params: Union[str, Iterable[str]] = ("message", "msg")
-) -> Type[U]:
+    cls: type, /, params: Union[str, Iterable[str]] = ("message", "msg")
+) -> type:
     ...
 
 
 def autoformat(
-    cls: Type[U] = None,
+    cls: type = None,
     /,
     params: Union[str, Iterable[str]] = (  # pylint: disable=unsubscriptable-object
         "message",
@@ -188,17 +225,21 @@ def autoformat(
     ),
 ):
     """
-    Class decorator to autoformat string arguments in the __init__ method
+    Class decorator to autoformat string arguments in the ``__init__`` method.
 
-    Modify the class __init__ method in place by wrapping it. The wrapped class
+    Modify the class ``__init__`` method in place by wrapping it. The wrapped class
     will call the format() method of arguments specified in `params` that exist
     in the original signature, passing all other arguments are dictionary to
     str.format()
 
     Arguments:
-        params -- names of the arguments to autoformats
+        params: names of the arguments to autoformats
 
-    Usage:
+    Returns:
+        The decorated class (same object), with a modified ``__init__``
+
+    Usage::
+
         @autoformat
         class MyException(Exception):
             def __init__(self, elem, msg="{elem} is invalid"):
@@ -273,10 +314,16 @@ def _sig_merge(lsig: inspect.Signature, rsig: inspect.Signature) -> inspect.Sign
 
 
 def _sig_to_def(sig: inspect.Signature) -> str:
+    """
+    Transform a signature to a parameter definition string
+    """
     return str(sig).split("->", 1)[0].strip()[1:-1]
 
 
 def _sig_to_call(sig: inspect.Signature) -> str:
+    """
+    Transform a signature to a call string
+    """
     l = []
     for p in sig.parameters.values():
         if p.kind is inspect.Parameter.KEYWORD_ONLY:
@@ -288,18 +335,20 @@ def _sig_to_call(sig: inspect.Signature) -> str:
 
 def post_init(cls: Type[U]) -> Type[U]:
     """
-    Class decorator to automatically support __post_init__() on classes
+    Class decorator to support ``__post_init__`` on classes
 
-    This is useful for @attr.s decorated classes, because __attr_post_init__() doesn't
-    support additional arguments.
+    This is useful for classes decorated with `attr`, because ``__attr_post_init__``
+    doesn't support arguments.
 
-    This decorators wraps the class __init__ in a new function that accept merged arguments,
-    and dispatch them to __init__ and then __post_init__()
+    This decorator wraps the class ``__init__`` method in a new method that accepts
+    merged arguments from ``__init__`` and ``__post_init__`` (including those from
+    base classes) and dispatch them to ``__init__ ``and then ``__post_init__`` (starting
+    from the highest class in the inheritance tree).
     """
     if not isinstance(cls, type):
         raise TypeError("Can only decorate classes")
     if not hasattr(cls, "__post_init__"):
-        raise TypeError("The class must have a __post_init__() method")
+        raise TypeError("The decorated class must have a __post_init__ method")
     # Ignore the first argument which is the "self" argument
     sig = init_sig = _sig_without(inspect.signature(cls.__init__), 0)
     previous = [(cls, "__init__", sig)]
@@ -441,7 +490,9 @@ def clean_docstring(doc: str, unused: Literal["pre", "post"] = None) -> str:
     return "\n".join(doc)
 
 
-def split(func, iterable):
+def split(
+    func: Callable[[U], bool], iterable: Iterable[U]
+) -> Tuple[Tuple[U, ...], Tuple[U, ...]]:
     """split an iterable based on the truth value of the function for element
 
     Arguments
@@ -449,8 +500,9 @@ def split(func, iterable):
         iterable -- an iterable of element to split
 
     Returns
-        falsy, truthy - two tuple, the first with element e of the itrable where
-        func(e) return false, the second with element of the iterable that are True
+        falsy, truthy: 2-tuple, the first with elements of the iterable where
+        func(e) is false, the second with element of the iterable where func(e)
+        is true
     """
     falsy, truthy = [], []
     for e in iterable:
@@ -488,16 +540,16 @@ def get_outer_namespaces() -> Tuple[Namespace, Namespace]:
         globals, locals
     """
     frame = inspect.currentframe()
-    if frame:
+    if frame is not None:
         frame = frame.f_back
-        if frame:
+        if frame is not None:
             frame = frame.f_back
             if frame:
                 return frame.f_globals or {}, frame.f_locals or {}
     return {}, {}
 
 
-def get_args(
+def get_eval_args(
     tp: TypeHint, *, globalns: Namespace = None, localns: Namespace = None
 ) -> Tuple[TypeHint, ...]:
     if globalns is not None or localns is not None:
@@ -508,7 +560,7 @@ def get_args(
 # Adapted version of typing._type_repr
 def type_repr(tp) -> str:
     """Return the repr() of objects, special casing types and tuples"""
-    from pheres._typing import JSONArray, JSONObject, JSONValue
+    from pheres.typing import JSONArray, JSONObject, JSONValue
 
     if isinstance(tp, tuple):
         return ", ".join(map(type_repr, tp))
@@ -539,7 +591,7 @@ def get_class_namespaces(cls: type) -> tuple[Namespace, Namespace]:
     return inspect.getmodule(cls).__dict__, cls.__dict__ | {cls.__name__: cls}
 
 
-def get_updated_class(cls: AnyClass) -> AnyClass:
+def get_updated_class(cls: type) -> type:
     module = inspect.getmodule(cls)
     if module is not None:
         return getattr(module, cls.__name__)

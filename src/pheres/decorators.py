@@ -30,7 +30,7 @@ from warnings import warn
 import attr
 from attr import dataclass as attrs
 
-from pheres._datatypes import (
+from pheres.datatypes import (
     MISSING,
     PHERES_ATTR,
     ArrayData,
@@ -42,9 +42,9 @@ from pheres._datatypes import (
     UsableDecoder,
     ValueData,
 )
-from pheres._decoder import TypedJSONDecoder, deserialize
-from pheres._exceptions import JsonableError, JsonAttrError, PheresInternalError
-from pheres._typing import (
+from pheres.decoder import TypedJSONDecoder, deserialize
+from pheres.exceptions import JsonableError, JsonAttrError, PheresInternalError
+from pheres.typing import (
     JSONType,
     _normalize_factory,
     is_jobject_class,
@@ -52,7 +52,7 @@ from pheres._typing import (
     is_jsonable_class,
     is_jsonable_instance,
 )
-from pheres._utils import (
+from pheres.utils import (
     AnyClass,
     Subscriptable,
     TypeHint,
@@ -60,8 +60,8 @@ from pheres._utils import (
     Virtual,
     classproperty,
     docstring,
-    get_args,
     get_class_namespaces,
+    get_eval_args,
     get_updated_class,
     type_repr,
 )
@@ -162,7 +162,7 @@ def _decorate_value(cls: AnyClass, *, type_hint: TypeHint, internal: str) -> Any
 
 def _decorate_array(cls: AnyClass, *, type_hint: TypeHint, internal: str) -> AnyClass:
     globalns, localns = get_class_namespaces(cls)
-    types = get_args(type_hint, globalns=globalns, localns=localns)
+    types = get_eval_args(type_hint, globalns=globalns, localns=localns)
     data = ArrayData(types)
     setattr(cls, PHERES_ATTR, data)
     for name, member in (
@@ -189,7 +189,7 @@ def _decorate_array(cls: AnyClass, *, type_hint: TypeHint, internal: str) -> Any
 
 def _decorate_dict(cls: AnyClass, *, type_hint: TypeHint, internal: str) -> AnyClass:
     globalns, localns = get_class_namespaces(cls)
-    type_ = get_args(type_hint, globalns=globalns, localns=localns)[1]
+    type_ = get_eval_args(type_hint, globalns=globalns, localns=localns)[1]
     data = DictData(type_)
     setattr(cls, PHERES_ATTR, data)
     for name, member in (
@@ -272,7 +272,7 @@ def _get_jattrs(cls: type, only_marked: bool = False) -> Dict[str, JsonAttr]:
     # Gather jsonized attributes
     jattrs = {}
     globalns, localns = get_class_namespaces(cls)
-    _get_args = functools.partial(get_args, localns=localns, globalns=globalns)
+    _get_args = functools.partial(get_eval_args, localns=localns, globalns=globalns)
     for py_name, tp in get_type_hints(
         cls, localns={cls.__name__: cls}, include_extras=True
     ).items():

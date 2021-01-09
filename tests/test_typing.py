@@ -24,7 +24,7 @@ from .strategies import (
 )
 
 
-@given(json_types())
+@given(json_types(max_leaves=50))
 def test_is_json(tp) -> None:
     assert is_json_type(tp)
 
@@ -101,7 +101,7 @@ def test_typeof():
             assert typeof(value) is jtype
 
 
-def test_is_json():
+def test_is_json_old():
     from pheres import CycleError, is_json
 
     for value, jtype in test_cases:
