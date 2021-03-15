@@ -13,9 +13,9 @@
 # The PSL authorize such derivative work (see PYTHON-LICENSE file)
 from __future__ import annotations
 
-import re
 import functools
 import json
+import re
 import types
 import typing
 from abc import ABC, ABCMeta, abstractmethod
@@ -23,6 +23,7 @@ from itertools import chain
 from json import JSONDecodeError, JSONDecoder
 from json.decoder import WHITESPACE, WHITESPACE_STR, scanstring
 from json.scanner import NUMBER_RE
+from pathlib import Path
 from typing import (
     Callable,
     Dict,
@@ -39,10 +40,10 @@ from typing import (
     get_type_hints,
     overload,
 )
-from pathlib import Path
 
 import attr
 
+import pheres.jsontypes as jt
 from pheres.datatypes import (
     MISSING,
     PHERES_ATTR,
@@ -52,7 +53,6 @@ from pheres.datatypes import (
     UsableDecoder,
     ValueData,
 )
-import pheres.jsontypes as jt
 from pheres.exceptions import PheresInternalError, TypedJSONDecodeError
 from pheres.misc import FlatKey
 from pheres.typing import (
@@ -74,10 +74,10 @@ from pheres.typing import (
 )
 from pheres.utils import (
     TypeHint,
+    _get_class_namespaces,
+    _get_outer_namespaces,
     docstring,
-    get_class_namespaces,
     get_eval_args,
-    get_outer_namespaces,
     get_updated_class,
     sync_filter,
 )
@@ -104,6 +104,7 @@ TypeFilter = Callable[[TypeHint, TypeOrig, TypeArgs], bool]
 ##################
 # MODULE HELPERS #
 ##################
+
 
 def _make_value(cls: type, value):
     cls = get_updated_class(cls)
@@ -132,6 +133,7 @@ def _make_object(cls: type, obj):
             if not jattr.is_json_only
         }
     )
+
 
 @attr.dataclass(frozen=True)
 class DecodeContext:
@@ -569,6 +571,7 @@ def make_string_scanner(
 
     return scan_once
 
+
 WHITESPACE = re.compile("([ \t\r]*\n)*([ \t\n\r]*)")
 
 # Original Source code at:
@@ -586,7 +589,7 @@ def JSONObjectParser(
     memo: Optional[dict] = None,  # pylint: disable=unsubscriptable-object
     _w: Callable = WHITESPACE.match,
     _ws: str = WHITESPACE_STR,
-    src: Optional[Path] = None # pylint: disable=unsubscriptable-object
+    src: Optional[Path] = None,  # pylint: disable=unsubscriptable-object
 ) -> Tuple[JSONObject, int, DecodeContext]:
     pairs = []
     pairs_append = pairs.append
@@ -601,7 +604,7 @@ def JSONObjectParser(
     if nextchar != '"':
         if nextchar in _ws:
             m = _w(s, end)
-            count = s.count('\n', end, m.end())
+            count = s.count("\n", end, m.end())
             lineno += count
             colno = (0 if count else colno) + len(m[2])
             end = m.end()
@@ -611,7 +614,9 @@ def JSONObjectParser(
             if object_pairs_hook is not None:
                 result = object_pairs_hook(pairs)
                 if src:
-                    result = jt.Object(result, sources=jt.FileSource(src, lineno, colno))
+                    result = jt.Object(
+                        result, sources=jt.FileSource(src, lineno, colno)
+                    )
                 return ctx.typecheck_object(result, end + 1)
             pairs = {}
             if object_hook is not None:
@@ -629,13 +634,14 @@ def JSONObjectParser(
         key, _end = scanstring(s, end, strict)
         count = s.count("\n", end, _end)
         lineno += count
-        colno = (0 if count else colno) + _end - s.rfind("\n", end, _end)
+        colno = _end - s.rfind("\n", end, _end)
+        end = _end
         key = memo_get(key, key)
         # To skip some function call overhead we optimize the fast paths where
         # the JSON key separator is ": " or just ":".
         if s[end : end + 1] != ":":
             m = _w(s, end)
-            count = s.count('\n', end, m.end())
+            count = s.count("\n", end, m.end())
             lineno += count
             colno = (0 if count else colno) + len(m[2])
             end = m.end()
@@ -882,11 +888,11 @@ class TypedJSONDecoder(ABC, UsableDecoder):
             `json.load`
         """
         if is_jsonable_class(tp):
-            globalns, localns = get_class_namespaces(get_updated_class(tp))
+            globalns, localns = _get_class_namespaces(get_updated_class(tp))
             tp = _normalize_factory(globalns, localns)(tp)
             globalns, localns = None, None
         else:
-            globalns, localns = get_outer_namespaces()
+            globalns, localns = _get_outer_namespaces()
             tp = _normalize_factory(globalns, localns)(tp)
         return cls._class_getitem_cache(globalns, localns, tp)
 
@@ -902,7 +908,7 @@ class TypedJSONDecoder(ABC, UsableDecoder):
     def raw_decode(self, s, idx=0):
         globalns, localns = self.globalns, self.localns  # pylint: disable=no-member
         if is_jsonable_class(self.type_hint):
-            globalns, localns = get_class_namespaces(get_updated_class(self.type_hint))
+            globalns, localns = _get_class_namespaces(get_updated_class(self.type_hint))
         try:
             obj, end, _ = self.scan_once(
                 s,
@@ -969,9 +975,9 @@ def deserialize(obj: JSONObject, type_hint: TypeHint) -> JSONObject:
         `TypedJSONDecodeError`: ``obj`` cannot be deserialized to type_hint
     """
     if is_jsonable_class(type_hint):
-        globalns, localns = get_class_namespaces(type_hint)
+        globalns, localns = _get_class_namespaces(type_hint)
     else:
-        globalns, localns = get_outer_namespaces()
+        globalns, localns = _get_outer_namespaces()
     obj, _ = scan_json(
         obj,
         tuple(),

@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Dict, List, Tuple, Type, Union
 
-from pheres._datatypes import MISSING
-from pheres._exceptions import JSONKeyError, JSONTypeError, PheresInternalError
-from pheres._typing import JSONArray, JSONObject, JSONType, JSONValue, typeof
+from pheres.datatypes import MISSING
+from pheres.exceptions import JSONKeyError, JSONTypeError, PheresInternalError
+from pheres.typing import JSONArray, JSONObject, JSONType, JSONValue, typeof
 
 # Types used in his module
 FlatKey = Tuple[Union[int, str], ...]  # pylint: disable=unsubscriptable-object

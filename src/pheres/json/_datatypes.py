@@ -24,12 +24,13 @@ from pheres.exceptions import (
     PheresInternalError,
 )
 from pheres.utils import (
-    Virtual,
+    MISSING,
     TypeHint,
-    get_class_namespaces,
+    Virtual,
+    _get_class_namespaces,
+    docstring,
     get_eval_args,
     post_init,
-    docstring
 )
 
 PHERES_ATTR = "__pheres_data__"
@@ -44,27 +45,6 @@ __all__ = [
     "DelayedData",
     "UsableDecoder",
 ]
-
-
-class _MISSING_CLS(Virtual):
-    __slots__ = ()
-
-    _instance_: _MISSING_CLS = None
-
-    def __new__(cls):
-        if cls._instance_ is None:
-            cls._instance_ = super().__new__(cls)
-        return cls._instance_
-    
-    def __bool__(self):
-        return False
-
-    def __repr__(self):
-        return "MISSING"
-
-
-MISSING = _MISSING_CLS()
-"""Sentinel object used when `None` cannot be used"""
 
 
 class JsonableEnum(enum.Enum):
@@ -176,7 +156,7 @@ class JsonAttr:
                 raise JsonAttrTypeError(self.type, value)
 
         if self.is_json_only is MISSING:
-            globalns, localns = get_class_namespaces(cls)
+            globalns, localns = _get_class_namespaces(cls)
             if (
                 get_origin(self.type) is Literal
                 and len(

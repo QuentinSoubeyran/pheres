@@ -58,11 +58,11 @@ from pheres.utils import (
     TypeHint,
     TypeT,
     Virtual,
+    _get_class_namespaces,
+    _get_updated_class,
     classproperty,
     docstring,
-    get_class_namespaces,
     get_eval_args,
-    get_updated_class,
     type_repr,
 )
 
@@ -135,7 +135,7 @@ def _to_json_factory(internal: str):
 
 
 def _decorate_value(cls: AnyClass, *, type_hint: TypeHint, internal: str) -> AnyClass:
-    type_hint = _normalize_factory(*get_class_namespaces(cls))(type_hint)
+    type_hint = _normalize_factory(*_get_class_namespaces(cls))(type_hint)
     data = ValueData(type_hint)
     setattr(cls, PHERES_ATTR, data)
     for name, member in (
@@ -161,7 +161,7 @@ def _decorate_value(cls: AnyClass, *, type_hint: TypeHint, internal: str) -> Any
 
 
 def _decorate_array(cls: AnyClass, *, type_hint: TypeHint, internal: str) -> AnyClass:
-    globalns, localns = get_class_namespaces(cls)
+    globalns, localns = _get_class_namespaces(cls)
     types = get_eval_args(type_hint, globalns=globalns, localns=localns)
     data = ArrayData(types)
     setattr(cls, PHERES_ATTR, data)
@@ -188,7 +188,7 @@ def _decorate_array(cls: AnyClass, *, type_hint: TypeHint, internal: str) -> Any
 
 
 def _decorate_dict(cls: AnyClass, *, type_hint: TypeHint, internal: str) -> AnyClass:
-    globalns, localns = get_class_namespaces(cls)
+    globalns, localns = _get_class_namespaces(cls)
     type_ = get_eval_args(type_hint, globalns=globalns, localns=localns)[1]
     data = DictData(type_)
     setattr(cls, PHERES_ATTR, data)
@@ -271,7 +271,7 @@ def _get_jattrs(cls: type, only_marked: bool = False) -> Dict[str, JsonAttr]:
             )
     # Gather jsonized attributes
     jattrs = {}
-    globalns, localns = get_class_namespaces(cls)
+    globalns, localns = _get_class_namespaces(cls)
     _get_args = functools.partial(get_eval_args, localns=localns, globalns=globalns)
     for py_name, tp in get_type_hints(
         cls, localns={cls.__name__: cls}, include_extras=True

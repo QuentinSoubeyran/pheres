@@ -45,8 +45,8 @@ from pheres.utils import (
     Namespace,
     TypeHint,
     Virtual,
+    _get_outer_namespaces,
     get_eval_args,
-    get_outer_namespaces,
     on_success,
     split,
 )
@@ -274,7 +274,7 @@ def normalize_hint(tp: TypeHint):
     Raises:
         TypeHintError: when tp or an inner type is not a valid JSON type
     """
-    return _normalize_factory(*get_outer_namespaces())(tp)
+    return _normalize_factory(*_get_outer_namespaces())(tp)
 
 
 normalize_hint._lock = RLock()
@@ -293,7 +293,7 @@ def is_json_type(type_hint: TypeHint) -> bool:
     Returns:
        `True` if the type hint is valid for JSON, false otherwise
     """
-    globalns, localns = get_outer_namespaces()
+    globalns, localns = _get_outer_namespaces()
     try:
         _normalize_factory(globalns, localns)(type_hint)
         return True
@@ -725,6 +725,6 @@ def typecheck(value: JSONType, tp: TypeHint) -> bool:
     Raises:
         `TypeHintError`: the type hint could not be handled
     """
-    namespaces = get_outer_namespaces()
+    namespaces = _get_outer_namespaces()
     tp = _normalize_factory(*namespaces)(tp)
     return _typecheck_factory(*namespaces)(value, tp)

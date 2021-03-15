@@ -1,20 +1,22 @@
 # Code
 attrs>=20.1.0
 
-# Formatting
-## Black hasn't published a version that can format python3.9 code
+# Formatting & typechecking
+## Black hasn't published a version that can format python 3.9 code
 ## so we use the source for now
 git+https://github.com/psf/black
 isort>=5.4.2
 pylint
 rope
+mypy
 
 # Testing
 pytest>=6.0.1
 hypothesis>=5.37.0
 
 # Documentation
-git+https://github.com/sphinx-doc/sphinx@3.x
+# git+https://github.com/sphinx-doc/sphinx@3.x
+sphinx
 sphinx-rtd-theme
 recommonmark
 

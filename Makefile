@@ -3,8 +3,10 @@
 help: Makefile
 	@printf "Note: this Makefile is intended for development. Use pip to install pheres as a user\n\n"
 	@printf "Available targets:\n"
-	@printf "  setup        : install depencencies, and then pheres in editable mode\n"
-	@printf "  tidy         : tidy up the source code\n"
+	@printf "  setup        : setup env: install depencencies, and then pheres in editable mode.\n"
+	@printf "                 Only run once.\n"
+	@printf "  tidy         : tidy up the source code with isort and black\n"
+	@printf "  lint         : lint and typecheck the code with pylint and mypy\n"
 	@printf "  tests        : typecheck and test the source code\n"
 	@printf "  build        : builds distribution archives\n"
 	@printf "  release-test : release on testpypi (test server)\n"
@@ -15,12 +17,12 @@ setup: Makefile
 	pip install -U -e .
 
 tidy: Makefile
-	isort src tests
+	isort --profile=black src tests
 	black src tests
 
 lint: Makefile
-	pylint src/pheres tests
-#   mypy src tests
+	pylint src tests
+	mypy --show-error-code src tests
 
 tests: Makefile
 #   mypy src tests

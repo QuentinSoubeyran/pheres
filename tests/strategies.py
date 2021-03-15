@@ -116,7 +116,7 @@ _meta_value = (
     st.tuples(st.just(type(None)), st.just(st.none()))
     | st.tuples(st.just(bool), st.just(st.booleans()))
     | st.tuples(st.just(int), st.just(st.integers()))
-    | st.tuples(st.just(float), st.just(st.floats()))
+    | st.tuples(st.just(float), st.just(st.floats(allow_nan=False)))
     | st.tuples(st.just(str), st.just(st.text(printable)))
 )
 
