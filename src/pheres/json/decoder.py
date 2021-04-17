@@ -61,12 +61,9 @@ from pheres.json.exceptions import (
     TypedJSONDecodeError,
     UnparametrizedDecoderError,
 )
-from pheres.utils import (
-    MISSING,
-    Commented,
-    docstring,
-    exec_body_factory,
-)
+from pheres.utils import MISSING, Commented, docstring, exec_body_factory
+
+_TypedDictMeta: type = typing._TypedDictMeta  # type: ignore[attr-defined]
 
 __all__ = [
     "FileSource",
@@ -76,8 +73,9 @@ __all__ = [
 
 
 T = TypeVar("T")
+_DocT = TypeVar("_DocT", str, RawJSON)
 _PosT = TypeVar("_PosT", FilePosition, RawPosition)
-_TypedDictMeta: type = typing._TypedDictMeta  # type: ignore[attr-defined]
+_CursorT = TypeVar("_CursorT", bound="_CursorABC")
 
 
 def _unpack_union_helper(
@@ -252,10 +250,16 @@ class FileSource:
     colno: int
 
 
-class _CursorProto(Protocol[T, _PosT]):
-    src: str
-    s: T
+class _CursorABC(Generic[_DocT, _PosT], ABC):
+    s: _DocT
     pos: _PosT
+    lineno: int = MISSING
+    colno: int = MISSING
+
+    def decode_error(self, msg: str) -> TypedJSONDecodeError:
+        return TypedJSONDecodeError(
+            msg=msg, doc=self.s, pos=self.pos, lineno=self.lineno, colno=self.colno
+        )
 
 
 # Modified regex similar to json.decoder.WHITESPACE
@@ -265,7 +269,7 @@ _match_whitespace: Callable = re.compile("([ \t\r]*\n)*([ \t\n\r]*)").match
 
 
 @attr.dataclass(slots=True)
-class _Cursor(_CursorProto[str, FilePosition]):
+class _Cursor(_CursorABC[str, FilePosition]):
 
     src: str
     s: str = attr.ib(repr=False)  # too long
@@ -309,7 +313,7 @@ class _Cursor(_CursorProto[str, FilePosition]):
         self.nextchar = self.s[self.pos : self.pos + 1]
         return self
 
-    def source(self, value: T) -> Union[T, Commented[T]]:
+    def comment(self, value: T) -> Union[T, Commented[T]]:
         if self.s:
             source = FileSource(self.src, self.pos, self.lineno, self.colno)
             return Commented(value, sources=[source])
@@ -459,68 +463,74 @@ def _typeinfo_priority(ti: _TypeInfo) -> Tuple[bool, bool]:
     )
 
 
-class _Context(Generic[_PosT], ABC):
+class _ContextABC(Generic[_DocT, _PosT], ABC):
     @abstractmethod
     def get_subcontext(
-        self: _Context[_PosT], /, key: Union[int, str], pos: _PosT
-    ) -> _Context[_PosT]:
+        self,
+        /,
+        key: Union[int, str],
+        cursor: _CursorABC[_DocT, _PosT],
+    ) -> _ContextABC[_DocT, _PosT]:
         raise NotImplementedError
 
     @abstractmethod
     def validate(
-        self: _Context[_PosT], /, obj: JSON, start_pos: _PosT, end_pos: T
-    ) -> Tuple[Any, T, _Context[_PosT]]:
+        self,
+        /,
+        obj: JSON,
+        start_cursor: _CursorABC[_DocT, _PosT],
+        end_cursor: _CursorT,
+    ) -> Tuple[Any, _CursorT, _ContextABC[_DocT, _PosT]]:
         raise NotImplementedError
 
 
-class _DummyContext(_Context[_PosT]):
+class _DummyContext(_ContextABC[_DocT, _PosT]):
     def get_subcontext(
-        self, /, key: Union[int, str], pos: _PosT
-    ) -> "_DummyContext[_PosT]":
+        self,
+        /,
+        key: Union[int, str],
+        cursor: _CursorABC[_DocT, _PosT],
+    ) -> "_DummyContext[_DocT, _PosT]":
         return self
 
     def validate(
-        self, /, obj: JSON, start_pos: _PosT, end_pos: T
-    ) -> Tuple[Any, T, "_DummyContext[_PosT]"]:
-        return obj, end_pos, self
+        self,
+        /,
+        obj: JSON,
+        start_cursor: _CursorABC[_DocT, _PosT],
+        end_cursor: _CursorT,
+    ) -> Tuple[Any, _CursorT, "_DummyContext[_DocT, _PosT]"]:
+        return obj, end_cursor, self
 
 
 @attr.dataclass(frozen=True)
-class _DecodeContext(_Context[_PosT]):
+class _DecodeContext(_ContextABC[_DocT, _PosT]):
     """
     Internal class to infer types during JSON decoding
 
     DecodeContext are immutable
 
     Attributes:
-        doc: JSON document being decoded
-        pos: position at which this context starts decoding
-        eval_fref: callable to resolve ForwardRef in type forms
         type_infos: type form still valid, given what was decoded so far
+        eval_fref: callable to resolve ForwardRef in typeforms
         parent: parent DecodeContext that created this one
     """
 
-    doc: Union[str, JSON]
-    pos: _PosT
+    type_infos: Tuple[_TypeInfo, ...]
     eval_fref: EvalForwardRef
 
-    type_infos: Tuple[_TypeInfo, ...]
-    parent: Optional["_DecodeContext[_PosT]"] = None
+    parent: Optional["_DecodeContext[_DocT, _PosT]"] = None
 
     @classmethod
-    def make(
+    def from_typeform(
         cls,
         /,
-        doc: Union[str, JSON],
-        pos: _PosT,
-        eval_fref: EvalForwardRef,
         typeform: TypeForm,
-    ) -> "_DecodeContext[_PosT]":
+        eval_fref: EvalForwardRef,
+    ) -> "_DecodeContext[_DocT, _PosT]":
         return _DecodeContext(
-            doc=doc,
-            pos=pos,
-            eval_fref=eval_fref,
             type_infos=tuple(_unpack_as_typeinfos(typeform, -1, eval_fref)),
+            eval_fref=eval_fref,
         )
 
     def err_msg(
@@ -541,8 +551,11 @@ class _DecodeContext(_Context[_PosT]):
         return msg[:1].upper() + msg[1:]
 
     def get_subcontext(
-        self, /, key: Union[int, str], pos: _PosT
-    ) -> "_DecodeContext[_PosT]":
+        self,
+        /,
+        key: Union[int, str],
+        cursor: _CursorABC[_DocT, _PosT],
+    ) -> "_DecodeContext[_DocT, _PosT]":
         # Filter parent types for those that are valid
         type_infos: List[_TypeInfo] = []
         subtypes: List[_TypeInfo] = []
@@ -556,32 +569,28 @@ class _DecodeContext(_Context[_PosT]):
         # Check for errors
         if not type_infos:
             if isinstance(key, int):
-                errmsg = self.err_msg(f"<Array of len {key+1} or more>")
+                errmsg = self.err_msg(f"<Array of length {key+1} or longer>")
             else:
                 errmsg = self.err_msg(post=f"doesn't have a key '{key}'")
-            raise TypedJSONDecodeError(
-                msg=errmsg,
-                doc=self.doc,
-                pos=pos,
-            )
+            raise cursor.decode_error(errmsg)
         return _DecodeContext(
-            doc=self.doc,
-            pos=pos,
-            eval_fref=self.eval_fref,
             type_infos=tuple(subtypes),
+            eval_fref=self.eval_fref,
             parent=attr.evolve(self, type_infos=tuple(type_infos)),
         )
 
     def validate(
-        self, /, obj: JSON, start_pos: _PosT, end_pos: T
-    ) -> Tuple[Any, T, "_DecodeContext[_PosT]"]:
+        self,
+        /,
+        obj: JSON,
+        start_cursor: _CursorABC[_DocT, _PosT],
+        end_cursor: _CursorT,
+    ) -> Tuple[JSON, _CursorT, "_DecodeContext[_DocT, _PosT]"]:
         # Find valid types
         type_infos = [ti for ti in self.type_infos if ti.validate(obj)]
         # Check for no valid types
         if not type_infos:
-            raise TypedJSONDecodeError(
-                msg=self.err_msg(value=obj), doc=self.doc, pos=start_pos
-            )
+            raise start_cursor.decode_error(self.err_msg(value=obj))
         # Check for conflicting jsonable classes
         classes = tuple(ti.cls for ti in type_infos if ti.cls is not None)
         classes = tuple(
@@ -589,10 +598,8 @@ class _DecodeContext(_Context[_PosT]):
         )
         if len(classes) > 1:
             msg = ", ".join(c.__name__ for c in classes)
-            raise TypedJSONDecodeError(
-                msg=f"Inferred mutiple jsonable classes ({msg}) for {obj!r}",
-                doc=self.doc,
-                pos=start_pos,
+            raise start_cursor.decode_error(
+                f"Inferred mutiple jsonable classes ({msg}) for {obj!r}"
             )
         # Instanciate the object
         obj = sorted(type_infos, key=_typeinfo_priority)[0].instanciate(obj)
@@ -605,9 +612,9 @@ class _DecodeContext(_Context[_PosT]):
                     self.parent.type_infos[index] for index in sorted(indexes)
                 ),
             )
-            return obj, end_pos, parent
+            return obj, end_cursor, parent
         else:
-            return obj, end_pos, attr.evolve(self, type_infos=())
+            return obj, end_cursor, attr.evolve(self, type_infos=())
 
 
 #################################
@@ -619,16 +626,18 @@ class _DecodeContext(_Context[_PosT]):
 # See also LICENSE file
 
 
-class _ScannerProto(Protocol[_PosT]):
+# Has to be a protocol, because mypy doesn't support callable attributes
+# and the scanner ultimately ends as an attribute to TypedDecoder
+class _ScannerProto(Protocol[_DocT, _PosT]):
     def __call__(
-        self, cursor: _Cursor, ctx: _Context[_PosT]
-    ) -> Tuple[JSON, _Cursor, _Context[_PosT]]:
+        self, cursor: _Cursor, ctx: _ContextABC[_DocT, _PosT]
+    ) -> Tuple[JSON, _Cursor, _ContextABC[_DocT, _PosT]]:
         ...
 
 
 def _make_string_scanner(
     decoder: "_UsableDecoderProto",
-) -> _ScannerProto[FilePosition]:
+) -> _ScannerProto[str, FilePosition]:
     parse_object = decoder.parse_object
     parse_array = decoder.parse_array
     parse_string = decoder.parse_string
@@ -642,8 +651,8 @@ def _make_string_scanner(
     memo = decoder.memo
 
     def _scan_once(
-        cursor: _Cursor, ctx: _Context[FilePosition]
-    ) -> Tuple[JSON, _Cursor, _Context[FilePosition]]:
+        cursor: _Cursor, ctx: _ContextABC[str, FilePosition]
+    ) -> Tuple[JSON, _Cursor, _ContextABC[str, FilePosition]]:
         string = cursor.s
         idx = cursor.pos
         nextchar = cursor.nextchar
@@ -651,8 +660,10 @@ def _make_string_scanner(
             raise StopIteration(cursor.pos)
         if nextchar == '"':
             s, end = parse_string(string, cursor.pos + 1, strict)
-            s = cursor.source(s)
-            return ctx.validate(s, idx, cursor.advance(end))
+            # Python guarantees left to right evaluation - mutable cursor is OK
+            return ctx.validate(
+                cursor.comment(s), attr.evolve(cursor), cursor.advance(end)
+            )
         elif nextchar == "{":
             return parse_object(
                 cursor,
@@ -666,14 +677,11 @@ def _make_string_scanner(
         elif nextchar == "[":
             return parse_array(cursor, _scan_once, ctx)
         elif nextchar == "n" and string[idx : idx + 4] == "null":
-            resn = cursor.source(None)
-            return ctx.validate(resn, idx, cursor.advance(idx + 4))
+            return ctx.validate(cursor.comment(None), cursor, cursor.advance(idx + 4))
         elif nextchar == "t" and string[idx : idx + 4] == "true":
-            rest = cursor.source(True)
-            return ctx.validate(rest, idx, cursor.advance(idx + 4))
+            return ctx.validate(cursor.comment(True), cursor, cursor.advance(idx + 4))
         elif nextchar == "f" and string[idx : idx + 5] == "false":
-            resf = cursor.source(False)
-            return ctx.validate(resf, idx, cursor.advance(idx + 5))
+            return ctx.validate(cursor.comment(False), cursor, cursor.advance(idx + 5))
 
         m = match_number(string, idx)
         if m is not None:
@@ -682,23 +690,29 @@ def _make_string_scanner(
                 res = parse_float(integer + (frac or "") + (exp or ""))
             else:
                 res = parse_int(integer)
-            res = cursor.source(res)
-            return ctx.validate(res, idx, cursor.advance(m.end()))
+            return ctx.validate(cursor.comment(res), cursor, cursor.advance(m.end()))
         elif nextchar == "N" and string[idx : idx + 3] == "NaN":
-            res = cursor.source(parse_constant("NaN"))
-            return ctx.validate(res, idx, cursor.advance(idx + 3))
+            return ctx.validate(
+                cursor.comment(parse_constant("NaN")), cursor, cursor.advance(idx + 3)
+            )
         elif nextchar == "I" and string[idx : idx + 8] == "Infinity":
-            res = cursor.source(parse_constant("Infinity"))
-            return ctx.validate(res, idx, cursor.advance(idx + 8))
+            return ctx.validate(
+                cursor.comment(parse_constant("Infinity")),
+                cursor,
+                cursor.advance(idx + 8),
+            )
         elif nextchar == "-" and string[idx : idx + 9] == "-Infinity":
-            res = cursor.source(parse_constant("-Infinity"))
-            return ctx.validate(res, idx, cursor.advance(idx + 9))
+            return ctx.validate(
+                cursor.comment(parse_constant("-Infinity")),
+                cursor,
+                cursor.advance(idx + 9),
+            )
         else:
             raise StopIteration(idx)
 
     def scan_once(
-        cursor: _Cursor, ctx: _Context[FilePosition]
-    ) -> Tuple[JSON, _Cursor, _Context[FilePosition]]:
+        cursor: _Cursor, ctx: _ContextABC[str, FilePosition]
+    ) -> Tuple[JSON, _Cursor, _ContextABC[str, FilePosition]]:
         try:
             return _scan_once(cursor, ctx)
         finally:
@@ -717,26 +731,26 @@ class _JSONObjectParserProto(Protocol):
         self,
         cursor: _Cursor,
         strict: bool,
-        scan_once: _ScannerProto[FilePosition],
-        ctx: _Context[FilePosition],
+        scan_once: _ScannerProto[str, FilePosition],
+        ctx: _ContextABC[str, FilePosition],
         object_hook: "_ObjectHookProto",
         object_pairs_hook: "_ObjectPairsHookProto",
         memo: Optional[dict] = None,  # pylint: disable=unsubscriptable-object
         _ws: str = WHITESPACE_STR,
-    ) -> Tuple[JSON, _Cursor, _Context[FilePosition]]:
+    ) -> Tuple[JSON, _Cursor, _ContextABC[str, FilePosition]]:
         ...
 
 
 def _ParseJSONObject(
     cursor: _Cursor,
     strict: bool,
-    scan_once: _ScannerProto[FilePosition],
-    ctx: _Context[FilePosition],
+    scan_once: _ScannerProto[str, FilePosition],
+    ctx: _ContextABC[str, FilePosition],
     object_hook: "_ObjectHookProto",
     object_pairs_hook: "_ObjectPairsHookProto",
     memo: Optional[dict] = None,  # pylint: disable=unsubscriptable-object
     _ws: str = WHITESPACE_STR,
-) -> Tuple[JSON, _Cursor, _Context[FilePosition]]:
+) -> Tuple[JSON, _Cursor, _ContextABC[str, FilePosition]]:
     pairs: List[Tuple[str, JSON]] = []
     pairs_append = pairs.append
     # Backwards compatibility
@@ -751,12 +765,12 @@ def _ParseJSONObject(
         # Trivial empty object
         if cursor.nextchar == "}":
             if object_pairs_hook is not None:
-                result = start_cursor.source(object_pairs_hook(pairs))
-                return ctx.validate(result, ctx.pos, cursor.advance())
+                result = start_cursor.comment(object_pairs_hook(pairs))
+                return ctx.validate(result, start_cursor, cursor.advance())
             result = {}
             if object_hook is not None:
-                result = start_cursor.source(object_hook(result))
-            return ctx.validate(result, ctx.pos, cursor.advance())
+                result = start_cursor.comment(object_hook(result))
+            return ctx.validate(result, start_cursor, cursor.advance())
         elif cursor.nextchar != '"':
             raise JSONDecodeError(
                 "Expecting property name enclosed in double quotes",
@@ -769,7 +783,7 @@ def _ParseJSONObject(
         key, end = scanstring(cursor.s, cursor.pos, strict)
         cursor.advance(end)
         key = memo_get(key, key)
-        key = key_cursor.source(key)
+        key = key_cursor.comment(key)
         # To skip some function call overhead we optimize the fast paths where
         # the JSON key separator is ": " or just ":".
         if cursor.nextchar != ":":
@@ -788,7 +802,7 @@ def _ParseJSONObject(
         # value_cursor = attr.evolve(cursor)
         try:
             value, cursor, ctx = scan_once(
-                cursor, ctx.get_subcontext(key, key_cursor.pos)
+                cursor, ctx.get_subcontext(key, key_cursor)
             )
         except StopIteration as err:
             raise JSONDecodeError("Expecting value", cursor.s, err.value) from None
@@ -813,13 +827,11 @@ def _ParseJSONObject(
         cursor.advance()
     if object_pairs_hook is not None:
         result = object_pairs_hook(pairs)
-        result = start_cursor.source(result)
-        return ctx.validate(result, ctx.pos, cursor)
+        return ctx.validate(start_cursor.comment(result), start_cursor, cursor)
     result = dict(pairs)
     if object_hook is not None:
         result = object_hook(pairs)
-    result = start_cursor.source(result)
-    return ctx.validate(result, ctx.pos, cursor)
+    return ctx.validate(start_cursor.comment(result), start_cursor, cursor)
 
 
 # Original Source code at:
@@ -829,34 +841,35 @@ class _JSONArrayParserProto(Protocol):
     def __call__(
         self,
         cursor: _Cursor,
-        scan_once: _ScannerProto[FilePosition],
-        ctx: _Context[FilePosition],
+        scan_once: _ScannerProto[str, FilePosition],
+        ctx: _ContextABC[str, FilePosition],
         _ws: str = WHITESPACE_STR,
-    ) -> Tuple[JSON, _Cursor, _Context[FilePosition]]:
+    ) -> Tuple[JSON, _Cursor, _ContextABC[str, FilePosition]]:
         ...
 
 
 def _ParseJSONArray(
     cursor: _Cursor,
-    scan_once: _ScannerProto[FilePosition],
-    ctx: _Context[FilePosition],
+    scan_once: _ScannerProto[str, FilePosition],
+    ctx: _ContextABC[str, FilePosition],
     _ws: str = WHITESPACE_STR,
-) -> Tuple[JSON, _Cursor, _Context[FilePosition]]:
+) -> Tuple[JSON, _Cursor, _ContextABC[str, FilePosition]]:
     # Wrap the list in a Commented object
-    values: Union[List[JSON], Commented[List[JSON]]] = cursor.source([])
+    values: Union[List[JSON], Commented[List[JSON]]] = cursor.comment([])
+    start_cursor = attr.evolve(cursor)
     cursor.advance()
     if cursor.nextchar in _ws:
         cursor.skip_whitespace()
     # Look-ahead for trivial empty array
     if cursor.nextchar == "]":
-        return ctx.validate(values, ctx.pos, cursor.advance())
+        return ctx.validate(values, start_cursor, cursor.advance())
     _append = values.append  # method still accessible through Commented wrapper
     i = -1
     while True:
         try:
             i += 1
             # value_cursor = attr.evolve(cursor)
-            value, cursor, ctx = scan_once(cursor, ctx.get_subcontext(i, cursor.pos))
+            value, cursor, ctx = scan_once(cursor, ctx.get_subcontext(i, cursor))
         except StopIteration as err:
             raise JSONDecodeError("Expecting value", cursor.s, err.value) from None
         # value = value_cursor.source(value)
@@ -873,7 +886,7 @@ def _ParseJSONArray(
             cursor.advance()
             if cursor.nextchar in _ws:
                 cursor.skip_whitespace()
-    return ctx.validate(values, ctx.pos, cursor)
+    return ctx.validate(values, start_cursor, cursor)
 
 
 ##################
@@ -935,7 +948,7 @@ class UsableDecoder(json.JSONDecoder):
     """
 
     src: str
-    scan_once: _ScannerProto[FilePosition]
+    scan_once: _ScannerProto[str, FilePosition]
 
     def __init__(self, *args, **kwargs):
         self.src = kwargs.pop("src", "")
@@ -1041,7 +1054,7 @@ def _tp_cache(func: T) -> T:
     return wrapper  # type: ignore[return-value]
 
 
-class ParametrizedTypedDecoderMeta(ABCMeta):
+class _ParametrizedTypedDecoderMeta(ABCMeta):
     """
     Metaclass for parametrized TypedJSONDecoder classes -- provides a nice repr()
 
@@ -1088,7 +1101,7 @@ class TypedDecoder(ABC, UsableDecoder):
         return types.new_class(
             "ParametrizedTypedJSONDecoder",
             (cls,),
-            kwds={"metaclass": ParametrizedTypedDecoderMeta},
+            kwds={"metaclass": _ParametrizedTypedDecoderMeta},
             exec_body=exec_body_factory(typeform=typeform, eval_fref=eval_fref),
         )
 
@@ -1139,7 +1152,7 @@ class TypedDecoder(ABC, UsableDecoder):
             else:
                 eval_fref = self.eval_fref
             cursor = _Cursor(src=self.src, s=s, pos=idx)
-            context = _DecodeContext.make(s, idx, eval_fref, self.typeform)
+            context = _DecodeContext.from_typeform(self.typeform, eval_fref)
             try:
                 obj, cursor, _ = self.scan_once(
                     cursor,

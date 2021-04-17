@@ -6,7 +6,7 @@ import attr
 from pheres.aliases import TypeForm
 from pheres.exceptions import PheresError
 from pheres.json.aliases import Position, RawJSON
-from pheres.utils import autoformat
+from pheres.utils import MISSING, autoformat
 
 __all__ = [
     "JSONTypeError",
@@ -209,18 +209,28 @@ class TypedJSONDecodeError(json.JSONDecodeError, DecodeError):
 
     pos: Position  # type: ignore[assignment]
 
-    def __init__(self, msg: str, doc: Union[str, RawJSON], pos: Position):
+    def __init__(
+        self,
+        msg: str,
+        doc: Union[str, RawJSON],
+        pos: Position,
+        lineno: int = MISSING,
+        colno: int = MISSING,
+    ):
         """
         Special case when the decoded document is an object
         """
         if isinstance(pos, int):
-            lineno = doc.count("\n", 0, pos) + 1
-            colno = pos - doc.rfind("\n", 0, pos)
+            if lineno is MISSING:
+                lineno = doc.count("\n", 0, pos) + 1
+            if colno is MISSING:
+                colno = pos - doc.rfind("\n", 0, pos)
             errmsg = "%s, at line %d, column %d (char %d)" % (msg, lineno, colno, pos)
         else:
-            # quote the string keys only
+            # quote string keys
             path = ['"%s"' % p if isinstance(p, str) else str(p) for p in pos]
-            keys = " -> ".join(("<base object>", *path))
+            path = ["[%s]" % k for k in path]
+            keys = "".join(("<python object>", *path))
             errmsg = "%s, at %s" % (msg, keys)
             lineno = -1
             colno = -1
